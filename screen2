@@ -1,0 +1,26 @@
+http://en.wikipedia.org/wiki/Texas_Instruments_TMS9918
+* 32*24 karakters (256*192 bitmap, een karakter is 8x8)
+* 3 stroken van 256x64 pixels: 3 * 16384p = 49152p = 48kp
+* per strook een karakterset
+* per 8x1 pixels 2 bytes:
+** 2 nybble om voor- en achtergrond te selecteren: 1 byte
+** 1 bit voor elke pixel: 1 byte
+* per karakter (=8 * 8x1 pixels dus 2*8 = 16 bytes.
+* per strook (=32*6=256 karakters) dus 256*16 = 4096 bytes (=1 vpage?)
+* per beeld (=3 stroken) dus 4K * 3 = 12K
+* 1 sprite is 16x16
+* 32 (monochrome) sprites max
+* 32 * 16x16= 8192 pixels aan sprites
+
+Indeling plaatje 14343 bytes:
+* 7 byte header:
+** 0x0000-0x0002 header: fe 00 00
+** 0x0002-0x0003 size?   00 38    => 0x3800 = 14336
+** => 14336 + size(header) = 14336+7 = 14343!
+** 0x0004-0x0005?
+* 0x0007-0x1800 pattern table (6kB)
+* 0x1807-0x1906 print 0 .. 255 (strook 1?)
+* 0x1907-0x1A06 print 0 .. 255 (strook 2?)
+* 0x1A07-0x1B06 print 0 .. 255 (strook 3?)
+* 0x1B07-0x2006 sprite???? (1kB + 128B)
+* 0x2006-0x3807 color table (6kB)

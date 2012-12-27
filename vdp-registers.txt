@@ -1,0 +1,24 @@
+00000-01800: color table
+01800-02000: sprite pattern generator table
+02000-03800: pattern generator table
+03800-03B00: pattern name table
+03B00-03B80: sprite attribute table
+
+(sprite mode 1, so no sprite color table)
+
+Not world 1: set_vram_patterns using 0x14044
+
+Code for world 1 room patterns: 0x140d7 + room_number / 2; high nybble for even room, low nybble for odd room.
+
+Pattern sets:
+0 = 0x14069
+1 = 0x14076
+2 = 0x14083 + mirror: 0x140a8
+3 = 0x14083 + 0x140c9 + mirror: 0x140a8
+4 = 0x140b1 + 0x140a1 + mirror: 0x140ac
+5 = 0x140b1 + mirror: 0x140ac
+6 = 0x140d0
+
+Mirror settings:
+140a8: 7 chars from a6 to ad and 6 chars from f1 to f7
+140ac: 6 chars from f1 to f7
