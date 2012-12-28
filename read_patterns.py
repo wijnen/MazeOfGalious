@@ -7,6 +7,7 @@ import numpy
 import Image
 
 pointers = [0x14000, 0x14044, 0x14069, 0x14076, 0x14083, 0x140a1, 0x140b1, 0x140c9, 0x140d0, 0x14121, 0x14139, 0x1435e, 0x14365, 0x1436c, 0x1da96] + [0x14175 + n * 7 for n in range (10)]
+sets = [[0, 2], [0, 3], [0, 4], [0, 4, 7], [0, 6, 5], [0, 6], [0, 8], [0, 1]]
 pointers2 = [0x1dad3, 0x1db24, 0x1daa2, 0x1dacc, 0x1db24, 0x1dabd, 0x1dbec]
 
 palette = ((0, 0, 0,
@@ -83,20 +84,20 @@ def create_image (name, addr, (start, extra, chars), item = False):
 	im.putpalette (palette)
 	im.save ('/tmp/charmog-%s-%04x-%02x-%d.png' % (name, addr, start, extra))
 
-print 'setup_vram_patterns'
+setup_vram_patterns = []
 for addr in pointers:
+	setup_vram_patterns += ([],)
 	while data[addr] != '\0':
-		create_image ('setup_vram_patterns', addr, build_patterns (addr))
+		setup_vram_patterns[-1] += (build_patterns (addr),)
 		addr += 6
 
-print 'set_some_patterns'
+set_some_patterns = []
 for addr in pointers2:
 	patterns = build_patterns_internal (addr).reshape ((-1, 8))
 	colors = numpy.ones (patterns.shape, dtype = numpy.uint8) * 0xf0
-	chars = numpy.array ([makechar (patterns[i], colors[i]) for i in range (patterns.shape[0])])
-	create_image ('set_some_patterns', addr, (0, 0, chars))
+	set_some_patterns += (numpy.array ([makechar (patterns[i], colors[i]) for i in range (patterns.shape[0])]),)
 
-print 'items'
+items = {}
 for idx in range (7, 0x2d):
 	offset = 0x14000 - 0x6000
 	addr = struct.unpack ('<H', data[0x14e34 + 2 * idx:0x14e34 + 2 * idx + 2])[0]
@@ -105,5 +106,38 @@ for idx in range (7, 0x2d):
 	addr = struct.unpack ('<H', data[0x14e80 + 2 * idx:0x14e80 + 2 * idx + 2])[0]
 	addr += offset
 	colors = build_patterns_internal (addr).reshape ((-1, 8))
-	chars = numpy.array ([makechar (patterns[i], colors[i]) for i in range (patterns.shape[0])])
-	create_image ('items', addr, (0, 0, chars), item = True)
+	items[idx] = numpy.array ([makechar (patterns[i], colors[i]) for i in range (patterns.shape[0])])
+
+def create_output ():
+	for idx1, i in enumerate (setup_vram_patterns):
+		for idx2, j in enumerate (i):
+			create_image ('setup_vram_patterns-%d' % idx1, idx2, j)
+
+	for idx, i in enumerate (set_some_patterns):
+		create_image ('set_some_patterns', idx, (0, 0, i))
+
+	for i in items:
+		create_image ('items', i, (0, 0, items[i]), item = True)
+
+if __name__ == '__main__':
+	create_output ()
+
+def get_char (pattern, code):
+	if pattern in (2, 3) and 0xad <= code < 0xad + 7:
+		mirror = True
+		code -= 7
+	elif pattern in (2, 3, 4, 5) and 0xf7 <= code < 0xf7 + 6:
+		mirror = True
+		code -= 6
+	else:
+		mirror = False
+	for s in sets[pattern][::-1]:
+		for start, junk, chars in setup_vram_patterns[s]:
+			if start <= code < start + len (chars):
+				if not mirror:
+					return chars[code - start]
+				else:
+					return chars[code - start][:, ::-1]
+	if (pattern, code) != (-1, 0):
+		print 'not found: pattern %d, code %x' % (pattern, code)
+	return numpy.zeros ((8,8), dtype = numpy.uint8)

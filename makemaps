@@ -1,13 +1,12 @@
 #!/usr/bin/python
-# vim: set text-encoding=utf-8 :
+# vim: set fileencoding=utf-8 :
 
 import sys
 import struct
 import numpy
 import Image
+import read_patterns
 
-colorbase = 0
-patternbase = 0x2000
 palette = ((0, 0, 0,
 		0, 0, 0,
 		62, 184, 73,
@@ -25,113 +24,40 @@ palette = ((0, 0, 0,
 		204, 204, 204,
 		255, 255, 255))
 
-def aa (p):
-	'''Write patterns p to screen as ascii art, in blocks of 2x2.'''
-	start, p = p
-	if p.shape[0] % 4 == 0:
-		p = p.reshape ((-1, 4, 8, 8))
-		for n, pat in enumerate (p):
-			print 'patterns from 0x%x' % (start + 4 * n)
-			l2 = []
-			r2 = []
-			for y in range (8):
-				l1 = ''
-				r1 = ''
-				l2.append ('')
-				r2.append ('')
-				for x in range (8):
-					l1 += ['·', '#'][pat[0, y, x] != 0]
-					r1 += ['·', '#'][pat[1, y, x] != 0]
-					l2[-1] += ['·', '#'][pat[2, y, x] != 0]
-					r2[-1] += ['·', '#'][pat[3, y, x] != 0]
-				print l1 + r1
-			for y in range (8):
-				print l2[y] + r2[y]
+def get_pattern (room):
+	d = ord (data[0x140d7 + (room + 1) / 2])
+	if (room + 1) & 1:
+		return d & 0xf
 	else:
-		for n, pat in enumerate (p):
-			print 'pattern 0x%x' % (start + n)
-			for y in range (8):
-				l = ''
-				for x in range (8):
-					l += ['·', '#'][pat[y, x] != 0]
-				print l
+		return d >> 4
 
 data = open ('/home/shevek/msx/rom/MazeOfGalious.rom').read ()
 world = struct.unpack ('<' + 'H' * 11, data[0xeac0:0xead6])
 world = [x - 0x6000 + 0xe000 for x in world]
 rooms = [(world[x + 1] - world[x]) / 40 for x in range (len (world) - 1)] + [6]
-
-def build_patterns_internal (address):
-	ret = []
-	while data[address] != '\0':
-		c = ord (data[address])
-		#print 'code: %x@%x' % (c, address)
-		address += 1
-		assert c != 0x80
-		if c & 0x80:
-			ret.extend ([ord (data[address + n]) for n in range (c - 0x80)])
-			#print 'add %x bytes' % (c - 0x80)
-			address += c - 0x80
-		else:
-			ret.extend ([ord (data[address])] * c)
-			#print 'add %x const bytes' % c
-			address += 1
-	return numpy.array (ret, dtype = numpy.uint8)
-
-def makechar (pattern, color):
-	ret = numpy.zeros ((8, 8), dtype = numpy.uint8)
-	for line in range (8):
-		colors = (color[line] & 0xf, color[line] >> 4)
-		for pixel in range (8):
-			ret[line, 7 - pixel] = colors[(pattern[line] >> pixel) & 1]
-	return ret
-
-def build_patterns (address):
-	junk, pgt, start, ct = struct.unpack ('<BHBH', data[address:address + 6])
-	print junk
-	assert junk == 7
-	# Convert from mapping to real address.
-	pgt += 0x14000 - 0x6000
-	ct += 0x14000 - 0x6000
-	patterns = build_patterns_internal (pgt).reshape ((-1, 8))
-	colors = build_patterns_internal (ct).reshape ((-1, 8))
-	assert patterns.shape == colors.shape
-	return start, numpy.array ([makechar (patterns[i], colors[i]) for i in range (patterns.shape[0])])
-
-for world, addr in enumerate ((0x14044, 0x14069, 0x14076, 0x14083, 0x140c9, 0x140b1, 0x140a1, 0x140d0)):
-	start, chars = build_patterns (addr)
-	ar = numpy.zeros ((8, chars.shape[0] * 10), dtype = numpy.uint8)
-	for n, c in enumerate (chars):
-		ar[:, n * 10:n * 10 + 8] = c
-	im = Image.fromarray (ar, 'P')
-	im.putpalette (palette)
-	im.save ('/tmp/charmog-%d.png' % world)
-sys.exit (0)
-
+patterns = [get_pattern (i) for i in range (rooms[0])]
 tiles = numpy.array ([[[ord (data[0xe000 + t * 0x10 + y * 4 + x]) for x in range (4)] for y in range (4)] for t in range (0xac)], dtype = numpy.uint8)
 
 #print '\n'.join (['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate (world)])
 
-patterns = [makechar (c) for c in range (0x300)]
-
-def makeimage (data):
+def makeimage (data, patterns):
 	ret = numpy.zeros ((20 * 8, 32 * 8), dtype = numpy.uint8)
 	for y in range (20):
 		for x in range (32):
-			ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = patterns[data[y, x] + 256 * ((y + 4) / 8)]
+			ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char (patterns, data[y, x])
 	im = Image.fromarray (ret, 'P')
 	im.putpalette (palette)
 	return im
 
 out = []
-for w, nrooms in zip (world, rooms):
+for idx, (w, nrooms) in enumerate (zip (world, rooms)):
 	fullmap = numpy.zeros ((nrooms, 20, 32), dtype = numpy.uint8)
 	roomdata = numpy.array ([[ord (x) for x in data[w + 40 * room:w + 40 * (room + 1)]] for room in range (nrooms)], dtype = numpy.uint8).reshape ((nrooms, 5, 8))
 	for y in range (5):
 		for x in range (8):
 			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range (nrooms)]
-	out.append ([makeimage (fullmap[r]) for r in range (nrooms)])
+	out.append ([makeimage (fullmap[r], patterns[r] if idx == 0 else -1) for r in range (nrooms)])
 
 for w, im in enumerate (out):
 	for n, r in enumerate (im):
-		r.save ('/tmp/mog-%02d-%03d.png' % (w, n))
+		r.save ('/tmp/mog-%02d-%03d.png' % (w + 1, n + 1))

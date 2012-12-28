@@ -6,22 +6,25 @@
 
 (sprite mode 1, so no sprite color table)
 
+All worlds use the patterns at 0x14000; stuff below is added to that.
+
 Not world 1: set_vram_patterns using 0x14044
 
 Code for world 1 room patterns: 0x140d7 + room_number / 2; high nybble for even room, low nybble for odd room.
 
 Pattern sets:
-0 = 0x14069
-1 = 0x14076
-2 = 0x14083 + mirror: 0x140a8
-3 = 0x14083 + 0x140c9 + mirror: 0x140a8
-4 = 0x140b1 + 0x140a1 + mirror: 0x140ac
-5 = 0x140b1 + mirror: 0x140ac
-6 = 0x140d0
+0 = 0x14069				9c+4, a2+14
+1 = 0x14076				9c+4, a2+14
+2 = 0x14083 + mirror: 0x140a8		9c+4, a0+6, 99+1, b4+2, f1+6		+ad+7 +f7+6
+3 = 0x14083 + 0x140c9 + mirror: 0x140a8	9c+4, a0+6, 99+1, b4+2, f1+6, f1+6	+ad+7 +f7+6
+4 = 0x140b1 + 0x140a1 + mirror: 0x140ac	9c+4, a0+5, a6+3, a9+3, f1+6		+f7+6
+5 = 0x140b1 + mirror: 0x140ac		9c+4, a0+5, a6+3, a9+3			+f7+6
+6 = 0x140d0				9c+26
+    0x14044				9c+4, a0+6, f1+6, a6+4, f1+6, f0+1
 
 Mirror settings:
-140a8: 7 chars from a6 to ad and 6 chars from f1 to f7
-140ac: 6 chars from f1 to f7
+140a8: a6+7 to ad, f1+6 to f7
+140ac: f1+6 to f7
 
 
 encoding:
