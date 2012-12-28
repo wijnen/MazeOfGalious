@@ -3215,7 +3215,7 @@ T569Dh	CDC95D..  ..].	CALL	GetSomePropertyFromCurrentRoom	; object in room?
 T56A0h	F5......  ....	PUSH	AF	
 T56A1h	CD3642..  .6B.	CALL	SetMapperC	
 T56A4h	F1......  ....	POP	AF	
-T56A5h	C4DE58..  ..X.	CALL	NZ,T58DEH
+T56A5h	C4DE58..  ..X.	CALL	NZ,load_first_item_patterns
 T56A8h	CDFA56..  ..V.	CALL	T56FAH	
 T56ABh	CDD556..  ..V.	CALL	T56D5H	
 T56AEh	3AD2E0..  :...	LD	A,(TE0D2H)
@@ -3279,18 +3279,18 @@ T571Ah	189C....  ....	JR	09Ch			; Jump to 056B8H
 
 ; show item screen; mapper = ABC
 T571Ch	11DA6E..  ..n.	LD	DE,06EDAh
-T571Fh	21D022..  !.".	LD	HL,022D0h		; patterns 0x5a+	(00 01 ff 03 07 07 03 01, 00 00 00 80 c0 c0 80 00, 03 1f 30 40 5f 7f 3f 1f, 80 f0 18 74 74 04 68 f0)
+T571Fh	21D022..  !.".	LD	HL,022D0h		; patterns 0x5a+	cape, water, magic wand, map, cross
 T5722h	CD0C5C..  ..\.	CALL	send_vram_1800_multiple	
 T5725h	118573..  ..s.	LD	DE,07385h
-T5728h	21D002..  !...	LD	HL,002D0h		; colors 0x5a+		(f0 f0 00 b0 f0 50 50 e0, b0 b0 b0 b0 f0 e0 e0 e0, f0 b0 50 50 50 70 70 50, f0 f0 50 f0 f0 70 f0 50)
+T5728h	21D002..  !...	LD	HL,002D0h		; colors 0x5a+
 T572Bh	CD0C5C..  ..\.	CALL	send_vram_1800_multiple	
 T572Eh	11916F..  ..o.	LD	DE,06F91h
-T5731h	212824..  !($.	LD	HL,02428h		; patterns 0x85+	(00 00 00 00 03 1b 18 60, 00 08 60 66 06 00 03 03, 60 00 20 70 4e 1f 17 0e, 00 06 0e 74 f8 68 30 00)
+T5731h	212824..  !($.	LD	HL,02428h		; patterns 0x85+	other items
 T5734h	CD0C5C..  ..\.	CALL	send_vram_1800_multiple	
 T5737h	11E573..  ..s.	LD	DE,073E5h
-T573Ah	212804..  !(..	LD	HL,00428h		; colors 0x85+		(70 70 70 70 70 70 70 70, 70 70 70 70 70 70 f0 70, 70 70 f0 70 f0 70 70 70, 70 f0 70 f0 f0 70 70 70)
+T573Ah	212804..  !(..	LD	HL,00428h		; colors 0x85+
 T573Dh	CD0C5C..  ..\.	CALL	send_vram_1800_multiple	
-T5740h	DD216563  .!ec	LD	IX,06365h					(75d2, 7643, 0x76 bytes)
+T5740h	DD216563  .!ec	LD	IX,06365h		; popolon, aphrodite, world map tiles (white blocks)
 T5744h	CDB35A..  ..Z.	CALL	setup_vram_patterns	
 T5747h	3A97E0..  :...	LD	A,(TE097H)
 T574Ah	D602....  ....	SUB	002h	
@@ -3298,7 +3298,7 @@ T574Ch	F8......  ....	RET	M
 
 T574Dh	C62B....  .+..	ADD	A,02Bh	
 T574Fh	218827..  !.'.	LD	HL,02788h
-T5752h	C3E158..  ..X.	JP	T58E1H		
+T5752h	C3E158..  ..X.	JP	load_item_patterns		
 
 T5755h	113178..  .1x.	LD	DE,07831h
 T5758h	21001D..  !...	LD	HL,01D00h
@@ -3370,7 +3370,7 @@ T580Eh	CD5541..  .UA.	CALL	T4155H
 T5811h	B7......  ....	OR	A	
 T5812h	2806....  (...	JR	Z,006h			; Jump to 0581AH
 T5814h	217024..  !p$.	LD	HL,02470h
-T5817h	CDE158..  ..X.	CALL	T58E1H	
+T5817h	CDE158..  ..X.	CALL	load_item_patterns	
 T581Ah	C3B856..  ..V.	JP	T56B8H		
 
 T581Dh	F0......  ....	RET	P		
@@ -3476,10 +3476,12 @@ T58D2h	C9......  ....	RET
 
 T58D3h	CDC156..  ..V.	CALL	T56C1H	
 T58D6h	3E0C....  >...	LD	A,00Ch	
-T58D8h	CDDE58..  ..X.	CALL	T58DEH	
+T58D8h	CDDE58..  ..X.	CALL	load_first_item_patterns	
 T58DBh	C3B856..  ..V.	JP	T56B8H		
 
+load_first_item_patterns:	; mapper = ABC
 T58DEh	21B023..  !.#.	LD	HL,023B0h
+load_item_patterns:
 T58E1h	2200F0..  "...	LD	(TF000H),HL
 T58E4h	FE07....  ....	CP	007h	
 T58E6h	D8......  ....	RET	C		
@@ -3505,7 +3507,7 @@ T5901h	5E......  ^...	LD	E,(HL)
 T5902h	23......  #...	INC	HL			;
 T5903h	56......  V...	LD	D,(HL)	
 T5904h	2A00F0..  *...	LD	HL,(TF000H)
-T5907h	0100E0..  ....	LD	BC,0E000h
+T5907h	0100E0..  ....	LD	BC,0E000h	; -0x2000
 T590Ah	09......  ....	ADD	HL,BC	
 T590Bh	C3FC5B..  ..[.	JP	send_vram_1800		
 
@@ -3933,7 +3935,7 @@ T5C0Bh	C9......  ....	RET
 
 send_vram_1800_multiple:
 ; send blocks of vram_1800 data until 0 is seen.
-' Only used for creating item screen (to load all items?)
+' Only used for creating item screen to load all items
 T5C0Ch	0603....  ....	LD	B,003h	
 T5C0Eh	C5......  ....	PUSH	BC	
 T5C0Fh	D5......  ....	PUSH	DE	
@@ -4314,7 +4316,7 @@ T5E0Dh	07......  ....	RLCA
 T5E0Eh	08......  ....	EX	AF,AF'	
 T5E0Fh	0609....  ....	LD	B,009h	
 
-set_some_patterns_1:
+set_some_patterns_1:		; 0-9 and A-Z
 T5E11h	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E14h	11D39A..  ....	LD	DE,09AD3h
 T5E17h	210820..  !...	LD	HL,02008h
@@ -4328,7 +4330,7 @@ T5E2Bh	012001..  ....	LD	BC,00120h
 T5E2Eh	CDEB5B..  ..[.	CALL	fill_vram_3	
 T5E31h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_2:
+set_some_patterns_2:		; 0-9, copyright, hand, punctuation, minus, A-Z
 T5E34h	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E37h	CDAF5E..  ..^.	CALL	T5EAFH	
 T5E3Ah	11D39A..  ....	LD	DE,09AD3h
@@ -4349,14 +4351,14 @@ T5E63h	015801..  .X..	LD	BC,00158h
 T5E66h	CDEB5B..  ..[.	CALL	fill_vram_3	
 T5E69h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_3:
+set_some_patterns_3:		; Copyright and hand
 T5E6Ch	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E6Fh	11A29A..  ....	LD	DE,09AA2h
 T5E72h	216021..  !`!.	LD	HL,02160h
 T5E75h	CDFC5B..  ..[.	CALL	send_vram_1800	
 T5E78h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_4:
+set_some_patterns_4:		; punctuation
 T5E7Bh	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E7Eh	11BD9A..  ....	LD	DE,09ABDh
 T5E81h	216821..  !h!.	LD	HL,02168h
@@ -4367,7 +4369,7 @@ T5E8Ch	011000..  ....	LD	BC,00010h
 T5E8Fh	CDEB5B..  ..[.	CALL	fill_vram_3	
 T5E92h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_5:
+set_some_patterns_5:		; Japanese
 T5E95h	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E98h	11EC9B..  ....	LD	DE,09BECh
 T5E9Bh	21D025..  !.%.	LD	HL,025D0h

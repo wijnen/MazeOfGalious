@@ -22,3 +22,65 @@ Pattern sets:
 Mirror settings:
 140a8: 7 chars from a6 to ad and 6 chars from f1 to f7
 140ac: 6 chars from f1 to f7
+
+
+encoding:
+send_vram:
+- DE = RLE data (0 = end; with bit 7: data & 0x7f literal bytes follow; without bit 7: one byte follows; copy this data times to output)
+- HL = target vram address (not changed).
+
+send_vram_1800: call send_vram 3 times, with HL += 0x800 in between.
+DE+HL values used in cartridge by set_some_patterns_*:
+
+1:
+	9ad3+2008	0-9			01-0b
+	9b24+2058	A-Z			0b-25
+	fill f0 0008,0x120
+2:
+	9ad3+2080	0-9			0a-14
+	9aa2+20d0	Copyright and hand	1a-20
+	9acc+2100	Minus			20-21
+	9b24+2108	A-Z			22-3c
+	fill f0 0080,0x158
+3:
+	9aa2+2160	Copyright and hand	2c-32
+4:
+	9abd+2168	Punctuation		2d-30
+	fill f0 0168,0x010
+5:
+	9bec+25d0	Japanese		ba-f0
+	fill f0 05d0,0x1b0
+
+load_item_patterns:
+Uses a table at 0x14E34 for patterns; 0x14e80 for colors. Each entry in the table is an address where send_vram_1800-data is. Note that the first table entry is 7, not 0 (so it really starts at 0x14e42/0x14e8e). The last entry is 0x2c.
+
+setup_vram_patterns:
+- IX = (7, pgt, start, ct); pgt and ct are main ram addresses for send_vram data; start is first character to fill.
+
+IX values used in cartridge:
+6000	Status bar
+6044	White pillar
+6069	Red pillar
+6076	Blue pillar
+6083	Blue round brick (identical to 60b1)
+60a1	Easter island statue
+60b1	Blue round brick
+60c9	Knight armour
+60d0	Red bricks with grass
+6121	Weirdness...
+6139	White and grey stuff
+6175 + n * 7 (n = 0-10)
+	6175	Weird white and grey stuff
+	617c	more green stuff?
+	6183	identical to 617c, but region 2 instead of 4
+	618a	identical to 617c, but region 1 instead of 4
+	6191	identical to 619f, region 4
+	6198	identical to 619f, region 2
+	619f	other green stuff, region 1
+	61a6	Dragon fire breath
+	61ad	Crab?
+	61b4	Green monster?
+635ea	Gods
+6365	Characters for selection and map tiles
+636c	Castle from end demo
+9a96	Title page
