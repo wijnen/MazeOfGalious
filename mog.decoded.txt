@@ -1428,15 +1428,16 @@ T4998h	C3A943..  ..C.	JP	T43A9H
 T499Bh	AF......  ....	XOR	A			; Clear A and F
 T499Ch	3215E6..  2...	LD	(TE615H),A
 T499Fh	3220E0..  2...	LD	(TE020H),A
-T49A2h	CDB049..  ..I.	CALL	T49B0H	
+T49A2h	CDB049..  ..I.	CALL	screenlock
 T49A5h	3E81....  >...	LD	A,081h	
 T49A7h	CD1F4E..  ..N.	CALL	T4E1FH	
 T49AAh	CD619F..  .a..	CALL	T9F61H	
 T49ADh	C35E43..  .^C.	JP	T435EH		
 
+screenlock:
 T49B0h	21FFFF..  !...	LD	HL,0FFFFh
-T49B3h	2248E6..  "H..	LD	(TE648H),HL
-T49B6h	224AE6..  "J..	LD	(TE64AH),HL
+T49B3h	2248E6..  "H..	LD	(current_exits),HL
+T49B6h	224AE6..  "J..	LD	(current_exits + 2),HL
 T49B9h	C9......  ....	RET			
 
 T49BAh	78......  x...	LD	A,B	
@@ -2553,7 +2554,7 @@ T5213h	3EFC....  >...	LD	A,0FCh
 T5215h	C31F4E..  ..N.	JP	T4E1FH		
 
 T5218h	CD7945..  .yE.	CALL	T4579H	
-T521Bh	C2B049..  ..I.	JP	NZ,T49B0H
+T521Bh	C2B049..  ..I.	JP	NZ,screenlock
 T521Eh	CD9E41..  ..A.	CALL	SetMapper789	
 T5221h	3A41E0..  :A..	LD	A,(WorldNumber)
 T5224h	21EFA9..  !...	LD	HL,0A9EFh
@@ -2564,7 +2565,7 @@ T522Eh	2600....  &...	LD	H,000h
 T5230h	29......  )...	ADD	HL,HL	
 T5231h	29......  )...	ADD	HL,HL	
 T5232h	19......  ....	ADD	HL,DE	
-T5233h	1148E6..  .H..	LD	DE,0E648h
+T5233h	1148E6..  .H..	LD	DE,current_exits
 T5236h	010400..  ....	LD	BC,00004h
 T5239h	EDB0....  ....	LDIR		
 T523Bh	C36C41..  .lA.	JP	SetMapper123		
@@ -15661,7 +15662,7 @@ TA849h	C9......  ....	RET
 
 TA84Ah	CB4E....  .N..	BIT	1,(HL)	
 TA84Ch	2817....  (...	JR	Z,017h			; Jump to 0A865H
-TA84Eh	3A48E6..  :H..	LD	A,(TE648H)
+TA84Eh	3A48E6..  :H..	LD	A,(current_exits)
 TA851h	3C......  <...	INC	A			;
 TA852h	C8......  ....	RET	Z		
 

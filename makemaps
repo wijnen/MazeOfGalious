@@ -22,7 +22,8 @@ palette = ((0, 0, 0,
 		58, 162, 65,
 		183, 102, 181,
 		204, 204, 204,
-		255, 255, 255))
+		255, 255, 255,
+	))
 
 def get_pattern (room):
 	d = ord (data[0x140d7 + (room + 1) / 2])
@@ -38,8 +39,6 @@ rooms = [(world[x + 1] - world[x]) / 40 for x in range (len (world) - 1)] + [6]
 patterns = [get_pattern (i) for i in range (rooms[0])]
 tiles = numpy.array ([[[ord (data[0xe000 + t * 0x10 + y * 4 + x]) for x in range (4)] for y in range (4)] for t in range (0xac)], dtype = numpy.uint8)
 
-#print '\n'.join (['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate (world)])
-
 def makeimage (data, patterns):
 	ret = numpy.zeros ((20 * 8, 32 * 8), dtype = numpy.uint8)
 	for y in range (20):
@@ -51,6 +50,7 @@ def makeimage (data, patterns):
 
 out = []
 for idx, (w, nrooms) in enumerate (zip (world, rooms)):
+	# Create all rooms in a world.
 	fullmap = numpy.zeros ((nrooms, 20, 32), dtype = numpy.uint8)
 	roomdata = numpy.array ([[ord (x) for x in data[w + 40 * room:w + 40 * (room + 1)]] for room in range (nrooms)], dtype = numpy.uint8).reshape ((nrooms, 5, 8))
 	for y in range (5):
@@ -58,6 +58,95 @@ for idx, (w, nrooms) in enumerate (zip (world, rooms)):
 			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range (nrooms)]
 	out.append ([makeimage (fullmap[r], patterns[r] if idx == 0 else -1) for r in range (nrooms)])
 
-for w, im in enumerate (out):
-	for n, r in enumerate (im):
-		r.save ('/tmp/mog-%02d-%03d.png' % (w + 1, n + 1))
+# Link stuff together.
+worldmap = []
+textmap = []
+invalid = Image.new ('P', (256, 160), 13)
+exits = [numpy.zeros ((4, rooms[w]), dtype = numpy.uint8) for w in range (11)]
+l = [[0, 0] for w in range (11)]
+h = [[0, 0] for w in range (11)]
+for w in range (11):
+	a = struct.unpack ('<H', data[0x129f1 + 2 * w:0x129f1 + 2 * w + 2])[0] - 0xa000 + 0x12000 + 4
+	for r in range (rooms[w]):
+		exits[w][:, r] = struct.unpack ('<BBBB', data[a + 4 * r:a + 4 * r + 4])
+	# check if values are sane.
+	for r in range (rooms[w]):
+		for e in range (4):
+			target = exits[w][e, r]
+			# rooms[w] + 1 is meeting a god; 0xff - w is world exit
+			if target == 0xff or target == 0xff - w or target == rooms[w] + 1:
+				continue
+			if not 0 < target <= rooms[w]:
+				print 'invalid exit %d=%x for room %x world %d' % (e, target, r, w)
+				continue
+			# World 4, room 4 has an upper exit to itself; ignore it.
+			if (r + 1, w + 1, e) != (4, 4, 0) and exits[w][e ^ 1, target - 1] != r + 1:
+				print "exit %d=%x for room %x world %d doesn't return (%x)" % (e, exits[w][e, r], r + 1, w + 1, exits[w][e ^ 1, exits[w][e, r] - 1])
+				continue
+	# compute screen positions.
+	screenpos = {1: numpy.array ((0, 0))}
+	queue = [screenpos.keys ()[0]]
+	done = set ()
+	todo = set (range (1, rooms[w] + 1))
+	delta = numpy.array (((0, -1), (0, 1), (-1, 0), (1, 0)))
+	if w == 0:
+		# Screen 94 is not linked, but belongs at (1,-1). Link it there.
+		screenpos[94] = numpy.array ((1, -1))
+		todo.remove (94)
+	while queue != []:
+		current = queue.pop (0)
+		todo.remove (current)
+		for e in range (4):
+			target = exits[w][e, current - 1]
+			if target == 0xff:
+				continue
+			# World 4, room 4 has an upper exit to itself; ignore it.
+			if w == 3 and current == 4 and e == 0:
+				assert current == target
+				continue
+			if target in screenpos:
+				if not all (screenpos[target] == screenpos[current] + delta[e]):
+					print 'screen %d exists in different position (%s != %s)' % (target, str (screenpos[target]), str (screenpos[current] + delta[e]))
+				continue
+			# Add screen in any case.
+			x, y = screenpos[current] + delta[e]
+			double = [s for s in screenpos if screenpos[s][0] == x and screenpos[s][1] == y]
+			if double != []:
+				print 'two screens in one position: %x %x' % (double[0], target)
+			screenpos[target] = x, y
+			if x < l[w][0]:
+				l[w][0] = x
+			if x > h[w][0]:
+				h[w][0] = x
+			if y < l[w][1]:
+				l[w][1] = y
+			if y > h[w][1]:
+				h[w][1] = y
+			# Only add real screens to queue.
+			if 0 < target <= rooms[w]:
+				queue.append (target)
+		done.add (current)
+	print 'done: %d/%d, todo: %s, w,h=%d,%d' % (len (done), rooms[w], str (todo), h[w][0] - l[w][0], h[w][1] - l[w][1])
+#print '\n'.join (['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate (world)])
+
+	# Create the world.
+	size = h[w][0] - l[w][0] + 1, h[w][1] - l[w][1] + 1
+	textmap.append ([['   ' for x in range (size[0])] for y in range (size[1])])
+	worldmap.append (Image.new ('P', (size[0] * 257 - 1, size[1] * 161 - 1), 1))
+	worldmap[w].putpalette (palette)
+	for sp in screenpos:
+		tx = screenpos[sp][0] - l[w][0]
+		ty = screenpos[sp][1] - l[w][1]
+		x = tx * 257
+		y = ty * 161
+		if 0 < sp <= rooms[w]: 
+			worldmap[w].paste (out[w][sp - 1], (x, y, x + 256, y + 160))
+			textmap[w][ty][tx] = '%03d' % sp
+		else:
+			worldmap[w].paste (invalid, (x, y, x + 256, y + 160))
+			textmap[w][ty][tx] = '+++'
+
+for w, im in enumerate (worldmap):
+	im.save ('/tmp/mog-world-%02d.png' % (w + 1))
+	print '\nRooms in world %d' % (w + 1)
+	print '\n'.join ([' '.join (y) for y in textmap[w]])

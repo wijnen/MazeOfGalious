@@ -87,3 +87,9 @@ IX values used in cartridge:
 6365	Characters for selection and map tiles
 636c	Castle from end demo
 9a96	Title page
+
+Related variables:
+Me041	Current world + 1 (1 = castle, 2 = world 1, etc.)
+Me042	Current room (1 = first)
+Me648+4	Current exits (udlr)
+149f1	table of pointers to room exits (4 per room) per world
