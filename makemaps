@@ -5,6 +5,7 @@ import sys
 import struct
 import numpy
 import Image
+import ImageDraw
 import read_patterns
 
 palette = ((0, 0, 0,
@@ -134,6 +135,7 @@ for w in range (11):
 	textmap.append ([['   ' for x in range (size[0])] for y in range (size[1])])
 	worldmap.append (Image.new ('P', (size[0] * 257 - 1, size[1] * 161 - 1), 1))
 	worldmap[w].putpalette (palette)
+	worldmapt = ImageDraw.Draw (worldmap[w])
 	for sp in screenpos:
 		tx = screenpos[sp][0] - l[w][0]
 		ty = screenpos[sp][1] - l[w][1]
@@ -142,6 +144,8 @@ for w in range (11):
 		if 0 < sp <= rooms[w]: 
 			worldmap[w].paste (out[w][sp - 1], (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '%03d' % sp
+			worldmapt.rectangle ((x, y, x + 22, y + 10), fill=255)
+			worldmapt.text ((x + 2, y), "%03d" % sp)
 		else:
 			worldmap[w].paste (invalid, (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '+++'
