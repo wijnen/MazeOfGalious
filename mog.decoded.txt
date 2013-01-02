@@ -910,7 +910,7 @@ T4585h	F0......  ....	RET	P
 
 T4586h	11447D..  .D}.	LD	DE,07D44h
 T4589h	CD255C..  .%\.	CALL	WriteStringToVRAM	
-T458Ch	3A27E0..  :'..	LD	A,(TE027H)
+T458Ch	3A27E0..  :'..	LD	A,(ZeusCheat)
 T458Fh	A7......  ....	AND	A	
 T4590h	11CF7E..  ..~.	LD	DE,07ECFh
 T4593h	C4255C..  .%\.	CALL	NZ,WriteStringToVRAM
@@ -957,7 +957,7 @@ T45EAh	2104E0..  !...	LD	HL,0E004h
 T45EDh	35......  5...	DEC	(HL)	
 T45EEh	C0......  ....	RET	NZ		
 
-T45EFh	CD8E52..  ..R.	CALL	T528EH	
+T45EFh	CD8E52..  ..R.	CALL	T528EH		; Special actions for items perhaps?
 T45F2h	CDCD51..  ..Q.	CALL	PrepareNewRoom	
 T45F5h	3E8A....  >...	LD	A,08Ah	
 T45F7h	CDC45C..  ..\.	CALL	T5CC4H	
@@ -2075,20 +2075,21 @@ T4E1Bh	2206E1..  "...	LD	(TE106H),HL
 T4E1Eh	C9......  ....	RET			
 # }}}
 
-T4E1Fh	B7......  ....	OR	A	
-T4E20h	F2344E..  .4N.	JP	P,T4E34H	
-T4E23h	E5......  ....	PUSH	HL	
-T4E24h	2102E0..  !...	LD	HL,0E002h
-T4E27h	CB76....  .v..	BIT	6,(HL)	
-T4E29h	E1......  ....	POP	HL	
+;; This function is sometimes called and sometimes jumped to.
+T4E1Fh	B7......  ....	OR	A			; Test A
+T4E20h	F2344E..  .4N.	JP	P,T4E34H		; if (A > 0) goto 0x4e34
+T4E23h	E5......  ....	PUSH	HL			; Save current HL
+T4E24h	2102E0..  !...	LD	HL,0E002h		; HL = 0xe002
+T4E27h	CB76....  .v..	BIT	6,(HL)			; *(0xe002) & 0b01000000
+T4E29h	E1......  ....	POP	HL			;
 T4E2Ah	2008....  ....	JR	NZ,008h			; Jump to 04E34H
-T4E2Ch	E5......  ....	PUSH	HL	
-T4E2Dh	210DE0..  !...	LD	HL,0E00Dh
-T4E30h	CB46....  .F..	BIT	0,(HL)	
+T4E2Ch	E5......  ....	PUSH	HL			; Save current HL
+T4E2Dh	210DE0..  !...	LD	HL,0E00Dh		; HL = 0xe00d
+T4E30h	CB46....  .F..	BIT	0,(HL)			; *(0xe00d) & 0b00000001
 T4E32h	E1......  ....	POP	HL	
 T4E33h	C0......  ....	RET	NZ		
 
-T4E34h	F3......  ....	DI		
+T4E34h	F3......  ....	DI				; Disable maskable interrupts.
 T4E35h	E5......  ....	PUSH	HL	
 T4E36h	D5......  ....	PUSH	DE	
 T4E37h	C5......  ....	PUSH	BC	
@@ -2114,8 +2115,10 @@ T4E65h	F1......  ....	POP	AF
 T4E66h	C1......  ....	POP	BC	
 T4E67h	D1......  ....	POP	DE	
 T4E68h	E1......  ....	POP	HL	
-T4E69h	FB......  ....	EI		
+T4E69h	FB......  ....	EI				; Enable interrupts.
 T4E6Ah	C9......  ....	RET			
+
+
 
 T4E6Bh	B7......  ....	OR	A	
 T4E6Ch	CA024E..  ..N.	JP	Z,T4E02H	
@@ -2475,8 +2478,8 @@ T516Bh	AF......  ....	XOR	A			; Clear A and F
 T516Ch	3212E6..  2...	LD	(TE612H),A
 T516Fh	CD8661..  ..a.	CALL	T6186H	
 T5172h	CD6C41..  .lA.	CALL	SetMapper123	
-T5175h	AF......  ....	XOR	A			; Clear A and F
-T5176h	32A1E6..  2...	LD	(TE6A1H),A
+T5175h	AF......  ....	XOR	A			; A = 0
+T5176h	32A1E6..  2...	LD	(TE6A1H),A		; *(0xe6a1) = 0 ?BuildBridgeInWorld2?
 T5179h	CD3D99..  ....	CALL	T993DH	
 T517Ch	CDAF9D..  ....	CALL	T9DAFH	
 T517Fh	CDE369..  ..i.	CALL	T69E3H	
@@ -3041,61 +3044,65 @@ T556Ch	CD7555..  .uU.	CALL	T5575H
 T556Fh	CD9055..  ..U.	CALL	T5590H	
 T5572h	C36C41..  .lA.	JP	SetMapper123		
 
-T5575h	3A87E0..  :...	LD	A,(TE087H)
-T5578h	B7......  ....	OR	A	
-T5579h	C8......  ....	RET	Z		
+T5575h	3A87E0..  :...	LD	A,(TE087H)		; A = *(Carpet)
+T5578h	B7......  ....	OR	A			; A |= A
+T5579h	C8......  ....	RET	Z			; return if user does not have the Carpet.
 
-T557Ah	3A19E6..  :...	LD	A,(TE619H)
-T557Dh	B7......  ....	OR	A	
-T557Eh	C8......  ....	RET	Z		
+T557Ah	3A19E6..  :...	LD	A,(TE619H)		; A = *(0xe619)
+T557Dh	B7......  ....	OR	A			; A |= A
+T557Eh	C8......  ....	RET	Z			;
 
-T557Fh	3A41E0..  :A..	LD	A,(WorldNumber)
-T5582h	FE09....  ....	CP	009h	
-T5584h	C0......  ....	RET	NZ		
+T557Fh	3A41E0..  :A..	LD	A,(WorldNumber)		;
+T5582h	FE09....  ....	CP	009h			; A - 9
+T5584h	C0......  ....	RET	NZ			; return if not World8
 
-T5585h	0600....  ....	LD	B,000h	
-T5587h	2100EF..  !...	LD	HL,0EF00h
-T558Ah	36F0....  6...	LD	(HL),0F0h
-T558Ch	23......  #...	INC	HL			;
-T558Dh	10FB....  ....	DJNZ	0FBh			; Jump to 0558AH
-T558Fh	C9......  ....	RET			
+;; Starting at 0xef00: write 256 times 0xf0: Build bridge?
+T5585h	0600....  ....	LD	B,000h			; B = 0
+T5587h	2100EF..  !...	LD	HL,0EF00h		; HL = 0xef00
+T558Ah	36F0....  6...	LD	(HL),0F0h		; *(0xef00) = 0xf0
+T558Ch	23......  #...	INC	HL			; ++HL
+T558Dh	10FB....  ....	DJNZ	0FBh			; if (--B != 0) goto 0558AH
+T558Fh	C9......  ....	RET				; Not reachable
 
-T5590h	3A41E0..  :A..	LD	A,(WorldNumber)
-T5593h	FE04....  ....	CP	004h	
-T5595h	C0......  ....	RET	NZ		
+T5590h	3A41E0..  :A..	LD	A,(WorldNumber)		;
+T5593h	FE04....  ....	CP	004h			; A - 4
+T5595h	C0......  ....	RET	NZ			; return if not World 3
 
-T5596h	3AD2E0..  :...	LD	A,(TE0D2H)
-T5599h	B7......  ....	OR	A	
-T559Ah	2005....  ....	JR	NZ,005h			; Jump to 055A1H
-T559Ch	3AD4E0..  :...	LD	A,(TE0D4H)
-T559Fh	B7......  ....	OR	A	
-T55A0h	C8......  ....	RET	Z		
+T5596h	3AD2E0..  :...	LD	A,(TE0D2H)		; A = *(e0d2)
+T5599h	B7......  ....	OR	A			; A |= A
+T559Ah	2005....  ....	JR	NZ,005h			; if (A != 0) goto 055A1H
+T559Ch	3AD4E0..  :...	LD	A,(TE0D4H)		; A = *(e0d4)
+T559Fh	B7......  ....	OR	A			; A |= A
+T55A0h	C8......  ....	RET	Z			; if (A == 0) return
 
 T55A1h	21F0F0..  !...	LD	HL,0F0F0h
 T55A4h	22E2EF..  "...	LD	(TEFE2H),HL
 T55A7h	2180ED..  !...	LD	HL,0ED80h
 T55AAh	CDB055..  ..U.	CALL	T55B0H	
-T55ADh	219EED..  !...	LD	HL,0ED9Eh
-T55B0h	AF......  ....	XOR	A			; Clear A and F
-T55B1h	0E05....  ....	LD	C,005h	
-T55B3h	0603....  ....	LD	B,003h	
-T55B5h	77......  w...	LD	(HL),A	
-T55B6h	23......  #...	INC	HL			;
-T55B7h	77......  w...	LD	(HL),A	
-T55B8h	111F00..  ....	LD	DE,0001Fh
-T55BBh	19......  ....	ADD	HL,DE	
-T55BCh	10F7....  ....	DJNZ	0F7h			; Jump to 055B5H
-T55BEh	112000..  ....	LD	DE,00020h
-T55C1h	19......  ....	ADD	HL,DE	
-T55C2h	0D......  ....	DEC	C	
-T55C3h	20EE....  ....	JR	NZ,0EEh			; Jump to 055B3H
+T55ADh	219EED..  !...	LD	HL,0ED9Eh		; HL = 0xed9e
+T55B0h	AF......  ....	XOR	A			; A = 0
+;; Loop 5 * 3 = 15 times.
+T55B1h	0E05....  ....	LD	C,005h			; C = 5
+T55B3h	0603....  ....	LD	B,003h			; B = 3
+T55B5h	77......  w...	LD	(HL),A			; *(0xed9e) = 0
+T55B6h	23......  #...	INC	HL			; ++HL
+T55B7h	77......  w...	LD	(HL),A			; *(HL) = 0
+T55B8h	111F00..  ....	LD	DE,0001Fh		; DE = 0x001f
+T55BBh	19......  ....	ADD	HL,DE			; HL += DE
+T55BCh	10F7....  ....	DJNZ	0F7h			; if (--B != 0) goto 055B5H
+T55BEh	112000..  ....	LD	DE,00020h		; DE = 0x20
+T55C1h	19......  ....	ADD	HL,DE			; HL += DE
+T55C2h	0D......  ....	DEC	C			; C -= 1
+T55C3h	20EE....  ....	JR	NZ,0EEh			; if (C != 0) goto 055B3H
 T55C5h	C9......  ....	RET			
 
+;; ?
 T55C6h	CDF755..  ..U.	CALL	T55F7H	
 T55C9h	3A15E6..  :...	LD	A,(TE615H)
 T55CCh	B7......  ....	OR	A	
 T55CDh	C8......  ....	RET	Z		
 
+;; ?
 T55CEh	21E29B..  !...	LD	HL,09BE2h
 T55D1h	3A41E0..  :A..	LD	A,(WorldNumber)
 T55D4h	CD4C41..  .LA.	CALL	GetWorldAddress
@@ -3116,56 +3123,76 @@ T55F3h	D9......  ....	EXX
 T55F4h	10F2....  ....	DJNZ	0F2h			; Jump to 055E8H
 T55F6h	C9......  ....	RET			
 
-T55F7h	3A85E0..  :...	LD	A,(TE085H)
-T55FAh	B7......  ....	OR	A	
-T55FBh	2010....  ....	JR	NZ,010h			; Jump to 0560DH
+;; ?
+T55F7h	3A85E0..  :...	LD	A,(Candle)		;
+T55FAh	B7......  ....	OR	A			; Set Z flag.
+T55FBh	2010....  ....	JR	NZ,010h			; if (Candle) goto 0560DH
 T55FDh	2A41E0..  *A..	LD	HL,(WorldNumber)
 T5600h	110606..  ....	LD	DE,00606h
-T5603h	B7......  ....	OR	A	
-T5604h	ED52....  .R..	SBC	HL,DE	
+T5603h	B7......  ....	OR	A			; Clear carry.
+T5604h	ED52....  .R..	SBC	HL,DE			; HL -= DE + carry
 T5606h	2005....  ....	JR	NZ,005h			; Jump to 0560DH
-T5608h	21AE8D..  !...	LD	HL,08DAEh
+T5608h	21AE8D..  !...	LD	HL,08DAEh		; HL
 T560Bh	1819....  ....	JR	019h			; Jump to 05626H
 
+;; {{{ WriteRoom()
 T560Dh	3A41E0..  :A..	LD	A,(WorldNumber)		; A  = e041
 T5610h	21BE6A..  !.j.	LD	HL,06ABEh		; HL = 6abe
 T5613h	CD4C41..  .LA.	CALL	GetWorldAddress		; DE = computed adress.
 T5616h	3A42E0..  :B..	LD	A,(RoomNumber)		; A  = e042
 T5619h	3D......  ....	DEC	A			;	    - 1
-T561Ah	6F......  o...	LD	L,A			; L  = RoomNumber- 1
-T561Bh	2600....  &...	LD	H,000h			
-T561Dh	29......  )...	ADD	HL,HL	
-T561Eh	29......  )...	ADD	HL,HL	
-T561Fh	29......  )...	ADD	HL,HL			; HL = 8 * (RoomNumber- 1)
-T5620h	4D......  M...	LD	C,L	
-T5621h	44......  D...	LD	B,H			; BC = 8 * (RoomNumber- 1)
-T5622h	29......  )...	ADD	HL,HL	
-T5623h	29......  )...	ADD	HL,HL	
-T5624h	09......  ....	ADD	HL,BC	
-T5625h	19......  ....	ADD	HL,DE			; HL = 40 * (RoomNumber - 1) + DE
-T5626h	2200F0..  "...	LD	(TF000H),HL
-T5629h	1180ED..  ....	LD	DE,0ED80h
-T562Ch	D9......  ....	EXX		
-T562Dh	ED5B00F0  .[..	LD	DE,(TF000H)
-T5631h	0E05....  ....	LD	C,005h	
-T5633h	0608....  ....	LD	B,008h	
-T5635h	D9......  ....	EXX		
-T5636h	CD4956..  .IV.	CALL	T5649H			; WriteBlock
-T5639h	D9......  ....	EXX		
-T563Ah	10F9....  ....	DJNZ	0F9h			; Jump to 05635H
-T563Ch	D9......  ....	EXX		
-T563Dh	016000..  .`..	LD	BC,00060h
-T5640h	EB......  ....	EX	DE,HL	
-T5641h	09......  ....	ADD	HL,BC	
-T5642h	EB......  ....	EX	DE,HL	
-T5643h	D9......  ....	EXX		
-T5644h	0D......  ....	DEC	C	
-T5645h	C23356..  .3V.	JP	NZ,T5633H
-T5648h	C9......  ....	RET			
+T561Ah	6F......  o...	LD	L,A			; \      [1]  L  = RoomNumber - 1
+T561Bh	2600....  &...	LD	H,000h			;  \     [2] H   = 0
+T561Dh	29......  )...	ADD	HL,HL			;   \    [3] HL *= 2
+T561Eh	29......  )...	ADD	HL,HL			;    \   [4] HL *= 2
+T561Fh	29......  )...	ADD	HL,HL			;     \  [5] HL *= 2
+							;      ` [!] HL  = 8 * (RoomNumber - 1)
+T5620h	4D......  M...	LD	C,L			; \   [1]  C =  L
+T5621h	44......  D...	LD	B,H			;  \  [2] B  = H
+							;   ` [!] BC = HL = 8 * (RoomNumber - 1)
+T5622h	29......  )...	ADD	HL,HL			; \     [1] HL *= 2
+T5623h	29......  )...	ADD	HL,HL			;  \    [2] HL *= 2
+T5624h	09......  ....	ADD	HL,BC			;   \   [3] HL += BC
+T5625h	19......  ....	ADD	HL,DE			;    \  [4] HL += DE
+							;     ` [!] HL = (32 + 8) * (RoomNumber - 1) + DE
+							;              =       40 * (RoomNumber - 1) + DE
+T5626h	2200F0..  "...	LD	(TF000H),HL		; *(0xf000) = HL = 40 * (RoomNumber - 1) + DE
+T5629h	1180ED..  ....	LD	DE,0ED80h		; DE = 0xed80
+T562Ch	D9......  ....	EXX				; <<< Switch to shadows.
+T562Dh	ED5B00F0  .[..	LD	DE,(TF000H)		;   DE' = 0xf000
 
-; Write a 4x4 block of characters to screen. out: DE = oldbase + 4
-; DE = destination of data (starts at 0xed80)
-; DE' = 40 * (RoomNumber - 1) + WorldBase
+;; Start of looping 5 * 8 = 40 times.
+T5631h	0E05....  ....	LD	C,005h			;   C' = 5 => Loop 5 times (outer loop).
+;;    {{{ "while (C'--)"
+T5633h	0608....  ....	LD	B,008h			;   B' = 8 => Loop 8 times (inner loop).
+;;       {{{ "while (B'--)"
+T5635h	D9......  ....	EXX				; >>> Switch from shadows.
+T5636h	CD4956..  .IV.	CALL	T5649H			; WriteBlock
+T5639h	D9......  ....	EXX				; <<< Switch to shadows.
+T563Ah	10F9....  ....	DJNZ	0F9h			;   if (--B' == 0) Jump to 05635H
+;;       }}} "while (B'--)"
+
+T563Ch	D9......  ....	EXX				; >>> Switch from shadows.
+T563Dh	016000..  .`..	LD	BC,00060h		; BC = 0x0060
+T5640h	EB......  ....	EX	DE,HL			; <<< Exchange DE and HL.
+T5641h	09......  ....	ADD	HL,BC			;   BC += HL
+T5642h	EB......  ....	EX	DE,HL			; >>> Exchange DE and HL.
+T5643h	D9......  ....	EXX				; Switch to shadows. No switchback.
+T5644h	0D......  ....	DEC	C			;   C' -= 1
+T5645h	C23356..  .3V.	JP	NZ,T5633H		;
+;;    }}} "while (C'--)"
+
+T5648h	C9......  ....	RET				; DONE
+;; }}} WriteRoom()
+
+
+;; {{{ WriteBlock()
+;; Write a 4x4 block of characters to screen.
+;; out: DE = oldbase + 4
+;;
+;; Since T5636h is the only one calling us, we know the following:
+;;   DE  = destination of data (starts at 0xed80)
+;;   DE' = 40 * (RoomNumber - 1) + WorldBase
 T5649h	D9......  ....	EXX		
 T564Ah	1A......  ....	LD	A,(DE)	
 T564Bh	13......  ....	INC	DE			;
@@ -3205,8 +3232,11 @@ T568Ah	EB......  ....	EX	DE,HL
 T568Bh	09......  ....	ADD	HL,BC	
 T568Ch	EB......  ....	EX	DE,HL	
 T568Dh	C9......  ....	RET			
+;; }}} WriteBlock()
 
-; This happens on screen change.
+
+
+;; This happens on screen change.
 T568Eh	CDDD54..  ..T.	CALL	lock_e602
 T5691h	CD115E..  ..^.	CALL	set_some_patterns_1
 T5694h	CDB741..  ..A.	CALL	SetMapperABC	
@@ -5725,7 +5755,8 @@ T671Bh	010400..  ....	LD	BC,00004h
 T671Eh	EDB0....  ....	LDIR		
 T6720h	2146EE..  !F..	LD	HL,0EE46h
 T6723h	D9......  ....	EXX		
-T6724h	117CE0..  .|..	LD	DE,0E07Ch
+T6724h	117CE0..  .|..	LD	DE,0E07Ch		; DE = 0xe07c
+							;    = Necklace
 T6727h	010A03..  ....	LD	BC,0030Ah
 T672Ah	2E81....  ....	LD	L,081h	
 T672Ch	D9......  ....	EXX		
@@ -5902,57 +5933,69 @@ T6838h	B7......  ....	OR	A
 T6839h	28EE....  (...	JR	Z,0EEh			; Jump to 06829H
 T683Bh	18E6....  ....	JR	0E6h			; Jump to 06823H
 
-T683Dh	3A41E0..  :A..	LD	A,(WorldNumber)
-T6840h	FE06....  ....	CP	006h	
-T6842h	2007....  ....	JR	NZ,007h			; Jump to 0684BH
-T6844h	3A92E0..  :...	LD	A,(TE092H)
-T6847h	B7......  ....	OR	A	
-T6848h	C8......  ....	RET	Z		
+T683Dh	3A41E0..  :A..	LD	A,(WorldNumber)		; A = *(WorldNumber)
+T6840h	FE06....  ....	CP	006h			; 
+T6842h	2007....  ....	JR	NZ,007h			; if (A - 6 != 0) goto 0684BH
+							; "if (!World5) do not test for TrumpetShell"
+T6844h	3A92E0..  :...	LD	A,(TE092H)		; A = *(TrumpetShell)
+T6847h	B7......  ....	OR	A			; 
+T6848h	C8......  ....	RET	Z			; Return if user does not have the TrumpetShell.
+							; Aphrodite cannot enter world 5 without the TrumpetShell.
 
 T6849h	1809....  ....	JR	009h			; Jump to 06854H
 
-T684Bh	FE08....  ....	CP	008h	
-T684Dh	2005....  ....	JR	NZ,005h			; Jump to 06854H
-T684Fh	3A7CE0..  :|..	LD	A,(TE07CH)
-T6852h	B7......  ....	OR	A	
-T6853h	C8......  ....	RET	Z		
+T684Bh	FE08....  ....	CP	008h			; Set flags for result of A - 8
+T684Dh	2005....  ....	JR	NZ,005h			; if (A - 8 != 0) goto 06854H
+							; "if (!World7) do not test for Necklace"
+T684Fh	3A7CE0..  :|..	LD	A,(TE07CH)		; A = *(Necklace)
+T6852h	B7......  ....	OR	A			;
+T6853h	C8......  ....	RET	Z			; Return if user does not have the Necklace.
+							; Popolon cannot enter world 7 without the Necklace.
 
-T6854h	3A08E0..  :...	LD	A,(TE008H)
-T6857h	E60C....  ....	AND	00Ch	
+T6854h	3A08E0..  :...	LD	A,(TE008H)		; A = *(0xe008)
+T6857h	E60C....  ....	AND	00Ch			; A &= 0b00001100
 T6859h	C8......  ....	RET	Z		
 
-T685Ah	214DE0..  !M..	LD	HL,0E04Dh
-T685Dh	7E......  ~...	LD	A,(HL)	
-T685Eh	EE01....  ....	XOR	001h	
-T6860h	4F......  O...	LD	C,A	
-T6861h	1158E0..  .X..	LD	DE,0E058h
-T6864h	83......  ....	ADD	A,E	
-T6865h	5F......  _...	LD	E,A	
-T6866h	1A......  ....	LD	A,(DE)	
-T6867h	B7......  ....	OR	A	
-T6868h	C8......  ....	RET	Z		
+;; ???
+T685Ah	214DE0..  !M..	LD	HL,0E04Dh		; HL = 0xe04d
+T685Dh	7E......  ~...	LD	A,(HL)			; A  = *(e04d)
+T685Eh	EE01....  ....	XOR	001h			; A ^= 1
+T6860h	4F......  O...	LD	C,A			; C = A
+T6861h	1158E0..  .X..	LD	DE,0E058h		; DE = 0xe058
+T6864h	83......  ....	ADD	A,E			; A += 0x58
+T6865h	5F......  _...	LD	E,A			; E = A
+T6866h	1A......  ....	LD	A,(DE)			; A = *(DE)
+T6867h	B7......  ....	OR	A			;
+T6868h	C8......  ....	RET	Z			;
 
-T6869h	71......  q...	LD	(HL),C	
-T686Ah	3E2C....  >,..	LD	A,02Ch	
-T686Ch	C31F4E..  ..N.	JP	T4E1FH		
+T6869h	71......  q...	LD	(HL),C			; *(HL) = C
+;; T6879h jumps here, unconditionally.
+;; T6883h jumps here, unconditionally.
+T686Ah	3E2C....  >,..	LD	A,02Ch			; A = 0x2C
+T686Ch	C31F4E..  ..N.	JP	T4E1FH			; Non-conditional jump.
 
-T686Fh	214CE0..  !L..	LD	HL,0E04Ch
-T6872h	7E......  ~...	LD	A,(HL)	
-T6873h	EE01....  ....	XOR	001h	
-T6875h	4F......  O...	LD	C,A	
-T6876h	2003....  ....	JR	NZ,003h			; Jump to 0687BH
-T6878h	77......  w...	LD	(HL),A	
+
+
+;; 0xe04c 
+T686Fh	214CE0..  !L..	LD	HL,0E04Ch		; HL = 0xe04c
+T6872h	7E......  ~...	LD	A,(HL)			; A  = *(0xe04c) (typically 0)
+T6873h	EE01....  ....	XOR	001h			; A ^= 1
+T6875h	4F......  O...	LD	C,A			; C = A
+							; Save original value in 0xe04c
+T6876h	2003....  ....	JR	NZ,003h			; if (typical_situation) goto 0687BH
+T6878h	77......  w...	LD	(HL),A			; *(HL) = A
 T6879h	18EF....  ....	JR	0EFh			; Jump to 0686AH
 
-T687Bh	2C......  ,...	INC	L			;
-T687Ch	2C......  ,...	INC	L			;
-T687Dh	7E......  ~...	LD	A,(HL)	
-T687Eh	B7......  ....	OR	A	
-T687Fh	C8......  ....	RET	Z		
+T687Bh	2C......  ,...	INC	L			; L += 1 (L=0x4d)
+T687Ch	2C......  ,...	INC	L			; L += 1 (L=0x4e)
+T687Dh	7E......  ~...	LD	A,(HL)			; A = *(0xe04e) (typically 0)
+T687Eh	B7......  ....	OR	A			; A |= A
+T687Fh	C8......  ....	RET	Z			; if (typical_situation) return
 
-T6880h	2D......  -...	DEC	L	
-T6881h	2D......  -...	DEC	L	
-T6882h	71......  q...	LD	(HL),C	
+T6880h	2D......  -...	DEC	L			; L -= 1 (L=0x4d)
+T6881h	2D......  -...	DEC	L			; L -= 1 (L=0x4c)
+T6882h	71......  q...	LD	(HL),C			; *(0xe04c) = C
+							; Restore original value of 0xe04c
 T6883h	18E5....  ....	JR	0E5h			; Jump to 0686AH
 
 T6885h	CDEA68..  ..h.	CALL	T68EAH	
@@ -9615,7 +9658,7 @@ T7E80h	D8......  ....	RET	C
 T7E81h	AF......  ....	XOR	A			; Clear A and F
 T7E82h	77......  w...	LD	(HL),A	
 T7E83h	3C......  <...	INC	A			;
-T7E84h	3227E0..  2'..	LD	(TE027H),A
+T7E84h	3227E0..  2'..	LD	(ZeusCheat),A
 T7E87h	C9......  ....	RET			
 
 T7E88h	5A......  Z...	LD	E,D	
@@ -9626,7 +9669,7 @@ T7E8Ch	3A26E0..  :&..	LD	A,(TE026H)
 T7E8Fh	A7......  ....	AND	A	
 T7E90h	C0......  ....	RET	NZ		
 
-T7E91h	3A27E0..  :'..	LD	A,(TE027H)
+T7E91h	3A27E0..  :'..	LD	A,(ZeusCheat)
 T7E94h	A7......  ....	AND	A	
 T7E95h	C8......  ....	RET	Z		
 
@@ -13375,18 +13418,22 @@ T99E4h	3D......  ....	DEC	A
 T99E5h	328CE6..  2...	LD	(TE68CH),A
 T99E8h	C9......  ....	RET			
 
-T99E9h	2189E6..  !...	LD	HL,0E689h
-T99ECh	CBC6....  ....	SET	0,(HL)	
-T99EEh	2D......  -...	DEC	L	
-T99EFh	4E......  N...	LD	C,(HL)	
-T99F0h	0600....  ....	LD	B,000h	
-T99F2h	2162E0..  !b..	LD	HL,0E062h
-T99F5h	09......  ....	ADD	HL,BC	
-T99F6h	CBC6....  ....	SET	0,(HL)	
-T99F8h	CB8E....  ....	RES	1,(HL)	
+;; Data?
+T99E9h	2189E6..  !...	LD	HL,0E689h		; HL = 0xe689
+T99ECh	CBC6....  ....	SET	0,(HL)			; HL |= 1 (?pointless?)
+T99EEh	2D......  -...	DEC	L			; --HL
+T99EFh	4E......  N...	LD	C,(HL)			; C = *(HL)
+T99F0h	0600....  ....	LD	B,000h			; B = 0
+T99F2h	2162E0..  !b..	LD	HL,0E062h		; HL = 0xe062 (?CastleItems?)
+T99F5h	09......  ....	ADD	HL,BC			; HL += BC
+T99F6h	CBC6....  ....	SET	0,(HL)			; HL |= 1
+T99F8h	CB8E....  ....	RES	1,(HL)			; HL &= 0b11111101
 T99FAh	AF......  ....	XOR	A			; Clear A and F
-T99FBh	327BE0..  2{..	LD	(TE07BH),A
+T99FBh	327BE0..  2{..	LD	(TE07BH),A		; *(e07b) = A
+							;         = 0
 T99FEh	C9......  ....	RET			
+
+
 
 T99FFh	CDEA44..  ..D.	CALL	T44EAH	
 T9A02h	D8......  ....	RET	C		
@@ -13431,7 +13478,7 @@ T9A3Ah	FE07....  ....	CP	007h
 T9A3Ch	2008....  ....	JR	NZ,008h			; Jump to 09A46H
 T9A3Eh	05......  ....	DEC	B	
 T9A3Fh	2005....  ....	JR	NZ,005h			; Jump to 09A46H
-T9A41h	3A7CE0..  :|..	LD	A,(TE07CH)
+T9A41h	3A7CE0..  :|..	LD	A,(Necklace)
 T9A44h	B7......  ....	OR	A	
 T9A45h	C8......  ....	RET	Z		
 
@@ -13450,20 +13497,26 @@ T9A56h	218AE6..  !...	LD	HL,0E68Ah
 T9A59h	110E18..  ....	LD	DE,0180Eh
 T9A5Ch	C3659A..  .e..	JP	T9A65H		
 
-T9A5Fh	2182E6..  !...	LD	HL,0E682h
-T9A62h	110610..  ....	LD	DE,01006h
-T9A65h	3A05E5..  :...	LD	A,(TE505H)
-T9A68h	96......  ....	SUB	(HL)	
-T9A69h	92......  ....	SUB	D	
-T9A6Ah	FE02....  ....	CP	002h	
-T9A6Ch	D0......  ....	RET	NC		
+;; T9A8Fh ("salt") jumps here.
+T9A5Fh	2182E6..  !...	LD	HL,0E682h		; HL = 0xe682
+T9A62h	110610..  ....	LD	DE,01006h		; DE = 0x1006
+T9A65h	3A05E5..  :...	LD	A,(TE505H)		; A = *(0xe505)
+T9A68h	96......  ....	SUB	(HL)			; A -= *(HL)
+							;      *(0xe682)
+T9A69h	92......  ....	SUB	D			; A -= D
+							;      0x10
+T9A6Ah	FE02....  ....	CP	002h			; Set flags for A - 2
+T9A6Ch	D0......  ....	RET	NC			; if (A - 2 >= 0) return
 
-T9A6Dh	3A07E5..  :...	LD	A,(TE507H)
-T9A70h	2C......  ,...	INC	L			;
-T9A71h	96......  ....	SUB	(HL)	
-T9A72h	93......  ....	SUB	E	
-T9A73h	FE05....  ....	CP	005h	
+T9A6Dh	3A07E5..  :...	LD	A,(TE507H)		; A = *(0xe507)
+T9A70h	2C......  ,...	INC	L			; L += 1
+T9A71h	96......  ....	SUB	(HL)			; A -= *(HL)
+							;    = *(0xe683)
+T9A72h	93......  ....	SUB	E			; A -= E
+T9A73h	FE05....  ....	CP	005h			; Set flags for A - 5
 T9A75h	C9......  ....	RET			
+
+
 
 T9A76h	CDEA44..  ..D.	CALL	T44EAH	
 T9A79h	D8......  ....	RET	C		
@@ -13473,22 +13526,25 @@ T9A7Dh	7E......  ~...	LD	A,(HL)
 T9A7Eh	B7......  ....	OR	A	
 T9A7Fh	C8......  ....	RET	Z		
 
-T9A80h	FE03....  ....	CP	003h	
+T9A80h	FE03....  ....	CP	003h			; Set flags for result of A - 3
 T9A82h	2005....  ....	JR	NZ,005h			; Jump to 09A89H
-T9A84h	3A99E0..  :...	LD	A,(TE099H)
-T9A87h	B7......  ....	OR	A	
-T9A88h	C8......  ....	RET	Z		
+T9A84h	3A99E0..  :...	LD	A,(Salt)		; A = *(Salt)
+T9A87h	B7......  ....	OR	A			; Test if any bit of A is set.
+T9A88h	C8......  ....	RET	Z			; if (A == 0) return
 
-T9A89h	3A09E0..  :...	LD	A,(TE009H)
-T9A8Ch	E602....  ....	AND	002h	
-T9A8Eh	C8......  ....	RET	Z		
+;; We only get here if the player has the salt item.
+T9A89h	3A09E0..  :...	LD	A,(TE009H)		; A = *(0xe009)
+T9A8Ch	E602....  ....	AND	002h			; A &= 2
+T9A8Eh	C8......  ....	RET	Z			; if (A == 0) return
 
 T9A8Fh	CD5F9A..  ._..	CALL	T9A5FH	
 T9A92h	D0......  ....	RET	NC		
 
-T9A93h	3E01....  >...	LD	A,001h	
-T9A95h	321CE0..  2...	LD	(TE01CH),A
+T9A93h	3E01....  >...	LD	A,001h			; A = 1
+T9A95h	321CE0..  2...	LD	(TE01CH),A		; *(0xe01c) = 1
 T9A98h	C9......  ....	RET			
+
+
 
 T9A99h	3A96E0..  :...	LD	A,(TE096H)
 T9A9Ch	A7......  ....	AND	A	
@@ -48120,9 +48176,11 @@ T9EEEh	73......  s...	LD	(HL),E
 T9EEFh	2C......  ,...	INC	L			;
 T9EF0h	72......  r...	LD	(HL),D	
 T9EF1h	CD959D..  ....	CALL	T9D95H	
-T9EF4h	3E01....  >...	LD	A,001h	
-T9EF6h	32A1E6..  2...	LD	(TE6A1H),A
-T9EF9h	C9......  ....	RET			
+T9EF4h	3E01....  >...	LD	A,001h			; A = 1
+T9EF6h	32A1E6..  2...	LD	(TE6A1H),A		; *(0xe6a1) = 1 (?BuildBridge in World2?)
+T9EF9h	C9......  ....	RET				;
+
+
 
 T9EFAh	218FED..  !...	LD	HL,0ED8Fh
 T9EFDh	18E4....  ....	JR	0E4h			; Jump to 09EE3H
@@ -48193,14 +48251,14 @@ T9F83h	B7......  ....	OR	A
 T9F84h	ED52....  .R..	SBC	HL,DE	
 T9F86h	C0......  ....	RET	NZ		
 
-T9F87h	3A81E0..  :...	LD	A,(TE081H)
-T9F8Ah	B7......  ....	OR	A	
-T9F8Bh	C8......  ....	RET	Z		
+T9F87h	3A81E0..  :...	LD	A,(TE081H)		; A = *(DecorativeDoll)
+T9F8Ah	B7......  ....	OR	A			; A |= A
+T9F8Bh	C8......  ....	RET	Z			; return if user does not have the DecorativeDoll.
 
-T9F8Ch	3E01....  >...	LD	A,001h	
-T9F8Eh	32C8EA..  2...	LD	(TEAC8H),A
-T9F91h	CD959D..  ....	CALL	T9D95H	
-T9F94h	C3F49E..  ....	JP	T9EF4H		
+T9F8Ch	3E01....  >...	LD	A,001h			; A = 1
+T9F8Eh	32C8EA..  2...	LD	(TEAC8H),A		; *(0xeac8) = 1
+T9F91h	CD959D..  ....	CALL	T9D95H			;
+T9F94h	C3F49E..  ....	JP	T9EF4H			;
 
 T9F97h	3AA1E0..  :...	LD	A,(TE0A1H)
 T9F9Ah	B7......  ....	OR	A	
