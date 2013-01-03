@@ -1,0 +1,248 @@
+Disassembler of our choice:
+* dasm
+
+Debian:
+* z80dasm - disassembler for the Zilog Z80 microprocessor
+
+Used flags of dasm:
+* -a, --address
+* -b, --block-def=FILE
+* -g, --origin=ORG
+* -o, --output=FILE
+* -t, --source
+
+
+
+The MSX1 were typically equipped with 32KiB or 64KiB of RAM. (Source: 
+http://en.wikipedia.org/wiki/MSX). The processor inside the MSX1 is 8 
+bit and can therefore address 64KiB of address space. So not all of the 
+ROM can be addressed at once. To quote 
+http://bifi.msxnet.org/msxnet/tech/megaroms.html:
+:
+: To fit ROMs larger than 64Kb in one slot (thus one cartridge) software 
+: producers made ROM mappers. There are several different types around.
+:
+: These mappers divide the memory area 4000h - BFFFh in two or four 
+: memory areas (banks), depending on whether it is a 8Kb or a 16Kb 
+: mapper.
+:
+: You can write to a certain address or address area (if it is a memory 
+: area, any address in the area will do the same thing). 0 selects the 
+: first 8Kb or 16Kb of the real ROM into a memory bank, 1 the second, 
+: etc..
+: By default, bank 1 has the value 0 and bank 2 the value 1, etc, etc. 
+: In this way the first 32Kb of the ROM is selected into 4000h - BFFFh.
+:
+
+The quoted site also gives details about the cartridge for Maze of 
+Galious. To quote 
+http://bifi.msxnet.org/msxnet/tech/megaroms.html#konami:
+:
+: This type is used Konami cartridges that do not have a SCC such as: 
+:  Nemesis, Penguin Adventure, Usas, Metal Gear, Shalom and The Maze of 
+:  Galious.
+:
+: Since the size of the mapper is 8Kb, the memory banks are:
+:   Bank 1: 4000h - 5FFFh
+:   Bank 2: 6000h - 7FFFh
+:   Bank 3: 8000h - 9FFFh
+:   Bank 4: A000h - BFFFh
+:
+: And the address to change banks:
+:   Bank 1: <none>
+:   Bank 2: 6000h - 7FFFh (6000h used)
+:   Bank 3: 8000h - 9FFFh (8000h used)
+:   Bank 4: A000h - BFFFh (A000h used)
+:
+
+http://www.msx.org/wiki/Slots states:
+: Typically MSX1 has BIOS in SLOT #0.
+:
+: (...)
+:
+: Each slot (no matter is it not expanded MAIN SLOT or expanded SUB 
+: SLOT) can have MAX 64KB of addressable space.
+:
+: This space is divided to 4 parts 16KB each. The MAIN SLOT part that is 
+: selected as visual for Z80 is controlled trough I/O port #A8. Each 2 
+: bits represent one of the memory areas 
+: (#0000-#3FFF,#4000-#7FFF,#8000-#BFFF,#C000-#FFFF) and the value of the 
+: bits represent the slot number (0-3). Reading value from port I/O #A8 
+: is always supported.
+
+After fiddling/disassembling/debugging/googling, it turn out that ROM 
+page 0 is permanently mapped to 4000h-5fffh. Page 0 contains the most 
+used routines. The other pages contain stuff like infrequently used 
+routines, characters, room layouts, exit mapping from room to room. The 
+other pages are mapped in a predictable fashion. The complete memory 
+layout is:
+
+(slot 0)
+0x0000-0x3FFF: BIOS
+
+(slot 1)
+0x4000-0x7FFF:
+  0x4000-0x5FFF: MoG ROM page 0 (ROM 0x0000-0x1FFFF)
+  
+  (depending on which page was actually loaded)
+  0x6000-0x7FFF: MoG ROM page  1 (ROM 0x02000-0x03FFF)
+  0x6000-0x7FFF: MoG ROM page  4 (ROM 0x08000-0x09FFF)
+  0x6000-0x7FFF: MoG ROM page  7 (ROM 0x0E000-0x0FFFF)
+  0x6000-0x7FFF: MoG ROM page 10 (ROM 0x14000-0x15FFF)
+  0x6000-0x7FFF: MoG ROM page 13 (ROM 0x1A000-0x1BFFF)
+
+(slot 2)
+0x8000-0xBFFF:
+  (depending on which page was actually loaded)
+  0x8000-0x9999: MoG ROM page  2 (ROM 0x04000-0x05FFF)
+  0x8000-0x9999: MoG ROM page  5 (ROM 0x0A000-0x0BFFF)
+  0x8000-0x9999: MoG ROM page  8 (ROM 0x10000-0x11FFF)
+  0x8000-0x9999: MoG ROM page 11 (ROM 0x16000-0x17FFF)
+  0x8000-0x9999: MoG ROM page 14 (ROM 0x1C000-0x1DFFF)
+  
+  (depending on which page was actually loaded)
+  0xA000-0xBFFF: MoG ROM page  3 (ROM 0x06000-0x07FFF)
+  0xA000-0xBFFF: MoG ROM page  6 (ROM 0x0C000-0x0DFFF)
+  0xA000-0xBFFF: MoG ROM page  9 (ROM 0x12000-0x13FFF)
+  0xA000-0xBFFF: MoG ROM page 12 (ROM 0x18000-0x19FFF)
+  0xA000-0xBFFF: MoG ROM page 15 (ROM 0x1E000-0x1FFFF)
+
+(slot 3)
+0xC000-0xFFFF:
+  RAM
+
+
+
+As pages are important, we split the 128KiB ROM into parts of 8KiB (the 
+page size of the cartridge). (Used tool: rom2pages.pl) With this memory 
+layout, we can produce a better disassembly per page:
+  z80dasm -o MazeOfGalious.page.00.asm -g 0x4000 -at -b MazeOfGalious.page.00.blocks MazeOfGalious.page.00.bin
+  z80dasm -o MazeOfGalious.page.01.asm -g 0x6000 -at -b MazeOfGalious.page.01.blocks MazeOfGalious.page.01.bin
+  z80dasm -o MazeOfGalious.page.02.asm -g 0x8000 -at -b MazeOfGalious.page.02.blocks MazeOfGalious.page.02.bin
+  z80dasm -o MazeOfGalious.page.03.asm -g 0xa000 -at -b MazeOfGalious.page.03.blocks MazeOfGalious.page.03.bin
+  z80dasm -o MazeOfGalious.page.04.asm -g 0x6000 -at -b MazeOfGalious.page.04.blocks MazeOfGalious.page.04.bin
+  z80dasm -o MazeOfGalious.page.05.asm -g 0x8000 -at -b MazeOfGalious.page.05.blocks MazeOfGalious.page.05.bin
+  z80dasm -o MazeOfGalious.page.06.asm -g 0xa000 -at -b MazeOfGalious.page.06.blocks MazeOfGalious.page.06.bin
+  z80dasm -o MazeOfGalious.page.07.asm -g 0x6000 -at -b MazeOfGalious.page.07.blocks MazeOfGalious.page.07.bin
+  z80dasm -o MazeOfGalious.page.08.asm -g 0x8000 -at -b MazeOfGalious.page.08.blocks MazeOfGalious.page.08.bin
+  z80dasm -o MazeOfGalious.page.08.asm -g 0xa000 -at -b MazeOfGalious.page.09.blocks MazeOfGalious.page.09.bin
+  z80dasm -o MazeOfGalious.page.0a.asm -g 0x6000 -at -b MazeOfGalious.page.0a.blocks MazeOfGalious.page.0a.bin
+  z80dasm -o MazeOfGalious.page.0b.asm -g 0x8000 -at -b MazeOfGalious.page.0b.blocks MazeOfGalious.page.0b.bin
+  z80dasm -o MazeOfGalious.page.0c.asm -g 0xa000 -at -b MazeOfGalious.page.0c.blocks MazeOfGalious.page.0c.bin
+  z80dasm -o MazeOfGalious.page.0d.asm -g 0x6000 -at -b MazeOfGalious.page.0d.blocks MazeOfGalious.page.0d.bin
+  z80dasm -o MazeOfGalious.page.0e.asm -g 0x8000 -at -b MazeOfGalious.page.0e.blocks MazeOfGalious.page.0e.bin
+  z80dasm -o MazeOfGalious.page.0f.asm -g 0xa000 -at -b MazeOfGalious.page.0f.blocks MazeOfGalious.page.0f.bin
+
+Source for RAM location of items and more:
+  /usr/share/openmsx/scripts/trainerdefs.tclinclude (deb: openmsx-data)
+
+
+
+RAM	Name			Referenced by
+e002	?			T4E24h...
+e008	?			T6854h...
+e009	?			T9A89h...
+e00d	?			T4E2Dh...
+e016	?			T4AC3h T4CB0h T784Bh T786Eh
+e017	?			T4AC6h T4CB3h
+e01c	?			T9A95h...
+e026	?			T7E8Ch
+e027	ZeusCheat		T458Ch T7E84h T7E91h
+
+e041	WorldNumber
+e042	RoomNumber
+
+e046	Arrows153
+e047	Arrows9
+e048	Coins153
+e049	Coins9
+e04a	Keys153
+e04b	Keys9
+e04c	?			T686Fh...
+e04d	?			T685Ah...
+e04e	?			T687Dh...
+
+e051	ExpNeededAphrodite
+e052	VitAphrodite1
+e053	VitAphrodite2
+
+e055	ExpNeededPopolon
+e056	VitPopolon1
+e057	VitPopolon2
+e068	?			T6861h...
+
+e062	?			T5DA1h T6085h T6172h T6189h T997Dh T99F2h
+e063	World01Items
+e064	World02Items
+e065	World03Items
+e066	World04Items
+e067	World05Items
+e068	World06Items
+e069	World07Items
+e06a	World08Items
+e06b	World09Items
+e06c	World10Items
+
+e070	Arrows
+e071	CeramicArrows
+e072	RollingFire
+e073	Fire
+e074	Mine
+e075	MagnifyingGlass
+e07a	Cross
+e07b	???			T99FBh
+e07c	Necklace		T9A41h...
+e07d	Crown
+e07e	Helm
+e07f	Oar
+e080	Boots
+e081	DecorativeDoll
+e082	Robe
+e083	Bell
+e084	Halo
+e085	Candle
+e086	Armor
+e087	Carpet
+e088	Helmet
+e089	Lamp
+e08a	Vase
+e08b	Pendant
+e08c	Earrings
+e08d	Bracelet
+e08e	Ring
+e08f	Bible
+e090	Harp
+e091	Triangle
+e092	TrumpetShell
+e093	Pitcher
+e094	Sabre
+e095	Dagger
+e096	Feather
+e097	Shield
+e098	BreadAndWater
+e099	Salt			T9A84h
+
+e06d	World10Activator
+e06e	World10Location
+
+e0d6	ScreenStaysFrozen
+
+e505	?			T9A65h...
+e507	?			T9A6Dh...
+e50b	FallDownWhenHit
+e510	ActiveWeapon
+e518	Invulnerable
+e531	BibleUsesLeft
+
+e682	?			T9A5Fh...
+e683	?			T9A71h...
+
+e689	?
+
+e6a1	?BuildBridgeInWorld2?	T9EF6h...
+
+f0f1	?			T4E39h...
+f0f2	?			T4E3Fh...
+f0f4	?			T4E3Ch...
+f0f5	?			T4E5Ch...
+f0f8	CombosWithKonamiCarts
