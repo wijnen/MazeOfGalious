@@ -44,20 +44,26 @@ def makeimage (data, patterns):
 	ret = numpy.zeros ((20 * 8, 32 * 8), dtype = numpy.uint8)
 	for y in range (20):
 		for x in range (32):
-			ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char (patterns, data[y, x])
+			if data[y, x] != 0x6c: # Hide walk-through walls.
+				ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char (patterns, data[y, x])
 	im = Image.fromarray (ret, 'P')
 	im.putpalette (palette)
+	## Show bit-pattern of character code on top line.
+	#for y in range (20):
+	#	for x in range (32):
+	#		for bit in range (8):
+	#			im.putpixel ((x * 8 + bit, y * 8), 15 if (data[y, x] >> (7 - bit)) & 1 else 1)
 	return im
 
 out = []
-for idx, (w, nrooms) in enumerate (zip (world, rooms)):
+for idx, w in enumerate (world):
 	# Create all rooms in a world.
-	fullmap = numpy.zeros ((nrooms, 20, 32), dtype = numpy.uint8)
-	roomdata = numpy.array ([[ord (x) for x in data[w + 40 * room:w + 40 * (room + 1)]] for room in range (nrooms)], dtype = numpy.uint8).reshape ((nrooms, 5, 8))
+	fullmap = numpy.zeros ((rooms[idx], 20, 32), dtype = numpy.uint8)
+	roomdata = numpy.array ([[ord (x) for x in data[w + 40 * room:w + 40 * (room + 1)]] for room in range (rooms[idx])], dtype = numpy.uint8).reshape ((rooms[idx], 5, 8))
 	for y in range (5):
 		for x in range (8):
-			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range (nrooms)]
-	out.append ([makeimage (fullmap[r], patterns[r] if idx == 0 else -1) for r in range (nrooms)])
+			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range (rooms[idx])]
+	out.append ([makeimage (fullmap[r], patterns[r] if idx == 0 else -1) for r in range (rooms[idx])])
 
 # Link stuff together.
 worldmap = []
@@ -67,15 +73,18 @@ exits = [numpy.zeros ((4, rooms[w]), dtype = numpy.uint8) for w in range (11)]
 l = [[0, 0] for w in range (11)]
 h = [[0, 0] for w in range (11)]
 for w in range (11):
-	a = struct.unpack ('<H', data[0x129f1 + 2 * w:0x129f1 + 2 * w + 2])[0] - 0xa000 + 0x12000 + 4
+	waddr = 0x129f1 + 2 * w
+	a = struct.unpack ('<H', data[waddr:waddr + 2])[0] - 0xa000 + 0x12000
 	for r in range (rooms[w]):
-		exits[w][:, r] = struct.unpack ('<BBBB', data[a + 4 * r:a + 4 * r + 4])
+		raddr = a + 4 * (r + 1)
+		exits[w][:, r] = struct.unpack ('<BBBB', data[raddr:raddr + 4])
 	# check if values are sane.
 	for r in range (rooms[w]):
 		for e in range (4):
 			target = exits[w][e, r]
 			# rooms[w] + 1 is meeting a god; 0xff - w is world exit
 			if target == 0xff or target == 0xff - w or target == rooms[w] + 1:
+				#print 'world %d, found room %x' % (w, target)
 				continue
 			if not 0 < target <= rooms[w]:
 				print 'invalid exit %d=%x for room %x world %d' % (e, target, r, w)
@@ -84,6 +93,7 @@ for w in range (11):
 			if (r + 1, w + 1, e) != (4, 4, 0) and exits[w][e ^ 1, target - 1] != r + 1:
 				print "exit %d=%x for room %x world %d doesn't return (%x)" % (e, exits[w][e, r], r + 1, w + 1, exits[w][e ^ 1, exits[w][e, r] - 1])
 				continue
+			#print 'exit %d room %x world %d is %x; exit %d room %x world %d is %x' % (e, r, w, target, e ^ 1, target, w, exits[w][e ^ 1, target - 1])
 	# compute screen positions.
 	screenpos = {1: numpy.array ((0, 0))}
 	queue = [screenpos.keys ()[0]]
@@ -94,6 +104,15 @@ for w in range (11):
 		# Screen 94 is not linked, but belongs at (1,-1). Link it there.
 		screenpos[94] = numpy.array ((1, -1))
 		todo.remove (94)
+		done.add (94)
+		h[w][0] = 1
+		l[w][1] = -1
+	elif w == 10:
+		# Screen 6 is not linked, but belongs at (5,0). Link it there.
+		screenpos[6] = numpy.array ((5, 0))
+		todo.remove (6)
+		done.add (6)
+		h[w][0] = 5
 	while queue != []:
 		current = queue.pop (0)
 		todo.remove (current)

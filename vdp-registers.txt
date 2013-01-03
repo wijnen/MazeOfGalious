@@ -70,9 +70,9 @@ IX values used in cartridge:
 60b1	Blue round brick
 60c9	Knight armour
 60d0	Red bricks with grass
-6121	Weirdness...
+6121	Weirdness... end boss sign (with mirror 6128 == 5a+8->78
 6139	White and grey stuff
-6175 + n * 7 (n = 0-10)
+6175 + n * 7 (n = 0-10)		boss monsters?
 	6175	Weird white and grey stuff
 	617c	more green stuff?
 	6183	identical to 617c, but region 2 instead of 4
@@ -87,9 +87,52 @@ IX values used in cartridge:
 6365	Characters for selection and map tiles
 636c	Castle from end demo
 9a96	Title page
+From table at 14157 + 2 * world (1-based):
+616f 61ac 61ad 61b4 61bb 61bc 61cf 61dc 61e3 61ea 61fd
 
-Related variables:
+Constants:
+149f1	table of pointers to room exits (4 per room) per world
+
+Variables:
 Me041	Current world + 1 (1 = castle, 2 = world 1, etc.)
 Me042	Current room (1 = first)
 Me648+4	Current exits (udlr)
-149f1	table of pointers to room exits (4 per room) per world
+Me062+world	world-info
+Me06f+(07-2c)	information about item (non-0 means own this).
+Me027	1 if continue is possible (ZEUS used).
+Me028	Number of characters of ZEUS that have been typed so far.
+Me02a	Last seen key (for detecting key press event).
+Me6b0+0x10	shift buffer containing entered characters (Me6bf is last)
+Mec30+3 times 8	information about rocks on screen (max 3 rocks per screen)
+
+Items:
+e07c	Neclace		; enter world 7
+e07d	Crown		; protect against 0x2a: white witches
+e07e	White helmet	; protect against 0x28: plasma shots
+e07f	Oar		; Walk on water in two screens
+e080	Boots		; Walk faster
+e081	Doll		; Make bridge
+e082	Robe		; Prevent flipping controls
+e083	Bell		; Locate next world door
+e084	Halo		; Teleport to Demeter
+e085	Candle		; See one room
+e086	Armor		; protect against 0x2e: green plants
+e087	Carpet		; Change lava into stone in some rooms
+e088	Green helm	; damage -> (damage - 1) / 2
+e089	Lamp		; Mark guardian
+e08a	Vase		; Double experience
+e08b	Pendant		; Aphrodite can shatter weak walls
+e08c	Earrings	; Allow 3 arrows
+e08d	Bracelet	; Allow 3 mines
+e08e	Ring		; Aphrodites rock hits count for 5
+e08f	Bible		; Freeze
+e090	Harp		; Shatter rocks
+e091	Triangle	; protect against 0x31: gas clouds
+e092	Trumpet shell	; enter world 5
+e093	Pitcher		; protect against 0x08: fireballs
+e094	Sabre		; Double damage
+e095	Dagger		; umbrella
+e096	Feather		; Teleport to world door
+e097	Shield		; Protect
+e098	Water and bread	; Aphrodite can go through push doors
+e099	Salt		; See death
