@@ -94,16 +94,23 @@ Constants:
 149f1	table of pointers to room exits (4 per room) per world
 
 Variables:
+Me000	State. Used in a jump table in interrupt bottom half.
+Me001	Substate. Passed as B to state functions. Used through DJNZ.
+Me004	Delay, used by several states.
 Me041	Current world + 1 (1 = castle, 2 = world 1, etc.)
 Me042	Current room (1 = first)
 Me648+4	Current exits (udlr)
 Me062+world	world-info
+Me070+6	Do you own this weapon? (arrow, ceramic arrow, fireball, flame, mine, looking glass)
 Me06f+(07-2c)	information about item (non-0 means own this).
 Me027	1 if continue is possible (ZEUS used).
 Me028	Number of characters of ZEUS that have been typed so far.
 Me02a	Last seen key (for detecting key press event).
+Me510	Currently selected weapon
 Me6b0+0x10	shift buffer containing entered characters (Me6bf is last)
 Mec30+3 times 8	information about rocks on screen (max 3 rocks per screen)
+Mec80+0x80	buffer; use unknown; cleared to 0xE0
+Med80+0x280	buffer; use unknown; cleared to 0 only when writing item screen
 
 Items:
 e07c	Neclace		; enter world 7
