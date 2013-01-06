@@ -4554,7 +4554,7 @@ T5F57h	A7......  ....	AND	A
 T5F58h	C9......  ....	RET			
 # }}}
 
-# {{{ Magic numers...?
+# {{{ Magic numbers...?
 defb 0x00, 0x30, 0x31, 0x13, 0x35, 0xaa -> game master
 defb 0xb7, 0x8b, 0x9e, 0x0a, 0x39, 0xaa	-> knightmare
 defb 0xba, 0xb2, 0x86, 0x07, 0x46, 0xaa -> q-bert
@@ -9672,13 +9672,13 @@ T7E68h	A6......  ....	AND	(HL)		; A = (oldHL ^ newHL) & newHL: NZ for all bits w
 T7E69h	C8......  ....	RET	Z		; Nothing new. Actually AND (HL) shouldn't have been used, but it doesn't matter much.
 
 T7E6Ah	47......  G...	LD	B,A	
-T7E6Bh	11887E..  ..~.	LD	DE,07E88h
+T7E6Bh	11887E..  ..~.	LD	DE,07E88h	; DE = start of 'ZEUS'
 T7E6Eh	2128E0..  !(..	LD	HL,0E028h
 T7E71h	7E......  ~...	LD	A,(HL)	
 T7E72h	CD3B41..  .;A.	CALL	DE+=A
 T7E75h	1A......  ....	LD	A,(DE)	
 T7E76h	B8......  ....	CP	B	
-T7E77h	2803....  (...	JR	Z,003h			; Jump to 07E7CH
+T7E77h	2803....  (...	JR	Z,003h		; Jump to 07E7CH
 T7E79h	3600....  6...	LD	(HL),000h
 T7E7Bh	C9......  ....	RET			
 
@@ -9693,10 +9693,7 @@ T7E83h	3C......  <...	INC	A			;
 T7E84h	3227E0..  2'..	LD	(ZeusCheat),A
 T7E87h	C9......  ....	RET			
 
-T7E88h	5A......  Z...	LD	E,D	
-T7E89h	45......  E...	LD	B,L	
-T7E8Ah	55......  U...	LD	D,L	
-T7E8Bh	53......  S...	LD	D,E	
+defb 'ZEUS'
 T7E8Ch	3A26E0..  :&..	LD	A,(TE026H)
 T7E8Fh	A7......  ....	AND	A	
 T7E90h	C0......  ....	RET	NZ		
@@ -13872,21 +13869,14 @@ T9BF8h	CD3C9B..  .<..	CALL	fill_keyboard_shift_buffer	; Check umbrella
 T9BFBh	C8......  ....	RET	Z		
 
 T9BFCh	21B8E6..  !...	LD	HL,0E6B8h
-T9BFFh	110B9C..  ....	LD	DE,09C0Bh
-T9C02h	0608....  ....	LD	B,008h	
+T9BFFh	110B9C..  ....	LD	DE,09C0Bh	; DE = Start of 'UMBRELLA'
+T9C02h	0608....  ....	LD	B,008h		; B  = length of 'UMBRELLA'
 T9C04h	CD339B..  .3..	CALL	CP_*DE_*HL	
 T9C07h	C0......  ....	RET	NZ		
 
 T9C08h	C3EAB5..  ....	JP	TB5EAH		
 
-T9C0Bh	55......  U...	LD	D,L	
-T9C0Ch	4D......  M...	LD	C,L	
-T9C0Dh	42......  B...	LD	B,D	
-T9C0Eh	52......  R...	LD	D,D	
-T9C0Fh	45......  E...	LD	B,L	
-T9C10h	4C......  L...	LD	C,H	
-T9C11h	4C......  L...	LD	C,H	
-T9C12h	41......  A...	LD	B,C	
+defb 'UMBRELLA'
 
 	; Read and parse keyboard matrix
 read_keyboard:
@@ -14600,7 +14590,7 @@ T9FC1h	3A8AE0..  :...	LD	A,(TE08AH)	; Vase
 T9FC4h	A7......  ....	AND	A	
 T9FC5h	C0......  ....	RET	NZ		; Already have it.
 
-T9FC6h	3A66E0..  :f..	LD	A,(TE066H)	; world 4 boss beaten?(?)
+T9FC6h	3A66E0..  :f..	LD	A,(TE066H)	; Boss in world 4 must have been beaten before the vase may appear.
 T9FC9h	CB57....  .W..	BIT	2,A	
 T9FCBh	C8......  ....	RET	Z		; No.
 
@@ -15839,14 +15829,15 @@ TA89Ch	321FE0..  2...	LD	(TE01FH),A
 TA89Fh	C9......  ....	RET			
 
 maybe_flip_controls:
-TA8A0h	3A41E0..  :A..	LD	A,(WorldNumber)
-TA8A3h	FE09....  ....	CP	009h	
-TA8A5h	C0......  ....	RET	NZ		
+TA8A0h	3A41E0..  :A..	LD	A,(WorldNumber)	;
+TA8A3h	FE09....  ....	CP	009h		;
+TA8A5h	C0......  ....	RET	NZ		; if (world != 8) return
 
 TA8A6h	3A82E0..  :...	LD	A,(TE082H)	; Robe
-TA8A9h	B7......  ....	OR	A	
-TA8AAh	C0......  ....	RET	NZ		
+TA8A9h	B7......  ....	OR	A		; 
+TA8AAh	C0......  ....	RET	NZ		; if (user has robe) return
 
+;; The controls flip in world 8 if user does not have the robe.
 TA8ABh	3A09E0..  :...	LD	A,(TE009H)
 TA8AEh	CDBEA8..  ....	CALL	flip_controls	
 TA8B1h	3209E0..  2...	LD	(TE009H),A
@@ -15855,6 +15846,7 @@ TA8B7h	CDBEA8..  ....	CALL	flip_controls
 TA8BAh	3208E0..  2...	LD	(TE008H),A
 TA8BDh	C9......  ....	RET			
 
+;; The controls flip in world 8 if user does not have the robe.
 flip_controls:
 TA8BEh	47......  G...	LD	B,A		; xxMSRLDU
 TA8BFh	17......  ....	RLA			; xMSRLDUx

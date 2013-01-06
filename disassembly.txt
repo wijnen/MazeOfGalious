@@ -227,6 +227,7 @@ e06e	World10Location
 
 e0d6	ScreenStaysFrozen
 
+e501	am_I_Popolon
 e505	?			T9A65h...
 e507	?			T9A6Dh...
 e50b	FallDownWhenHit
