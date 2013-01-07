@@ -14,40 +14,43 @@ This module was created for drawing rooms, items etc. of the MSX game
 ## * www.cs.columbia.edu/~sedwards/papers/TMS9918.pdf
 
 class tms9918a:
-    palette = ((  0,   0,   0,	## Transparent
-                  0,   0,   0,	## Black
-                 33, 200,  66,	## Medium green
-                 94, 220, 120,	## Light green
-                 84,  85, 237,	## Dark blue
-                125, 118, 252,	## Light blue
-                212,  82,  77,	## Dark red
-                 66, 235, 245,	## Cyan
-                252,  85,  84,	## Medium red
-                255, 121, 120,	## Light red
-                212, 193,  84,	## Dark yellow
-                230, 206, 128,	## Light yellow
-                 33, 176,  59,	## Dark green
-                201,  91, 186,	## Magenta
-                204, 204, 204,	## Gray
-                255, 255, 255,	## White
-        ))
-    palette_msx2= ((  0,   0,   0,	## Transparent
-                  0,   0,   0,	## Black
-                 62, 184,  73,	## Bright green
-                116, 208, 125,	## Light green
-                 89,  85, 224,	## Deep blue something
-                128, 118, 241,	## Bright blue
-                185,  94,  81,	## Deep red
-                101, 219, 239,	## Light blue
-                219, 101,  89,	## Bright red
-                255, 137, 125,	## Light red
-                204, 195,  94,	## Bright yellow
-                222, 208, 135,	## Pale yellow
-                 58, 162,  65,	## Deep green
-                183, 102, 181,	## Purple
-                204, 204, 204,	## Grey
-                255, 255, 255,	## White
-        ))
+    palette_msx1 = (
+          0,   0,   0,	## Transparent
+          0,   0,   0,	## Black
+         33, 200,  66,	## Medium green
+         94, 220, 120,	## Light green
+         84,  85, 237,	## Dark blue
+        125, 118, 252,	## Light blue
+        212,  82,  77,	## Dark red
+         66, 235, 245,	## Cyan
+        252,  85,  84,	## Medium red
+        255, 121, 120,	## Light red
+        212, 193,  84,	## Dark yellow
+        230, 206, 128,	## Light yellow
+         33, 176,  59,	## Dark green
+        201,  91, 186,	## Magenta
+        204, 204, 204,	## Gray
+        255, 255, 255,	## White
+    )
+    
+    palette_msx2 = (
+          0,   0,   0,	## Transparent
+          0,   0,   0,	## Black
+         62, 184,  73,	## Bright green
+        116, 208, 125,	## Light green
+         89,  85, 224,	## Deep blue something
+        128, 118, 241,	## Bright blue
+        185,  94,  81,	## Deep red
+        101, 219, 239,	## Light blue
+        219, 101,  89,	## Bright red
+        255, 137, 125,	## Light red
+        204, 195,  94,	## Bright yellow
+        222, 208, 135,	## Pale yellow
+         58, 162,  65,	## Deep green
+        183, 102, 181,	## Purple
+        204, 204, 204,	## Grey
+        255, 255, 255,	## White
+    )
     
     operating_mode = {
         'Graphics_I_mode'	: 0b000,
@@ -58,7 +61,7 @@ class tms9918a:
     }
     
     def __init__ (self):
-        self.palette = tms9918a.palette
+        self.palette = tms9918a.palette_msx1
         
         ## Clear all registers.
         self.register = [0] * 9
@@ -79,7 +82,7 @@ class tms9918a:
     def draw_screen (self):
         screen = self.get_screen ()
         im = Image.fromarray (screen, 'P')
-        im.putpalette (tms9918a.palette)
+        im.putpalette (self.palette)
         return im
     
     
