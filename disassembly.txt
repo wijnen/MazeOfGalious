@@ -13,10 +13,10 @@ Used flags of dasm:
 
 
 
-The MSX1 were typically equipped with 32KiB or 64KiB of RAM. (Source: 
-http://en.wikipedia.org/wiki/MSX). The processor inside the MSX1 is 8 
-bit and can therefore address 64KiB of address space. So not all of the 
-ROM can be addressed at once. To quote 
+The MSX1 were typically equipped with 32KiB or 64KiB of RAM. (Source:
+http://en.wikipedia.org/wiki/MSX). The processor inside the MSX1 has a 16 bit
+address bus and can therefore address 64KiB (2^16) of address space. So not all
+of the ROM can be addressed at once. To quote 
 http://bifi.msxnet.org/msxnet/tech/megaroms.html:
 :
 : To fit ROMs larger than 64Kb in one slot (thus one cartridge) software 
@@ -32,7 +32,6 @@ http://bifi.msxnet.org/msxnet/tech/megaroms.html:
 : etc..
 : By default, bank 1 has the value 0 and bank 2 the value 1, etc, etc. 
 : In this way the first 32Kb of the ROM is selected into 4000h - BFFFh.
-:
 
 The quoted site also gives details about the cartridge for Maze of 
 Galious. To quote 
@@ -77,10 +76,10 @@ routines, characters, room layouts, exit mapping from room to room. The
 other pages are mapped in a predictable fashion. The complete memory 
 layout is:
 
-(slot 0)
+(page 0)
 0x0000-0x3FFF: BIOS
 
-(slot 1)
+(page 1)
 0x4000-0x7FFF:
   0x4000-0x5FFF: MoG ROM page 0 (ROM 0x0000-0x1FFFF)
   
@@ -91,7 +90,7 @@ layout is:
   0x6000-0x7FFF: MoG ROM page 10 (ROM 0x14000-0x15FFF)
   0x6000-0x7FFF: MoG ROM page 13 (ROM 0x1A000-0x1BFFF)
 
-(slot 2)
+(page 2)
 0x8000-0xBFFF:
   (depending on which page was actually loaded)
   0x8000-0x9999: MoG ROM page  2 (ROM 0x04000-0x05FFF)
@@ -107,7 +106,7 @@ layout is:
   0xA000-0xBFFF: MoG ROM page 12 (ROM 0x18000-0x19FFF)
   0xA000-0xBFFF: MoG ROM page 15 (ROM 0x1E000-0x1FFFF)
 
-(slot 3)
+(page 3)
 0xC000-0xFFFF:
   RAM
 
@@ -152,6 +151,9 @@ e027	ZeusCheat		T458Ch T7E84h T7E91h
 e041	WorldNumber
 e042	RoomNumber
 
+The following numbers are binary coded decimal, or BCD. Write them as hex, read
+as decimal. This means the LSB contains at most 0x99 or 153, and the MSB at
+most 0x9 (for a maximum of 999 of each); this explains those names.
 e046	Arrows153
 e047	Arrows9
 e048	Coins153
