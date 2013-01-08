@@ -1,4 +1,5 @@
-;File:            mog-0.rom
+; vim: set foldmethod=marker :
+;File:            mog-0.rom {{{
 ;DASM As:         Memory Mirror File (Non executable file)
 ;Initial Address: 4000h
 
@@ -180,6 +181,7 @@ T4134h	FB......  ....	EI
 T4135h	C9......  ....	RET			
 ; }}}
 
+; {{{ Subroutine library
 ; [BD] Important subroutine.
 HL+=A:
 T4136h	85......  ....	ADD	A,L		; [BD] A += L;
@@ -222,7 +224,7 @@ T4152h	23......  #...	INC	HL		;
 T4153h	56......  V...	LD	D,(HL)	
 T4154h	C9......  ....	RET			
 
-;A=HL[A]
+;A=HL[A]	; not used.
 T4155h	85......  ....	ADD	A,L	
 T4156h	6F......  o...	LD	L,A	
 T4157h	3001....  0...	JR	NC,001h		; Jump to 0415AH
@@ -443,8 +445,9 @@ T426Ch	CD89B3..  ....	CALL	TB389H
 T426Fh	0602....  ....	LD	B,002h	
 T4271h	CDCEB3..  ....	CALL	TB3CEH	
 T4274h	C38541..  ..A.	JP	SetMapper456		
+; }}}
 
-InterruptBottomHalf:
+InterruptBottomHalf:	; {{{
 T4277h	2103E0..  !...	LD	HL,0E003h
 T427Ah	34......  4...	INC	(HL)		;
 T427Bh	3A00E0..  :...	LD	A,(state)
@@ -465,7 +468,7 @@ defw 0x44F2	; 6:
 defw 0x454F	; 7:
 defw 0x4599	; 8:
 defw 0x473A	; 9: pauze
-defw 0x4769	; a:
+defw 0x4769	; a: goto new room
 defw 0x47CF	; b: item screen
 defw 0x484F	; c:
 defw 0x46AD	; d:
@@ -476,7 +479,9 @@ defw 0x49BA	;12: end demo
 defw 0x4A69	;12:
 defw 0x4B5B	;13:
 defw 0x4BD8	;14:
+; }}}
 
+; {{{ state handlers
 state_0:
 T42B8h	100D....  ....	DJNZ	00Dh		; Jump to 042C7H
 state_0_1:
@@ -488,7 +493,7 @@ T42BFh	CD8569..  ..i.	CALL	T6985H
 T42C2h	C0......  ....	RET	NZ		
 
 T42C3h	AF......  ....	XOR	A		
-T42C4h	C35B43..  .[C.	JP	store_a_in_e004_then_inc_substate		
+T42C4h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
 T42C7h	100C....  ....	DJNZ	00Ch		; Jump to 042D5H
 state_0_2:
@@ -564,7 +569,7 @@ T4352h	CB47....  .G..	BIT	0,A
 T4354h	200D....  ....	JR	NZ,00Dh		; Jump to 04363H
 T4356h	CD827D..  ..}.	CALL	T7D82H	
 T4359h	3E20....  >...	LD	A,020h	
-store_a_in_e004_then_inc_substate:
+store_a_in_delay_then_inc_substate:
 T435Bh	3204E0..  2...	LD	(delay),A
 inc_substate:
 T435Eh	2101E0..  !...	LD	HL,substate
@@ -669,7 +674,7 @@ state_3_0:
 T4416h	3E87....  >...	LD	A,087h	
 T4418h	CDAF5C..  ..\.	CALL	T5CAFH	
 T441Bh	3E2D....  >-..	LD	A,02Dh	
-T441Dh	C35B43..  .[C.	JP	store_a_in_e004_then_inc_substate		
+T441Dh	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
 T4420h	1025....  .%..	DJNZ	025h		; Jump to 04447H
 state_4:	; why not 4420?
@@ -693,6 +698,7 @@ set_substate:
 T4443h	3201E0..  2...	LD	(substate),A
 T4446h	C9......  ....	RET			
 
+not_state_4_0:
 T4447h	CD1E4D..  ..M.	CALL	T4D1EH	
 T444Ah	F0......  ....	RET	P		
 
@@ -711,42 +717,42 @@ state_5:
 T4462h	CDF552..  ..R.	CALL	T52F5H	
 T4465h	3A19E0..  :...	LD	A,(TE019H)
 T4468h	B7......  ....	OR	A	
-T4469h	28CE....  (...	JR	Z,0CEh		; Jump to 04439H
+T4469h	28CE....  (...	JR	Z,0CEh		; Jump to 04439H: delay 0x20; state++
 T446Bh	3A20E0..  :...	LD	A,(TE020H)
 T446Eh	B7......  ....	OR	A	
-T446Fh	3E0F....  >...	LD	A,00Fh	
+T446Fh	3E0F....  >...	LD	A,00Fh	; state f: ?
 T4471h	205F....  ._..	JR	NZ,05Fh		; Jump to 044D2H
 T4473h	3A1FE0..  :...	LD	A,(TE01FH)
 T4476h	47......  G...	LD	B,A	
 T4477h	05......  ....	DEC	B	
-T4478h	3E08....  >...	LD	A,008h	
+T4478h	3E08....  >...	LD	A,008h	; state 8: ?
 T447Ah	2856....  (V..	JR	Z,056h		; Jump to 044D2H
 T447Ch	05......  ....	DEC	B	
-T447Dh	3E0D....  >...	LD	A,00Dh	
+T447Dh	3E0D....  >...	LD	A,00Dh	; state d: ?
 T447Fh	2851....  (Q..	JR	Z,051h		; Jump to 044D2H
 T4481h	3A1CE0..  :...	LD	A,(TE01CH)
 T4484h	B7......  ....	OR	A	
-T4485h	3E10....  >...	LD	A,010h	
+T4485h	3E10....  >...	LD	A,010h	; state 10: ?
 T4487h	2049....  .I..	JR	NZ,049h		; Jump to 044D2H
 T4489h	3A31E0..  :1..	LD	A,(TE031H)
 T448Ch	B7......  ....	OR	A	
-T448Dh	3E14....  >...	LD	A,014h	
+T448Dh	3E14....  >...	LD	A,014h	; state 14: ?
 T448Fh	2041....  .A..	JR	NZ,041h		; Jump to 044D2H
 T4491h	3A1AE0..  :...	LD	A,(TE01AH)
 T4494h	B7......  ....	OR	A	
-T4495h	3E0A....  >...	LD	A,00Ah	
+T4495h	3E0A....  >...	LD	A,00Ah	; state a: goto new screen
 T4497h	2039....  .9..	JR	NZ,039h		; Jump to 044D2H
 T4499h	3A1BE0..  :...	LD	A,(TE01BH)
 T449Ch	B7......  ....	OR	A	
-T449Dh	3E0C....  >...	LD	A,00Ch	
+T449Dh	3E0C....  >...	LD	A,00Ch	; state c: ?
 T449Fh	2031....  .1..	JR	NZ,031h		; Jump to 044D2H
 T44A1h	3A24E0..  :$..	LD	A,(TE024H)
 T44A4h	B7......  ....	OR	A	
-T44A5h	3E11....  >...	LD	A,011h	
+T44A5h	3E11....  >...	LD	A,011h	; state 11: ?
 T44A7h	2029....  .)..	JR	NZ,029h		; Jump to 044D2H
 T44A9h	3A2CE0..  :,..	LD	A,(TE02CH)
 T44ACh	B7......  ....	OR	A	
-T44ADh	3E13....  >...	LD	A,013h	
+T44ADh	3E13....  >...	LD	A,013h	; state 13: ?
 T44AFh	2021....  .!..	JR	NZ,021h		; Jump to 044D2H
 T44B1h	CD079E..  ....	CALL	check_F2	
 T44B4h	301F....  0...	JR	NC,01Fh		; Jump to 044D5H
@@ -774,7 +780,7 @@ T44DCh	D0......  ....	RET	NC
 T44DDh	3E2B....  >+..	LD	A,02Bh	
 T44DFh	CD1F4E..  ..N.	CALL	T4E1FH	
 T44E2h	CD8052..  ..R.	CALL	clear_ec80
-T44E5h	3E0B....  >...	LD	A,00Bh		; state B: item screen
+T44E5h	3E0B....  >...	LD	A,00Bh		; state b: item screen
 T44E7h	C3A943..  ..C.	JP	set_new_state		
 
 T44EAh	3A00E5..  :...	LD	A,(TE500H)
@@ -916,7 +922,7 @@ T45DBh	CD1F46..  ..F.	CALL	T461FH
 T45DEh	3E8E....  >...	LD	A,08Eh	
 T45E0h	CD1F4E..  ..N.	CALL	T4E1FH	
 T45E3h	3E60....  >`..	LD	A,060h	
-T45E5h	C35B43..  .[C.	JP	store_a_in_e004_then_inc_substate		
+T45E5h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
 T45E8h	1019....  ....	DJNZ	019h		; Jump to 04603H
 state_8_2:
@@ -1155,8 +1161,9 @@ T4799h	6F......  o...	LD	L,A
 T479Ah	7E......  ~...	LD	A,(HL)	
 T479Bh	C9......  ....	RET			
 
+; This is called by state a (goto new room) only in world 3
 T479Ch	CD9247..  ..G.	CALL	FindRoomAtExit	
-T479Fh	FE04....  ....	CP	004h	
+T479Fh	FE04....  ....	CP	004h	; room 4 in world 3 is the endless room.
 T47A1h	C0......  ....	RET	NZ		
 
 T47A2h	3A1AE0..  :...	LD	A,(TE01AH)
@@ -1301,7 +1308,7 @@ T48A8h	3E02....  >...	LD	A,002h
 T48AAh	321AE0..  2...	LD	(TE01AH),A
 T48ADh	3E8A....  >...	LD	A,08Ah	
 T48AFh	CD0A5D..  ..].	CALL	T5D0AH	
-T48B2h	3E0A....  >...	LD	A,00Ah		; state a: prepare item screen
+T48B2h	3E0A....  >...	LD	A,00Ah		; state a: goto new room
 T48B4h	C3A943..  ..C.	JP	set_new_state		
 
 state_0xe_0:
@@ -1445,7 +1452,7 @@ state_0x11_0:
 T49D0h	3EFF....  >...	LD	A,0FFh	
 T49D2h	CD1F4E..  ..N.	CALL	T4E1FH	
 T49D5h	3E28....  >(..	LD	A,028h	
-T49D7h	C35B43..  .[C.	JP	store_a_in_e004_then_inc_substate		
+T49D7h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
 state_0x11_1:
 T49DAh	2104E0..  !...	LD	HL,delay
@@ -1459,7 +1466,7 @@ state_0x11_2:
 T49E5h	CD6DA0..  .m..	CALL	TA06DH	
 T49E8h	C2BF54..  ..T.	JP	NZ,PasteScreen
 T49EBh	3E78....  >x..	LD	A,078h	
-T49EDh	C35B43..  .[C.	JP	store_a_in_e004_then_inc_substate		
+T49EDh	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
 state_0x11_3:
 T49F0h	2104E0..  !...	LD	HL,delay
@@ -1612,7 +1619,7 @@ T4B15h	2803....  (...	JR	Z,003h			; Jump to 04B1AH
 T4B17h	1A......  ....	LD	A,(DE)	
 T4B18h	1D......  ....	DEC	E	
 T4B19h	12......  ....	LD	(DE),A	
-T4B1Ah	CDF14C..  ..L.	CALL	T4CF1H	
+T4B1Ah	CDF14C..  ..L.	CALL	check_other_cartridge	
 T4B1Dh	3E40....  >@..	LD	A,040h	
 T4B1Fh	3202E0..  2...	LD	(TE002H),A
 T4B22h	3E04....  >...	LD	A,004h	
@@ -1759,6 +1766,7 @@ T4C18h	3603....  6...	LD	(HL),003h
 T4C1Ah	23......  #...	INC	HL			;
 T4C1Bh	3600....  6...	LD	(HL),000h
 T4C1Dh	C9......  ....	RET			
+; }}}
 
 T4C1Eh	04......  ....	INC	B			;
 T4C1Fh	08......  ....	EX	AF,AF'	
@@ -1877,19 +1885,12 @@ T4CD5h	21E64C..  !.L.	LD	HL,04CE6h	; [BD] HL = 0x4ce6;
 T4CD8h	1151E0..  .Q..	LD	DE,0E051h	; [BD] DE = 0xe051;
 T4CDBh	010B00..  ....	LD	BC,0000Bh	; [BD] BC = 11;
 T4CDEh	EDB0....  ....	LDIR			; [BD] Copy 11 bytes starting from 0x4ce6 to 0xe051.
-T4CE0h	CDF14C..  ..L.	CALL	T4CF1H	
+T4CE0h	CDF14C..  ..L.	CALL	check_other_cartridge	
 T4CE3h	C3B399..  ....	JP	T99B3H		
-; [BD] T4CE6h is the start of (hex) 30 08 08 00 30 08 08 01 00 01 01
-; which will be copied to memory when the first demo starts
+T4CE6h	defb 0x30, 0x08, 0x08, 0x00, 0x30, 0x08, 0x08, 0x01, 0x00, 0x01, 0x01
+; the above will be copied to memory when the first demo starts
 
-T4CE6h	3008....  0...	JR	NC,008h			; Jump to 04CF0H
-T4CE8h	08......  ....	EX	AF,AF'	
-T4CE9h	00......  ....	NOP		
-T4CEAh	3008....  0...	JR	NC,008h			; Jump to 04CF4H
-T4CECh	08......  ....	EX	AF,AF'	
-T4CEDh	010001..  ....	LD	BC,00100h
-T4CF0h	01
-
+check_other_cartridge: ; {{{
 T4CF1h	  3AF8F0  .:..	LD	A,(0F0F8h)
 T4CF4h	B7......  ....	OR	A	
 T4CF5h	C8......  ....	RET	Z		
@@ -1918,6 +1919,7 @@ T4D15h	3E99....  >...	LD	A,099h
 T4D17h	325AE0..  2Z..	LD	(TE05AH),A		; revive allowed
 T4D1Ah	325BE0..  2[..	LD	(TE05BH),A		; revive allowed
 T4D1Dh	C9......  ....	RET			
+; }}}
 
 T4D1Eh	2104E0..  !...	LD	HL,delay
 T4D21h	35......  5...	DEC	(HL)	
@@ -1927,7 +1929,7 @@ T4D23h	7E......  ~...	LD	A,(HL)
 T4D24h	2638....  &8..	LD	H,038h	
 T4D26h	EE1F....  ....	XOR	01Fh	
 T4D28h	C680....  ....	ADD	A,080h	
-T4D2Ah	6F......  o...	LD	L,A	
+T4D2Ah	6F......  o...	LD	L,A		; 3880 <= HL <= 389f
 T4D2Bh	0614....  ....	LD	B,014h	
 T4D2Dh	AF......  ....	XOR	A			; Clear A and F
 T4D2Eh	112000..  ....	LD	DE,00020h
@@ -4585,18 +4587,12 @@ T5FFBh	1802....  ....	JR	002h			; Jump to 05FFFH
 
 T5FFDh	3E10....  >...	LD	A,010h	
 T5FFFh  07......  xxxx  DB	007h
+; }}}
 
---zYM0uCDKw75PZbzx
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: attachment; filename="mog-1-3.asm"
-Content-Transfer-Encoding: quoted-printable
-
-;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
-
-File:            mog-1-3.rom
+File:            mog-1-3.rom {{{
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
-
+;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
@@ -18990,18 +18986,12 @@ TBFFAh	E1......  ....	POP	HL
 TBFFBh	ECBF0D..  ....	CALL	PE,T0DBFH
 TBFFEh	49......  I...	LD	C,C	
 TBFFFh	AA......  ....	XOR	D	
+; }}}
 
---zYM0uCDKw75PZbzx
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: attachment; filename="mog-4-6.asm"
-Content-Transfer-Encoding: quoted-printable
-
-;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
-
-File:            mog-4-6.rom
+File:            mog-4-6.rom ; {{{
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
-
+;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
@@ -32607,18 +32597,12 @@ TBFFCh	FF......  ....	RST	38h
 TBFFDh	FF......  ....	RST	38h	
 TBFFEh	FF......  ....	RST	38h	
 TBFFFh	FF......  ....	RST	38h	
+; }}}
 
---zYM0uCDKw75PZbzx
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: attachment; filename="mog-7-9.asm"
-Content-Transfer-Encoding: quoted-printable
-
-;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
-
-File:            mog-7-9.rom
+File:            mog-7-9.rom ; {{{
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
-
+;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
@@ -54399,17 +54383,12 @@ TBFFCh	FF......  ....	RST	38h
 TBFFDh	FF......  ....	RST	38h	
 TBFFEh	FF......  ....	RST	38h	
 TBFFFh	FF......  ....	RST	38h	
+; }}}
 
---zYM0uCDKw75PZbzx
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: attachment; filename="mog-a-c.asm"
-Content-Transfer-Encoding: quoted-printable
-
-;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
-
-File:            mog-a-c.rom
+File:            mog-a-c.rom	; {{{
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
+;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
 
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
@@ -76629,18 +76608,12 @@ TBFFCh	FF......  ....	RST	38h
 TBFFDh	FF......  ....	RST	38h	
 TBFFEh	FF......  ....	RST	38h	
 TBFFFh	FF......  ....	RST	38h	
+; }}}
 
---zYM0uCDKw75PZbzx
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: attachment; filename="mog-d-f.asm"
-Content-Transfer-Encoding: quoted-printable
-
-;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
-
-File:            mog-d-f.rom
+File:            mog-d-f.rom	; {{{
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
-
+;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
@@ -96201,3 +96174,4 @@ TBFFCh	FF......  ....	RST	38h
 TBFFDh	FF......  ....	RST	38h	
 TBFFEh	FF......  ....	RST	38h	
 TBFFFh	FF......  ....	RST	38h	
+; }}}
