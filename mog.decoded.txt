@@ -36,8 +36,8 @@ defw 0xe16a
 switch_hook:
 T4050h	C34041..  .@A.	JP	switch		
 
-GetWorldAddress_hook:
-T4053h	C34C41..  .LA.	JP	GetWorldAddress
+DE=*(HL+2*A)_hook:
+T4053h	C34C41..  .LA.	JP	DE=*(HL+2*A)
 
 HL=ED00+HL/8_hook
 T4056h	C3A14D..  ..M.	JP	HL=ED00+HL/8
@@ -214,7 +214,7 @@ T4149h	66......  f...	LD	H,(HL)		; H = *(HL);
 T414Ah	6F......  o...	LD	L,A		; L = A;
 T414Bh	E9......  ....	JP	(HL)		; Jump to ... ? jump table?
 
-GetWorldAddress:	; return *(2*A + HL) as DE
+DE=*(HL+2*A):	; return *(2*A + HL) as DE
 T414Ch	87......  ....	ADD	A,A	
 T414Dh	5F......  _...	LD	E,A	
 T414Eh	1600....  ....	LD	D,000h	
@@ -472,10 +472,10 @@ defw 0x4769	; a: goto new room
 defw 0x47CF	; b: item screen
 defw 0x484F	; c:
 defw 0x46AD	; d:
-defw 0x488E	; e:
+defw 0x488E	; e: god in world
 defw 0x4959	; f: boss appearing
-defw 0x48C5	;10:
-defw 0x49BA	;12: end demo
+defw 0x48C5	;10: god in castle
+defw 0x49BA	;11: end demo
 defw 0x4A69	;12:
 defw 0x4B5B	;13:
 defw 0x4BD8	;14:
@@ -978,7 +978,7 @@ T4649h	FE0B....  ....	CP	00Bh
 T464Bh	C8......  ....	RET	Z		
 
 T464Ch	218946..  !.F.	LD	HL,04689h
-T464Fh	CD4C41..  .LA.	CALL	GetWorldAddress
+T464Fh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T4652h	26E0....  &...	LD	H,0E0h	
 T4654h	6A......  j...	LD	L,D	
 T4655h	3600....  6...	LD	(HL),000h
@@ -987,7 +987,7 @@ T4658h	3600....  6...	LD	(HL),000h
 T465Ah	CD2B42..  .+B.	CALL	SetMapper9	
 T465Dh	3A41E0..  :A..	LD	A,(WorldNumber)
 T4660h	2109AF..  !...	LD	HL,0AF09h
-T4663h	CD4C41..  .LA.	CALL	GetWorldAddress
+T4663h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T4666h	2120AF..  !...	LD	HL,0AF20h
 T4669h	3A41E0..  :A..	LD	A,(WorldNumber)
 T466Ch	CD5541..  .UA.	CALL	A=HL[A]	
@@ -1039,9 +1039,9 @@ T46A8h	3600....  6...	LD	(HL),000h
 T46AAh	EDB0....  ....	LDIR		
 T46ACh	C9......  ....	RET			
 
-state_0xd:
+state_d:
 T46ADh	103D....  ....	DJNZ	03Dh			; Jump to 046ECH
-state_0xd_1:
+state_d_1:
 T46AFh	CDF550..  ..P.	CALL	T50F5H	
 T46B2h	C0......  ....	RET	NZ		
 
@@ -1076,7 +1076,7 @@ T46E6h	3208E6..  2...	LD	(TE608H),A
 T46E9h	C35E43..  .^C.	JP	inc_substate
 
 T46ECh	101F....  ....	DJNZ	01Fh			; Jump to 0470DH
-state_0xd_2:
+state_d_2:
 T46EEh	CDBF54..  ..T.	CALL	PasteScreen	
 T46F1h	CD979E..  ....	CALL	T9E97H	
 T46F4h	3A08E6..  :...	LD	A,(TE608H)
@@ -1092,7 +1092,7 @@ T4705h	CD5659..  .VY.	CALL	T5956H
 T4708h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T470Ah	C3A943..  ..C.	JP	set_new_state		
 
-state_0xd_0:
+state_d_0:
 T470Dh	CD8052..  ..R.	CALL	clear_ec80
 T4710h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4713h	11287D..  .(}.	LD	DE,07D28h
@@ -1135,7 +1135,7 @@ T4760h	CD1F4E..  ..N.	CALL	T4E1FH
 T4763h	CD8052..  ..R.	CALL	clear_ec80
 T4766h	C35E43..  .^C.	JP	inc_substate
 
-state_0xa:
+state_a: ; {{{ go to next room
 T4769h	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	
 T476Ch	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T476Fh	3A41E0..  :A..	LD	A,(WorldNumber)
@@ -1198,18 +1198,20 @@ T47C7h	2C......  ,...	INC	L			;
 T47C8h	3601....  6...	LD	(HL),001h
 T47CAh	3E2E....  >...	LD	A,02Eh	
 T47CCh	C31F4E..  ..N.	JP	T4E1FH		
+; }}}
 
-state_0xb:
+state_b: ; {{{ itemscreen
 T47CFh	1064....  .d..	DJNZ	064h			; Jump to 04835H
-state_0xb_1:
+state_b_1:
 T47D1h	AF......  ....	XOR	A			; Clear A and F
 T47D2h	3200F0..  2...	LD	(TF000H),A
-T47D5h	CD999A..  ....	CALL	T9A99H	
-T47D8h	3A00F0..  :...	LD	A,(TF000H)
+T47D5h	CD999A..  ....	CALL	try_feather
+T47D8h	3A00F0..  :...	LD	A,(TF000H)	; set to 1 if feather was used.
 T47DBh	A7......  ....	AND	A	
-T47DCh	202F....  ./..	JR	NZ,02Fh			; Jump to 0480DH
-T47DEh	CDC99A..  ....	CALL	T9AC9H	
-T47E1h	303B....  0;..	JR	NC,03Bh			; Jump to 0481EH
+T47DCh	202F....  ./..	JR	NZ,02Fh			; Jump to 0480DH: use_feather
+T47DEh	CDC99A..  ....	CALL	try_halo	; set carry if halo was used.
+T47E1h	303B....  0;..	JR	NC,03Bh			; Jump to 0481EH: normal_item_screen
+; Halo is used; see if we are in a world (so "CASTLE!" must be printed).
 T47E3h	3A41E0..  :A..	LD	A,(WorldNumber)
 T47E6h	3D......  ....	DEC	A	
 T47E7h	281E....  (...	JR	Z,01Eh			; Jump to 04807H; use_halo
@@ -1228,6 +1230,7 @@ T4804h	C34344..  .CD.	JP	set_substate
 use_halo:
 T4807h	210148..  !.H.	LD	HL,04801h		; Room 72 in castle: Demeter
 T480Ah	2241E0..  "A..	LD	(WorldNumber),HL
+use_feather:
 T480Dh	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	
 T4810h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4813h	CD8052..  ..R.	CALL	clear_ec80
@@ -1235,8 +1238,9 @@ T4816h	CD0369..  ..i.	CALL	T6903H
 T4819h	CDE851..  ..Q.	CALL	T51E8H	
 T481Ch	1812....  ....	JR	012h			; Jump to 04830H
 
+normal_item_screen:
 T481Eh	CD219E..  .!..	CALL	check_F1	
-T4821h	D2E267..  ..g.	JP	NC,T67E2H
+T4821h	D2E267..  ..g.	JP	NC,draw_itemscreen
 T4824h	CD8052..  ..R.	CALL	clear_ec80
 T4827h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T482Ah	CD0369..  ..i.	CALL	T6903H	
@@ -1244,7 +1248,7 @@ T482Dh	CDDF51..  ..Q.	CALL	T51DFH
 T4830h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T4832h	C3A943..  ..C.	JP	set_new_state		
 
-state_0xb_2:	; used halo from world: "CASTLE!" is now printed, wait a bit, then go to Demeter.
+state_b_2:	; used halo from world: "CASTLE!" is now printed, wait a bit, then go to Demeter.
 T4835h	100C....  ....	DJNZ	00Ch			; Jump to 04843H
 T4837h	2104E0..  !...	LD	HL,delay
 T483Ah	35......  5...	DEC	(HL)	
@@ -1254,17 +1258,18 @@ T483Ch	3E88....  >...	LD	A,088h
 T483Eh	CDAF5C..  ..\.	CALL	T5CAFH	
 T4841h	18C4....  ....	JR	0C4h			; Jump to 04807H; use_halo
 
-state_0xb_0:
+state_b_0:
 T4843h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4846h	CD1157..  ..W.	CALL	prepare_itemscreen	
 T4849h	CDA865..  ..e.	CALL	setup_itemscreen_variables
 T484Ch	C35E43..  .^C.	JP	inc_substate
+; }}}
 
-state_0xc:
+state_c:
 T484Fh	101D....  ....	DJNZ	01Dh			; Jump to 0486EH
-state_0xc_1:
-T4851h	CD684C..  .hL.	CALL	T4C68H	
-T4854h	3A08E0..  :...	LD	A,(TE008H)
+state_c_1:
+T4851h	CD684C..  .hL.	CALL	store_controls	
+T4854h	3A08E0..  :...	LD	A,(pressed_controls)
 T4857h	CB6F....  .o..	BIT	5,A	
 T4859h	C8......  ....	RET	Z		
 
@@ -1277,7 +1282,7 @@ T4866h	CDC45C..  ..\.	CALL	T5CC4H
 T4869h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T486Bh	C3A943..  ..C.	JP	set_new_state		
 
-state_0xc_0:
+state_c_0:
 T486Eh	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	
 T4871h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4874h	CD8052..  ..R.	CALL	clear_ec80
@@ -1290,13 +1295,13 @@ T4885h	CDB969..  ..i.	CALL	T69B9H
 T4888h	CD1542..  ..B.	CALL	SetMapper3	
 T488Bh	C35E43..  .^C.	JP	inc_substate
 
-state_0xe:
+state_e:
 T488Eh	1027....  .'..	DJNZ	027h			; Jump to 048B7H
-state_0xe_1:
-T4890h	CD684C..  .hL.	CALL	T4C68H	
+state_e_1:
+T4890h	CD684C..  .hL.	CALL	store_controls	
 T4893h	CD438F..  .C..	CALL	T8F43H	
 T4896h	CD8E93..  ....	CALL	T938EH	
-T4899h	3A08E0..  :...	LD	A,(TE008H)
+T4899h	3A08E0..  :...	LD	A,(pressed_controls)
 T489Ch	E602....  ....	AND	002h	
 T489Eh	C8......  ....	RET	Z		
 
@@ -1311,14 +1316,14 @@ T48AFh	CD0A5D..  ..].	CALL	T5D0AH
 T48B2h	3E0A....  >...	LD	A,00Ah		; state a: goto new room
 T48B4h	C3A943..  ..C.	JP	set_new_state		
 
-state_0xe_0:
+state_e_0:
 T48B7h	3E8D....  >...	LD	A,08Dh	
 T48B9h	CD0A5D..  ..].	CALL	T5D0AH	
 T48BCh	CDE157..  ..W.	CALL	T57E1H	
 T48BFh	CD1E8F..  ....	CALL	T8F1EH	
 T48C2h	C35E43..  .^C.	JP	inc_substate
 
-state_0x10:
+state_10:
 T48C5h	78......  x...	LD	A,B	
 T48C6h	CD4041..  .@A.	CALL	switch	
 defw 0x48d3
@@ -1351,7 +1356,7 @@ T4901h	CDE157..  ..W.	CALL	T57E1H
 T4904h	3E8D....  >...	LD	A,08Dh	
 T4906h	C3AF5C..  ..\.	JP	T5CAFH		
 
-T4909h	CD684C..  .hL.	CALL	T4C68H	
+T4909h	CD684C..  .hL.	CALL	store_controls	
 T490Ch	CD438F..  .C..	CALL	T8F43H	
 T490Fh	CD8E93..  ....	CALL	T938EH	
 T4912h	3A93E6..  :...	LD	A,(TE693H)
@@ -1360,7 +1365,7 @@ T4916h	C8......  ....	RET	Z
 
 T4917h	3D......  ....	DEC	A	
 T4918h	2806....  (...	JR	Z,006h			; Jump to 04920H
-T491Ah	3A08E0..  :...	LD	A,(TE008H)
+T491Ah	3A08E0..  :...	LD	A,(pressed_controls)
 T491Dh	E602....  ....	AND	002h	
 T491Fh	C8......  ....	RET	Z		
 
@@ -1391,9 +1396,9 @@ T4951h	321CE0..  2...	LD	(TE01CH),A
 T4954h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T4956h	C3A943..  ..C.	JP	set_new_state		
 
-state_0xf:
+state_f:
 T4959h	100E....  ....	DJNZ	00Eh			; Jump to 04969H
-state_0xf_1:
+state_f_1:
 T495Bh	CD689F..  .h..	CALL	T9F68H	
 T495Eh	3A4CE6..  :L..	LD	A,(TE64CH)
 T4961h	B7......  ....	OR	A			; [BD] HL |= A.
@@ -1403,7 +1408,7 @@ T4963h	CD3543..  .5C.	CALL	T4335H
 T4966h	C35E43..  .^C.	JP	inc_substate
 
 T4969h	1026....  .&..	DJNZ	026h			; Jump to 04991H
-state_0xf_2:
+state_f_2:
 T496Bh	CD4142..  .AB.	CALL	SetMapperF	
 T496Eh	CD1CBE..  ....	CALL	TBE1CH	
 T4971h	CD1542..  ..B.	CALL	SetMapper3	
@@ -1422,12 +1427,12 @@ T498Bh	CDBF54..  ..T.	CALL	PasteScreen
 T498Eh	C35E43..  .^C.	JP	inc_substate
 
 T4991h	1008....  ....	DJNZ	008h			; Jump to 0499BH
-state_0xf_3:
+state_f_3:
 T4993h	CD4858..  .HX.	CALL	T5848H	
 T4996h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T4998h	C3A943..  ..C.	JP	set_new_state		
 
-state_0xf_0:
+state_f_0:
 T499Bh	AF......  ....	XOR	A			; Clear A and F
 T499Ch	3215E6..  2...	LD	(TE615H),A
 T499Fh	3220E0..  2...	LD	(TE020H),A
@@ -1443,18 +1448,18 @@ T49B3h	2248E6..  "H..	LD	(current_exits),HL
 T49B6h	224AE6..  "J..	LD	(current_exits + 2),HL
 T49B9h	C9......  ....	RET			
 
-state_0x11:
+state_11:
 T49BAh	78......  x...	LD	A,B	
 T49BBh	CD4041..  .@A.	CALL	switch	
 defw 0x49d0, 0x49da, 0x49e5, 0x49f0, 0x49f9, 0x4a1e, 0x4a35, 0x4a51, 0x4a62
 
-state_0x11_0:
+state_11_0:
 T49D0h	3EFF....  >...	LD	A,0FFh	
 T49D2h	CD1F4E..  ..N.	CALL	T4E1FH	
 T49D5h	3E28....  >(..	LD	A,028h	
 T49D7h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
-state_0x11_1:
+state_11_1:
 T49DAh	2104E0..  !...	LD	HL,delay
 T49DDh	35......  5...	DEC	(HL)	
 T49DEh	C0......  ....	RET	NZ		
@@ -1462,19 +1467,19 @@ T49DEh	C0......  ....	RET	NZ
 T49DFh	CD5AA0..  .Z..	CALL	TA05AH	
 T49E2h	C35E43..  .^C.	JP	inc_substate
 
-state_0x11_2:
+state_11_2:
 T49E5h	CD6DA0..  .m..	CALL	TA06DH	
 T49E8h	C2BF54..  ..T.	JP	NZ,PasteScreen
 T49EBh	3E78....  >x..	LD	A,078h	
 T49EDh	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
-state_0x11_3:
+state_11_3:
 T49F0h	2104E0..  !...	LD	HL,delay
 T49F3h	35......  5...	DEC	(HL)	
 T49F4h	C2BF54..  ..T.	JP	NZ,PasteScreen
 T49F7h	18E9....  ....	JR	0E9h			; Jump to 049E2H
 
-state_0x11_4:
+state_11_4:
 T49F9h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T49FCh	CD8052..  ..R.	CALL	clear_ec80
 T49FFh	CDE654..  ..T.	CALL	T54E6H	
@@ -1490,7 +1495,7 @@ T4A16h	3E92....  >...	LD	A,092h
 T4A18h	CD344E..  .4N.	CALL	T4E34H	
 T4A1Bh	C35E43..  .^C.	JP	inc_substate
 
-state_0x11_5:
+state_11_5:
 T4A1Eh	CD7454..  .tT.	CALL	T5474H	
 T4A21h	CDF354..  ..T.	CALL	T54F3H	
 T4A24h	CD4142..  .AB.	CALL	SetMapperF	
@@ -1502,7 +1507,7 @@ T4A31h	C0......  ....	RET	NZ
 
 T4A32h	C35943..  .YC.	JP	T4359H		
 
-state_0x11_6:
+state_11_6:
 T4A35h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4A38h	CD8052..  ..R.	CALL	clear_ec80
 T4A3Bh	CD8E56..  ..V.	CALL	setup_for_new_screen	
@@ -1514,7 +1519,7 @@ T4A49h	3E93....  >...	LD	A,093h
 T4A4Bh	CD344E..  .4N.	CALL	T4E34H	
 T4A4Eh	C35E43..  .^C.	JP	inc_substate
 
-state_0x11_7:
+state_11_7:
 T4A51h	CD4142..  .AB.	CALL	SetMapperF	
 T4A54h	CDDC6A..  ..j.	CALL	T6ADCH	
 T4A57h	CD1542..  ..B.	CALL	SetMapper3	
@@ -1524,15 +1529,15 @@ T4A5Eh	C0......  ....	RET	NZ
 
 T4A5Fh	C35E43..  .^C.	JP	inc_substate
 
-state_0x11_8:
+state_11_8:
 T4A62h	CDF550..  ..P.	CALL	T50F5H	
 T4A65h	C8......  ....	RET	Z		
 
 T4A66h	C35F45..  ._E.	JP	T455FH		
 
-state_0x12:
+state_12:
 T4A69h	C5......  ....	PUSH	BC	
-T4A6Ah	CD684C..  .hL.	CALL	T4C68H	
+T4A6Ah	CD684C..  .hL.	CALL	store_controls	
 T4A6Dh	C1......  ....	POP	BC	
 T4A6Eh	100F....  ....	DJNZ	00Fh			; Jump to 04A7FH
 T4A70h	CD1697..  ....	CALL	T9716H	
@@ -1562,7 +1567,7 @@ T4AA0h	CD0899..  ....	CALL	T9908H
 T4AA3h	18D3....  ....	JR	0D3h			; Jump to 04A78H
 
 T4AA5h	1011....  ....	DJNZ	011h			; Jump to 04AB8H
-T4AA7h	3A08E0..  :...	LD	A,(TE008H)
+T4AA7h	3A08E0..  :...	LD	A,(pressed_controls)
 T4AAAh	A7......  ....	AND	A	
 T4AABh	C8......  ....	RET	Z		
 
@@ -1653,9 +1658,9 @@ T4B58h	07......  ....	RLCA
 T4B59h	00......  ....	NOP		
 T4B5Ah	00......  ....	NOP		
 
-state_0x13:
+state_13:
 T4B5Bh	1031....  .1..	DJNZ	031h			; Jump to 04B8EH
-state_0x13_1:
+state_13_1:
 T4B5Dh	CD4142..  .AB.	CALL	SetMapperF	
 T4B60h	CD1CBE..  ....	CALL	TBE1CH	
 T4B63h	CD1542..  ..B.	CALL	SetMapper3	
@@ -1679,7 +1684,7 @@ T4B89h	CBD6....  ....	SET	2,(HL)			; Boss is dead
 T4B8Bh	C35E43..  .^C.	JP	inc_substate
 
 T4B8Eh	103A....  .:..	DJNZ	03Ah			; Jump to 04BCAH
-state_0x13_2:
+state_13_2:
 T4B90h	3A41E0..  :A..	LD	A,(WorldNumber)
 T4B93h	FE0B....  ....	CP	00Bh	
 T4B95h	280B....  (...	JR	Z,00Bh			; Jump to 04BA2H
@@ -1711,7 +1716,7 @@ T4BC4h	3E01....  >...	LD	A,001h
 T4BC6h	32D4E0..  2...	LD	(TE0D4H),A
 T4BC9h	C9......  ....	RET			
 
-state_0x13_0:
+state_13_0:
 T4BCAh	CD3543..  .5C.	CALL	T4335H	
 T4BCDh	18BC....  ....	JR	0BCh			; Jump to 04B8BH
 
@@ -1725,9 +1730,9 @@ T4BD5h	B8......  ....	CP	B
 T4BD6h	78......  x...	LD	A,B	
 T4BD7h	B8......  ....	CP	B	
 
-state_0x14:
+state_14:
 T4BD8h	1016....  ....	DJNZ	016h			; Jump to 04BF0H
-state_0x14_1:
+state_14_1:
 T4BDAh	CD81BE..  ....	CALL	TBE81H	
 T4BDDh	3A3FE5..  :?..	LD	A,(TE53FH)
 T4BE0h	A7......  ....	AND	A	
@@ -1739,7 +1744,7 @@ T4BE8h	CD9AAE..  ....	CALL	TAE9AH
 T4BEBh	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T4BEDh	C3A943..  ..C.	JP	set_new_state		
 
-state_0x14_0:
+state_14_0:
 T4BF0h	AF......  ....	XOR	A			; Clear A and F
 T4BF1h	3231E0..  21..	LD	(TE031H),A
 T4BF4h	CD5FBE..  ._..	CALL	TBE5FH	
@@ -1814,8 +1819,9 @@ T4C62h	E4
 T4C63h	  0E07..  ....	CALL	PO,T070EH
 T4C65h	C34700..  .G..	JP	T0047H		
 
+store_controls:
 T4C68h	CD754C..  .uL.	CALL	read_controls	
-T4C6Bh	2109E0..  !...	LD	HL,0E009h
+T4C6Bh	2109E0..  !...	LD	HL,active_controls
 T4C6Eh	4E......  N...	LD	C,(HL)	
 T4C6Fh	77......  w...	LD	(HL),A	
 T4C70h	A9......  ....	XOR	C	
@@ -2573,7 +2579,7 @@ T521Bh	C2B049..  ..I.	JP	NZ,screenlock
 T521Eh	CD9E41..  ..A.	CALL	SetMapper789	
 T5221h	3A41E0..  :A..	LD	A,(WorldNumber)
 T5224h	21EFA9..  !...	LD	HL,0A9EFh
-T5227h	CD4C41..  .LA.	CALL	GetWorldAddress
+T5227h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T522Ah	3A42E0..  :B..	LD	A,(RoomNumber)
 T522Dh	6F......  o...	LD	L,A	
 T522Eh	2600....  &...	LD	H,000h	
@@ -2589,7 +2595,7 @@ T523Eh	CD2B42..  .+B.	CALL	SetMapper9
 T5241h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 T5245h	79......  y...	LD	A,C	
 T5246h	2109AF..  !...	LD	HL,0AF09h
-T5249h	CD4C41..  .LA.	CALL	GetWorldAddress
+T5249h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T524Ch	68......  h...	LD	L,B	
 T524Dh	2D......  -...	DEC	L	
 T524Eh	2600....  &...	LD	H,000h	
@@ -2654,7 +2660,7 @@ T52CBh	1825....  .%..	JR	025h			; Jump to 052F2H
 
 T52CDh	3A41E0..  :A..	LD	A,(WorldNumber)
 T52D0h	2106B1..  !...	LD	HL,0B106h
-T52D3h	CD4C41..  .LA.	CALL	GetWorldAddress
+T52D3h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T52D6h	EB......  ....	EX	DE,HL	
 T52D7h	3A42E0..  :B..	LD	A,(RoomNumber)
 T52DAh	CD5541..  .UA.	CALL	A=HL[A]	
@@ -2709,7 +2715,7 @@ T5350h	CD1542..  ..B.	CALL	SetMapper3
 T5353h	CDA0A8..  ....	CALL	maybe_flip_controls	
 T5356h	3A02E0..  :...	LD	A,(TE002H)
 T5359h	87......  ....	ADD	A,A	
-T535Ah	FC684C..  .hL.	CALL	M,T4C68H
+T535Ah	FC684C..  .hL.	CALL	M,store_controls
 T535Dh	CDA0A8..  ....	CALL	maybe_flip_controls	
 T5360h	CD029B..  ....	CALL	check_boss_password	
 T5363h	CDB69B..  ....	CALL	T9BB6H	
@@ -2873,7 +2879,7 @@ T54BFh	F3......  ....	DI
 T54C0h	218038..  !.8.	LD	HL,03880h
 T54C3h	CDC85B..  ..[.	CALL	PrepareVDPWrite	
 T54C6h	D9......  ....	EXX		
-T54C7h	2180ED..  !...	LD	HL,0ED80h
+T54C7h	2180ED..  !...	LD	HL,screen_buffer
 T54CAh	0680....  ....	LD	B,080h	
 T54CCh	EDA3....  ....	OUTI				;
 T54CEh	C2CC54..  ..T.	JP	NZ,T54CCH
@@ -3028,7 +3034,7 @@ T55A0h	C8......  ....	RET	Z			; if (A == 0) return
 
 T55A1h	21F0F0..  !...	LD	HL,0F0F0h
 T55A4h	22E2EF..  "...	LD	(TEFE2H),HL
-T55A7h	2180ED..  !...	LD	HL,0ED80h
+T55A7h	2180ED..  !...	LD	HL,screen_buffer
 T55AAh	CDB055..  ..U.	CALL	T55B0H	
 T55ADh	219EED..  !...	LD	HL,0ED9Eh		; HL = 0xed9e
 T55B0h	AF......  ....	XOR	A			; A = 0
@@ -3056,7 +3062,7 @@ T55CDh	C8......  ....	RET	Z
 ;; ?
 T55CEh	21E29B..  !...	LD	HL,09BE2h
 T55D1h	3A41E0..  :A..	LD	A,(WorldNumber)
-T55D4h	CD4C41..  .LA.	CALL	GetWorldAddress
+T55D4h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T55D7h	EB......  ....	EX	DE,HL	
 T55D8h	110CEE..  ....	LD	DE,0EE0Ch
 T55DBh	3A41E0..  :A..	LD	A,(WorldNumber)
@@ -3089,7 +3095,7 @@ T560Bh	1819....  ....	JR	019h			; Jump to 05626H
 ;; {{{ WriteRoom()
 T560Dh	3A41E0..  :A..	LD	A,(WorldNumber)		; A  = e041
 T5610h	21BE6A..  !.j.	LD	HL,06ABEh		; HL = 6abe
-T5613h	CD4C41..  .LA.	CALL	GetWorldAddress		; DE = computed adress.
+T5613h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)		; DE = computed adress.
 T5616h	3A42E0..  :B..	LD	A,(RoomNumber)		; A  = e042
 T5619h	3D......  ....	DEC	A			;	    - 1
 T561Ah	6F......  o...	LD	L,A			; \      [1]  L  = RoomNumber - 1
@@ -3108,7 +3114,7 @@ T5625h	19......  ....	ADD	HL,DE			;    \  [4] HL += DE
 							;     ` [!] HL = (32 + 8) * (RoomNumber - 1) + DE
 							;              =       40 * (RoomNumber - 1) + DE
 T5626h	2200F0..  "...	LD	(TF000H),HL		; *(0xf000) = HL = 40 * (RoomNumber - 1) + DE
-T5629h	1180ED..  ....	LD	DE,0ED80h		; DE = 0xed80
+T5629h	1180ED..  ....	LD	DE,screen_buffer	; DE = 0xed80
 T562Ch	D9......  ....	EXX				; <<< Switch to shadows.
 T562Dh	ED5B00F0  .[..	LD	DE,(TF000H)		;   DE' = 0xf000
 
@@ -3545,7 +3551,7 @@ T5962h	B7......  ....	OR	A
 T5963h	C8......  ....	RET	Z		
 
 T5964h	213797..  !7..	LD	HL,09737h
-T5967h	CD4C41..  .LA.	CALL	GetWorldAddress
+T5967h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T596Ah	EB......  ....	EX	DE,HL	
 T596Bh	3A42E0..  :B..	LD	A,(RoomNumber)
 T596Eh	3D......  ....	DEC	A	
@@ -3571,7 +3577,7 @@ T5987h	18F5....  ....	JR	0F5h			; Jump to 0597EH
 
 T5989h	F5......  ....	PUSH	AF	
 T598Ah	21727C..  !r|.	LD	HL,07C72h
-T598Dh	CD4C41..  .LA.	CALL	GetWorldAddress
+T598Dh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T5990h	EB......  ....	EX	DE,HL	
 T5991h	CDA659..  ..Y.	CALL	T59A6H	
 T5994h	23......  #...	INC	HL			;
@@ -3696,7 +3702,7 @@ T5A80h	DD21D060  .!.`	LD	IX,060D0h
 T5A84h	C3B35A..  ..Z.	JP	setup_vram_patterns		
 
 world_mirror_chars_multiple:
-T5A87h	CD4C41..  .LA.	CALL	GetWorldAddress
+T5A87h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T5A8Ah	D5......  ....	PUSH	DE	
 T5A8Bh	DDE1....  ....	POP	IX	
 
@@ -3720,7 +3726,7 @@ T5AA9h	DD19....  ....	ADD	IX,DE
 T5AABh	18E0....  ....	JR	0E0h			; Jump to 05A8DH
 
 setup_world_vram_patterns:
-T5AADh	CD4C41..  .LA.	CALL	GetWorldAddress
+T5AADh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T5AB0h	D5......  ....	PUSH	DE	
 T5AB1h	DDE1....  ....	POP	IX	
 setup_vram_patterns:
@@ -4170,7 +4176,7 @@ T5D50h	C9......  ....	RET
 
 T5D51h	214FBE..  !O..	LD	HL,0BE4Fh
 T5D54h	78......  x...	LD	A,B	
-T5D55h	CD4C41..  .LA.	CALL	GetWorldAddress
+T5D55h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T5D58h	3A42E0..  :B..	LD	A,(RoomNumber)
 T5D5Bh	47......  G...	LD	B,A	
 T5D5Ch	1A......  ....	LD	A,(DE)	
@@ -4259,7 +4265,7 @@ GetSomePropertyFromCurrentRoom:
 T5DC9h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 T5DCDh	79......  y...	LD	A,C	
 T5DCEh	21FCB6..  !...	LD	HL,0B6FCh
-T5DD1h	CD4C41..  .LA.	CALL	GetWorldAddress
+T5DD1h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T5DD4h	EB......  ....	EX	DE,HL	
 T5DD5h	7E......  ~...	LD	A,(HL)	
 T5DD6h	B7......  ....	OR	A	
@@ -4589,7 +4595,7 @@ T5FFDh	3E10....  >...	LD	A,010h
 T5FFFh  07......  xxxx  DB	007h
 ; }}}
 
-File:            mog-1-3.rom {{{
+File:            mog-1-3.rom ; {{{ 2000-8000 -> 6000-c000
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
 ;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
@@ -4602,7 +4608,7 @@ T6002h	C9......  ....	RET
 
 T6003h	211760..  !.`.	LD	HL,06017h
 T6006h	3A41E0..  :A..	LD	A,(WorldNumber)
-T6009h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6009h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T600Ch	7B......  {...	LD	A,E	
 T600Dh	3205E5..  2...	LD	(TE505H),A
 T6010h	7A......  z...	LD	A,D	
@@ -5175,7 +5181,7 @@ T6398h	3A90E0..  :...	LD	A,(TE090H)	; Harp
 T639Bh	B7......  ....	OR	A	
 T639Ch	C8......  ....	RET	Z		
 
-T639Dh	3A08E0..  :...	LD	A,(TE008H)
+T639Dh	3A08E0..  :...	LD	A,(pressed_controls)
 T63A0h	E610....  ....	AND	010h	
 T63A2h	C8......  ....	RET	Z		
 
@@ -5330,7 +5336,7 @@ T64ABh	0E28....  .(..	LD	C,028h
 T64ADh	DD7E00..  .~..	LD	A,(IX+000h)
 T64B0h	3D......  ....	DEC	A	
 T64B1h	2180BA..  !...	LD	HL,0BA80h
-T64B4h	CD4C41..  .LA.	CALL	GetWorldAddress
+T64B4h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T64B7h	EB......  ....	EX	DE,HL	
 T64B8h	DD5E03..  .^..	LD	E,(IX+003h)
 T64BBh	1600....  ....	LD	D,000h	
@@ -5456,13 +5462,13 @@ T6599h	C8......  ....	RET	Z
 
 T659Ah	3214E6..  2...	LD	(TE614H),A
 T659Dh	2128BA..  !(..	LD	HL,0BA28h
-T65A0h	CD4C41..  .LA.	CALL	GetWorldAddress
+T65A0h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T65A3h	ED5335E6  .S5.	LD	(TE635H),DE
 T65A7h	C9......  ....	RET			
 
 setup_itemscreen_variables:
 T65A8h	CD2B42..  .+B.	CALL	SetMapper9	
-T65ABh	CD0D66..  ..f.	CALL	clear_ed80
+T65ABh	CD0D66..  ..f.	CALL	clear_screen
 T65AEh	CD8052..  ..R.	CALL	clear_ec80
 T65B1h	CDC665..  ..e.	CALL	T65C6H	
 T65B4h	CDC266..  ..f.	CALL	T66C2H	
@@ -5489,7 +5495,7 @@ T65E0h	7E......  ~...	LD	A,(HL)		; HL = e058/e059
 T65E1h	C601....  ....	ADD	A,001h	
 T65E3h	27......  '...	DAA			; correct previous computation for BCD
 T65E4h	77......  w...	LD	(HL),A	
-T65E5h	214CE0..  !L..	LD	HL,0E04Ch
+T65E5h	214CE0..  !L..	LD	HL,am_selecting_weapon	
 T65E8h	3600....  6...	LD	(HL),000h
 T65EAh	3A01E5..  :...	LD	A,(am_I_Popolon)
 T65EDh	2C......  ,...	INC	L			; e04d == itemscreen_selected_character
@@ -5516,8 +5522,8 @@ T6608h	79......  y...	LD	A,C
 T6609h	3210E5..  2...	LD	(current_weapon),A
 T660Ch	C9......  ....	RET			
 
-clear_ed80:
-T660Dh	2180ED..  !...	LD	HL,0ED80h
+clear_screen:
+T660Dh	2180ED..  !...	LD	HL,screen_buffer
 T6610h	1181ED..  ....	LD	DE,0ED81h
 T6613h	017F02..  ....	LD	BC,0027Fh
 T6616h	3600....  6...	LD	(HL),000h
@@ -5537,7 +5543,7 @@ T662Eh	3A41E0..  :A..	LD	A,(WorldNumber)
 T6631h	3D......  ....	DEC	A	
 T6632h	C8......  ....	RET	Z		
 
-T6633h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6633h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6636h	EB......  ....	EX	DE,HL	
 T6637h	5E......  ^...	LD	E,(HL)	
 T6638h	23......  #...	INC	HL			;
@@ -5566,7 +5572,7 @@ T6669h	35......  5...	DEC	(HL)
 T666Ah	20DE....  ....	JR	NZ,0DEh			; Jump to 0664AH
 T666Ch	3A41E0..  :A..	LD	A,(WorldNumber)
 T666Fh	2138B0..  !8..	LD	HL,0B038h
-T6672h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6672h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6675h	EB......  ....	EX	DE,HL	
 T6676h	3A42E0..  :B..	LD	A,(RoomNumber)
 T6679h	5F......  _...	LD	E,A	
@@ -5806,16 +5812,17 @@ T67DEh	10FC....  ....	DJNZ	0FCh			; Jump to 067DCH
 T67E0h	73......  s...	LD	(HL),E	
 T67E1h	C9......  ....	RET			
 
+draw_itemscreen:
 T67E2h	CD2B42..  .+B.	CALL	SetMapper9	
 T67E5h	CDBF54..  ..T.	CALL	PasteScreen	
-T67E8h	CD684C..  .hL.	CALL	T4C68H	
+T67E8h	CD684C..  .hL.	CALL	store_controls	
 T67EBh	CDF467..  ..g.	CALL	T67F4H	
 T67EEh	CD8568..  ..h.	CALL	T6885H	
 T67F1h	C31542..  ..B.	JP	SetMapper3		
 
-T67F4h	3A08E0..  :...	LD	A,(TE008H)
-T67F7h	E603....  ....	AND	003h	
-T67F9h	C46F68..  .oh.	CALL	NZ,T686FH
+T67F4h	3A08E0..  :...	LD	A,(pressed_controls)
+T67F7h	E603....  ....	AND	003h		; up or down
+T67F9h	C46F68..  .oh.	CALL	NZ,select_person_or_weapon
 T67FCh	3A4CE0..  :L..	LD	A,(TE04CH)
 T67FFh	B7......  ....	OR	A	
 T6800h	283B....  (;..	JR	Z,03Bh			; Jump to 0683DH
@@ -5824,7 +5831,7 @@ T6805h	B7......  ....	OR	A
 T6806h	C8......  ....	RET	Z		
 
 T6807h	214EE0..  !N..	LD	HL,itemscreen_selected_weapon
-T680Ah	3A08E0..  :...	LD	A,(TE008H)
+T680Ah	3A08E0..  :...	LD	A,(pressed_controls)
 T680Dh	E60C....  ....	AND	00Ch	
 T680Fh	C8......  ....	RET	Z		
 
@@ -5877,7 +5884,7 @@ T6852h	B7......  ....	OR	A			;
 T6853h	C8......  ....	RET	Z			; Return if user does not have the Necklace.
 							; Popolon cannot enter world 7 without the Necklace.
 
-T6854h	3A08E0..  :...	LD	A,(TE008H)		; A = *(0xe008)
+T6854h	3A08E0..  :...	LD	A,(pressed_controls)		; A = *(0xe008)
 T6857h	E60C....  ....	AND	00Ch			; A &= 0b00001100
 T6859h	C8......  ....	RET	Z		
 
@@ -5899,29 +5906,28 @@ T6869h	71......  q...	LD	(HL),C			; *(HL) = C
 T686Ah	3E2C....  >,..	LD	A,02Ch			; A = 0x2C
 T686Ch	C31F4E..  ..N.	JP	T4E1FH			; Non-conditional jump.
 
-
-
-;; 0xe04c 
-T686Fh	214CE0..  !L..	LD	HL,0E04Ch		; HL = 0xe04c
+select_person_or_weapon: {{{
+T686Fh	214CE0..  !L..	LD	HL,am_selecting_weapon	; HL = 0xe04c
 T6872h	7E......  ~...	LD	A,(HL)			; A  = *(0xe04c) (typically 0)
 T6873h	EE01....  ....	XOR	001h			; A ^= 1
 T6875h	4F......  O...	LD	C,A			; C = A
 							; Save original value in 0xe04c
-T6876h	2003....  ....	JR	NZ,003h			; if (typical_situation) goto 0687BH
+T6876h	2003....  ....	JR	NZ,003h			; if (now selecting weapon) goto 0687BH
 T6878h	77......  w...	LD	(HL),A			; *(HL) = A
 T6879h	18EF....  ....	JR	0EFh			; Jump to 0686AH
 
-T687Bh	2C......  ,...	INC	L			; L += 1 (L=0x4d)
-T687Ch	2C......  ,...	INC	L			; L += 1 (L=0x4e)
+T687Bh	2C......  ,...	INC	L			; L += 1 (HL=0xe04d)
+T687Ch	2C......  ,...	INC	L			; L += 1 (HL=0xe04e == itemscreen_selected_weapon)
 T687Dh	7E......  ~...	LD	A,(HL)			; A = *(0xe04e) (typically 0)
 T687Eh	B7......  ....	OR	A			; A |= A
-T687Fh	C8......  ....	RET	Z			; if (typical_situation) return
+T687Fh	C8......  ....	RET	Z			; if (no weapon available) return
 
-T6880h	2D......  -...	DEC	L			; L -= 1 (L=0x4d)
-T6881h	2D......  -...	DEC	L			; L -= 1 (L=0x4c)
+T6880h	2D......  -...	DEC	L			; L -= 1 (HL=0xe04d)
+T6881h	2D......  -...	DEC	L			; L -= 1 (HL=0xe04c == am_selecting_weapon)
 T6882h	71......  q...	LD	(HL),C			; *(0xe04c) = C
 							; Restore original value of 0xe04c
 T6883h	18E5....  ....	JR	0E5h			; Jump to 0686AH
+; }}}
 
 T6885h	CDEA68..  ..h.	CALL	T68EAH	
 T6888h	CD6B60..  .k`.	CALL	WriteCurrentWeapon	
@@ -6014,7 +6020,7 @@ T691Fh	FE0C....  ....	CP	00Ch
 T6921h	C8......  ....	RET	Z		
 
 T6922h	215DB2..  !]..	LD	HL,0B25Dh
-T6925h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6925h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6928h	78......  x...	LD	A,B	
 T6929h	FE01....  ....	CP	001h	
 T692Bh	2811....  (...	JR	Z,011h			; Jump to 0693EH
@@ -6035,7 +6041,7 @@ T693Ch	18F3....  ....	JR	0F3h			; Jump to 06931H
 T693Eh	79......  y...	LD	A,C	
 T693Fh	D9......  ....	EXX		
 T6940h	2109AF..  !...	LD	HL,0AF09h
-T6943h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6943h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6946h	1B......  ....	DEC	DE	
 T6947h	0600....  ....	LD	B,000h	
 T6949h	D9......  ....	EXX		
@@ -6109,8 +6115,8 @@ T69B6h	FE06....  ....	CP	006h
 T69B8h	C9......  ....	RET			
 
 T69B9h	AF......  ....	XOR	A			; Clear A and F
-T69BAh	1181ED..  ....	LD	DE,0ED81h
-T69BDh	2180ED..  !...	LD	HL,0ED80h
+T69BAh	1181ED..  ....	LD	DE,screen_buffer + 1
+T69BDh	2180ED..  !...	LD	HL,screen_buffer
 T69C0h	77......  w...	LD	(HL),A	
 T69C1h	017F02..  ....	LD	BC,0027Fh
 T69C4h	EDB0....  ....	LDIR		
@@ -6124,7 +6130,7 @@ T69D8h	B7......  ....	OR	A
 T69D9h	F8......  ....	RET	M		
 
 T69DAh	2158BB..  !X..	LD	HL,0BB58h
-T69DDh	CD4C41..  .LA.	CALL	GetWorldAddress
+T69DDh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T69E0h	C3255C..  .%\.	JP	WriteStringToVRAM		
 
 T69E3h	3A41E0..  :A..	LD	A,(WorldNumber)
@@ -6132,7 +6138,7 @@ T69E6h	D602....  ....	SUB	002h
 T69E8h	F8......  ....	RET	M		
 
 T69E9h	21839C..  !...	LD	HL,09C83h
-T69ECh	CD4C41..  .LA.	CALL	GetWorldAddress
+T69ECh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T69EFh	3A42E0..  :B..	LD	A,(RoomNumber)
 T69F2h	47......  G...	LD	B,A	
 T69F3h	1A......  ....	LD	A,(DE)	
@@ -6414,7 +6420,7 @@ T6BE9h	C9......  ....	RET
 
 T6BEAh	3A0AE7..  :...	LD	A,(TE70AH)
 T6BEDh	210A9E..  !...	LD	HL,09E0Ah
-T6BF0h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6BF0h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6BF3h	EB......  ....	EX	DE,HL	
 T6BF4h	ED5B12E7  .[..	LD	DE,(TE712H)
 T6BF8h	C9......  ....	RET			
@@ -6498,7 +6504,7 @@ T6C78h	C660....  .`..	ADD	A,060h
 T6C7Ah	18E9....  ....	JR	0E9h			; Jump to 06C65H
 
 T6C7Ch	21876C..  !.l.	LD	HL,06C87h
-T6C7Fh	CD4C41..  .LA.	CALL	GetWorldAddress
+T6C7Fh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6C82h	2A44E7..  *D..	LD	HL,(TE744H)
 T6C85h	72......  r...	LD	(HL),D	
 T6C86h	2C......  ,...	INC	L			;
@@ -6645,7 +6651,7 @@ T6D5Ch	18D9....  ....	JR	0D9h			; Jump to 06D37H
 
 T6D5Eh	DD7E0A..  .~..	LD	A,(IX+00Ah)
 T6D61h	210A9E..  !...	LD	HL,09E0Ah
-T6D64h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6D64h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6D67h	EB......  ....	EX	DE,HL	
 T6D68h	DD5E12..  .^..	LD	E,(IX+012h)
 T6D6Bh	DD5613..  .V..	LD	D,(IX+013h)
@@ -6685,7 +6691,7 @@ T6D9Fh	C9......  ....	RET
 
 T6DA0h	DD7E0A..  .~..	LD	A,(IX+00Ah)
 T6DA3h	210A9E..  !...	LD	HL,09E0Ah
-T6DA6h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6DA6h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6DA9h	EB......  ....	EX	DE,HL	
 T6DAAh	DD5E12..  .^..	LD	E,(IX+012h)
 T6DADh	DD5613..  .V..	LD	D,(IX+013h)
@@ -6824,7 +6830,7 @@ T6E7Dh	57......  W...	LD	D,A
 T6E7Eh	CDA76E..  ..n.	CALL	T6EA7H	
 T6E81h	7A......  z...	LD	A,D	
 T6E82h	210A9E..  !...	LD	HL,09E0Ah
-T6E85h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6E85h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6E88h	EB......  ....	EX	DE,HL	
 T6E89h	DD5E12..  .^..	LD	E,(IX+012h)
 T6E8Ch	DD5613..  .V..	LD	D,(IX+013h)
@@ -6992,7 +6998,7 @@ T6F89h	C9......  ....	RET
 
 T6F8Ah	DD7E0A..  .~..	LD	A,(IX+00Ah)
 T6F8Dh	217EA7..  !~..	LD	HL,0A77Eh
-T6F90h	CD4C41..  .LA.	CALL	GetWorldAddress
+T6F90h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6F93h	DD6E12..  .n..	LD	L,(IX+012h)
 T6F96h	DD6613..  .f..	LD	H,(IX+013h)
 T6F99h	3A41E0..  :A..	LD	A,(WorldNumber)
@@ -7516,7 +7522,7 @@ T7266h	DD7E04..  .~..	LD	A,(IX+004h)
 T7269h	DD4E08..  .N..	LD	C,(IX+008h)
 T726Ch	DD4609..  .F..	LD	B,(IX+009h)
 T726Fh	21FBA6..  !...	LD	HL,0A6FBh
-T7272h	CD4C41..  .LA.	CALL	GetWorldAddress
+T7272h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T7275h	DD6E06..  .n..	LD	L,(IX+006h)
 T7278h	DD6607..  .f..	LD	H,(IX+007h)
 T727Bh	EB......  ....	EX	DE,HL	
@@ -7554,7 +7560,7 @@ T72A9h	C8......  ....	RET	Z
 T72AAh	DD7E05..  .~..	LD	A,(IX+005h)
 T72ADh	4F......  O...	LD	C,A	
 T72AEh	214CA7..  !L..	LD	HL,0A74Ch
-T72B1h	CD4C41..  .LA.	CALL	GetWorldAddress
+T72B1h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T72B4h	1813....  ....	JR	013h			; Jump to 072C9H
 
 T72B6h	DD2150EA  .!P.	LD	IX,0EA50h
@@ -7565,7 +7571,7 @@ T72BEh	C8......  ....	RET	Z
 T72BFh	DD7E05..  .~..	LD	A,(IX+005h)
 T72C2h	4F......  O...	LD	C,A	
 T72C3h	2126A7..  !&..	LD	HL,0A726h
-T72C6h	CD4C41..  .LA.	CALL	GetWorldAddress
+T72C6h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T72C9h	DD6E07..  .n..	LD	L,(IX+007h)
 T72CCh	DD6608..  .f..	LD	H,(IX+008h)
 T72CFh	EB......  ....	EX	DE,HL	
@@ -7764,7 +7770,7 @@ T73F1h	3A02E5..  :...	LD	A,(TE502H)
 T73F4h	FEFF....  ....	CP	0FFh	
 T73F6h	C8......  ....	RET	Z		
 
-T73F7h	CD4C41..  .LA.	CALL	GetWorldAddress
+T73F7h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T73FAh	2A0AE6..  *...	LD	HL,(TE60AH)
 T73FDh	EB......  ....	EX	DE,HL	
 T73FEh	46......  F...	LD	B,(HL)	
@@ -8621,7 +8627,7 @@ T7897h	1B......  ....	DEC	DE
 T7898h	1B......  ....	DEC	DE	
 T7899h	1B......  ....	DEC	DE	
 T789Ah	1A......  ....	LD	A,(DE)	
-T789Bh	CD4C41..  .LA.	CALL	GetWorldAddress
+T789Bh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T789Eh	42......  B...	LD	B,D	
 T789Fh	4B......  K...	LD	C,E	
 T78A0h	DD7108..  .q..	LD	(IX+008h),C
@@ -9452,7 +9458,7 @@ T7D89h	D9......  ....	EXX
 T7D8Ah	2222E0..  ""..	LD	(TE022H),HL
 T7D8Dh	3A23E0..  :#..	LD	A,(TE023H)
 T7D90h	21D97D..  !.}.	LD	HL,07DD9h
-T7D93h	CD4C41..  .LA.	CALL	GetWorldAddress
+T7D93h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T7D96h	ED5341E0  .SA.	LD	(WorldNumber),DE
 T7D9Ah	AF......  ....	XOR	A			; Clear A and F
 T7D9Bh	3204E6..  2...	LD	(TE604H),A
@@ -9531,7 +9537,7 @@ T7E37h	34......  4...	INC	(HL)			;
 T7E38h	CD4142..  .AB.	CALL	SetMapperF	
 T7E3Bh	21FDBA..  !...	LD	HL,0BAFDh
 T7E3Eh	3A23E0..  :#..	LD	A,(TE023H)
-T7E41h	CD4C41..  .LA.	CALL	GetWorldAddress
+T7E41h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T7E44h	69......  i...	LD	L,C	
 T7E45h	2600....  &...	LD	H,000h	
 T7E47h	29......  )...	ADD	HL,HL	
@@ -9781,7 +9787,7 @@ T7FEAh	34......  4...	INC	(HL)			;
 T7FEBh	7E......  ~...	LD	A,(HL)	
 T7FECh	E607....  ....	AND	007h	
 T7FEEh	210380..  !...	LD	HL,08003h
-T7FF1h	CD4C41..  .LA.	CALL	GetWorldAddress
+T7FF1h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T7FF4h	3E63....  >c..	LD	A,063h	
 T7FF6h	C34C42..  .LB.	JP	T424CH		
 
@@ -11027,7 +11033,7 @@ T8A4Fh	FE03....  ....	CP	003h
 T8A51h	2002....  ....	JR	NZ,002h			; Jump to 08A55H
 T8A53h	3E01....  >...	LD	A,001h	
 T8A55h	216E8A..  !n..	LD	HL,08A6Eh
-T8A58h	CD4C41..  .LA.	CALL	GetWorldAddress
+T8A58h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T8A5Bh	EB......  ....	EX	DE,HL	
 T8A5Ch	7E......  ~...	LD	A,(HL)	
 T8A5Dh	DD8605..  ....	ADD	A,(IX+005h)
@@ -11393,7 +11399,7 @@ T8D8Eh	C0......  ....	RET	NZ
 T8D8Fh	CDE34D..  ..M.	CALL	T4DE3H	
 T8D92h	E607....  ....	AND	007h	
 T8D94h	21DF8E..  !...	LD	HL,08EDFh
-T8D97h	CD4C41..  .LA.	CALL	GetWorldAddress
+T8D97h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T8D9Ah	DD7307..  .s..	LD	(IX+007h),E
 T8D9Dh	DD7205..  .r..	LD	(IX+005h),D
 T8DA0h	7B......  {...	LD	A,E	
@@ -11614,7 +11620,7 @@ T8F30h	CDFCA8..  ....	CALL	TA8FCH
 T8F33h	3C......  <...	INC	A			;
 T8F34h	3292E6..  2...	LD	(TE692H),A
 T8F37h	CDA393..  ....	CALL	T93A3H	
-T8F3Ah	CDAE93..  ....	CALL	T93AEH	
+T8F3Ah	CDAE93..  ....	CALL	draw_boxes	; for gods
 T8F3Dh	CD2B95..  .+..	CALL	T952BH	
 T8F40h	C35C94..  .\..	JP	T945CH		
 
@@ -11712,7 +11718,7 @@ T8FE7h	ED42....  .B..	SBC	HL,BC
 T8FE9h	C9......  ....	RET			
 
 T8FEAh	CD0F93..  ....	CALL	T930FH	
-T8FEDh	3A08E0..  :...	LD	A,(TE008H)
+T8FEDh	3A08E0..  :...	LD	A,(pressed_controls)
 T8FF0h	E610....  ....	AND	010h	
 T8FF2h	C8......  ....	RET	Z		
 
@@ -11841,7 +11847,7 @@ T90D8h	CD6F91..  .o..	CALL	T916FH
 T90DBh	C3E591..  ....	JP	T91E5H		
 
 T90DEh	CD0F93..  ....	CALL	T930FH	
-T90E1h	3A08E0..  :...	LD	A,(TE008H)
+T90E1h	3A08E0..  :...	LD	A,(pressed_controls)
 T90E4h	E610....  ....	AND	010h	
 T90E6h	C8......  ....	RET	Z		
 
@@ -11864,7 +11870,7 @@ T9105h	CDEF94..  ....	CALL	T94EFH
 T9108h	3E03....  >...	LD	A,003h	
 T910Ah	C3BC8F..  ....	JP	T8FBCH		
 
-T910Dh	3A08E0..  :...	LD	A,(TE008H)
+T910Dh	3A08E0..  :...	LD	A,(pressed_controls)
 T9110h	E610....  ....	AND	010h	
 T9112h	C8......  ....	RET	Z		
 
@@ -11891,7 +11897,7 @@ T913Fh	C3E591..  ....	JP	T91E5H
 
 T9142h	3A90E6..  :...	LD	A,(TE690H)
 T9145h	215392..  !S..	LD	HL,09253h
-T9148h	CD4C41..  .LA.	CALL	GetWorldAddress
+T9148h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T914Bh	21A9EE..  !...	LD	HL,0EEA9h
 T914Eh	CD5A91..  .Z..	CALL	T915AH	
 T9151h	21AFEE..  !...	LD	HL,0EEAFh
@@ -11926,7 +11932,7 @@ T917Bh	C9......  ....	RET
 T917Ch	CD0F93..  ....	CALL	T930FH	
 T917Fh	3E05....  >...	LD	A,005h	
 T9181h	DCEF94..  ....	CALL	C,T94EFH
-T9184h	3A08E0..  :...	LD	A,(TE008H)
+T9184h	3A08E0..  :...	LD	A,(pressed_controls)
 T9187h	E610....  ....	AND	010h	
 T9189h	C8......  ....	RET	Z		
 
@@ -12033,7 +12039,7 @@ T923Dh	C9......  ....	RET
 
 T923Eh	3A90E6..  :...	LD	A,(TE690H)
 T9241h	215392..  !S..	LD	HL,09253h
-T9244h	CD4C41..  .LA.	CALL	GetWorldAddress
+T9244h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T9247h	EB......  ....	EX	DE,HL	
 T9248h	3A92E6..  :...	LD	A,(TE692H)
 T924Bh	87......  ....	ADD	A,A	
@@ -12178,7 +12184,7 @@ T930Bh	09......  ....	ADD	HL,BC
 T930Ch	0A......  ....	LD	A,(BC)	
 T930Dh	13......  ....	INC	DE			;
 T930Eh	0B......  ....	DEC	BC	
-T930Fh	3A08E0..  :...	LD	A,(TE008H)
+T930Fh	3A08E0..  :...	LD	A,(pressed_controls)
 T9312h	CB57....  .W..	BIT	2,A	
 T9314h	2005....  ....	JR	NZ,005h			; Jump to 0931BH
 T9316h	CB5F....  ._..	BIT	3,A	
@@ -12273,24 +12279,28 @@ T93A8h	3E80....  >...	LD	A,080h
 T93AAh	3207E5..  2...	LD	(TE507H),A
 T93ADh	C9......  ....	RET			
 
-T93AEh	2180ED..  !...	LD	HL,0ED80h
-T93B1h	1181ED..  ....	LD	DE,0ED81h
+draw_boxes: ; {{{ for gods
+; {{{ clear screen buffer to 0
+T93AEh	2180ED..  !...	LD	HL,screen_buffer
+T93B1h	1181ED..  ....	LD	DE,screen_buffer + 1
 T93B4h	017F02..  ....	LD	BC,0027Fh
 T93B7h	3600....  6...	LD	(HL),000h
-T93B9h	EDB0....  ....	LDIR		
-T93BBh	2180ED..  !...	LD	HL,0ED80h
+T93B9h	EDB0....  ....	LDIR
+; }}}
+; {{{ clear screen borders to 0xF0
+T93BBh	2180ED..  !...	LD	HL,screen_buffer
 T93BEh	01F013..  ....	LD	BC,013F0h
-T93C1h	CD5494..  .T..	CALL	T9454H	
-T93C4h	2181ED..  !...	LD	HL,0ED81h
+T93C1h	CD5494..  .T..	CALL	T9454H		; fill (HL + k * 0x20) with C; 0 <= k < B
+T93C4h	2181ED..  !...	LD	HL,screen_buffer + 1
 T93C7h	0613....  ....	LD	B,013h	
 T93C9h	CD5494..  .T..	CALL	T9454H	
-T93CCh	219EED..  !...	LD	HL,0ED9Eh
+T93CCh	219EED..  !...	LD	HL,screen_buffer + 0x1e
 T93CFh	0613....  ....	LD	B,013h	
 T93D1h	CD5494..  .T..	CALL	T9454H	
-T93D4h	219FED..  !...	LD	HL,0ED9Fh
+T93D4h	219FED..  !...	LD	HL,screen_buffer + 0x1f
 T93D7h	0613....  ....	LD	B,013h	
 T93D9h	CD5494..  .T..	CALL	T9454H	
-T93DCh	2180ED..  !...	LD	HL,0ED80h
+T93DCh	2180ED..  !...	LD	HL,screen_buffer
 T93DFh	1181ED..  ....	LD	DE,0ED81h
 T93E2h	71......  q...	LD	(HL),C	
 T93E3h	011F00..  ....	LD	BC,0001Fh
@@ -12300,8 +12310,10 @@ T93EBh	11C1EF..  ....	LD	DE,0EFC1h
 T93EEh	36F0....  6...	LD	(HL),0F0h
 T93F0h	011F00..  ....	LD	BC,0001Fh
 T93F3h	EDB0....  ....	LDIR		
+; }}}
 T93F5h	219A9B..  !...	LD	HL,09B9Ah
 T93F8h	22EFEF..  "...	LD	(TEFEFH),HL
+; {{{ clear some "border" to 0x6c (line above ITEM; lines of last items and bottom line of world items)
 T93FBh	2105EE..  !...	LD	HL,0EE05h
 T93FEh	CD4694..  .F..	CALL	T9446H	
 T9401h	21C5EE..  !...	LD	HL,0EEC5h
@@ -12310,10 +12322,14 @@ T9407h	21E5EE..  !...	LD	HL,0EEE5h
 T940Ah	CD4694..  .F..	CALL	T9446H	
 T940Dh	2165EF..  !e..	LD	HL,0EF65h
 T9410h	CD4694..  .F..	CALL	T9446H	
+; }}}
+; {{{ clear vertical borders to 0x6d
 T9413h	2124EE..  !$..	LD	HL,0EE24h
 T9416h	CD5194..  .Q..	CALL	T9451H	
 T9419h	213BEE..  !;..	LD	HL,0EE3Bh
 T941Ch	CD5194..  .Q..	CALL	T9451H	
+; }}}
+; {{{ Draw corners
 T941Fh	3E72....  >r..	LD	A,072h	
 T9421h	3204EE..  2...	LD	(TEE04H),A
 T9424h	32E4EE..  2...	LD	(TEEE4H),A
@@ -12330,7 +12346,9 @@ T943Ch	3E6A....  >j..	LD	A,06Ah
 T943Eh	320BEE..  2...	LD	(TEE0BH),A
 T9441h	3C......  <...	INC	A			;
 T9442h	3274EF..  2t..	LD	(TEF74H),A
+; }}}
 T9445h	C9......  ....	RET			
+; }}}
 
 T9446h	54......  T...	LD	D,H	
 T9447h	5D......  ]...	LD	E,L	
@@ -12367,7 +12385,7 @@ T947Eh	47......  G...	LD	B,A
 T947Fh	3A90E6..  :...	LD	A,(TE690H)
 T9482h	3D......  ....	DEC	A	
 T9483h	215592..  !U..	LD	HL,09255h
-T9486h	CD4C41..  .LA.	CALL	GetWorldAddress
+T9486h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T9489h	79......  y...	LD	A,C	
 T948Ah	CD3B41..  .;A.	CALL	DE+=A
 T948Dh	13......  ....	INC	DE			;
@@ -12466,35 +12484,36 @@ T94FEh	F1......  ....	POP	AF
 T94FFh	CD0595..  ....	CALL	T9505H	
 T9502h	C31542..  ..B.	JP	SetMapper3		
 
-T9505h	219EB0..  !...	LD	HL,0B09Eh
-T9508h	CD4C41..  .LA.	CALL	GetWorldAddress
+T9505h	219EB0..  !...	LD	HL,0B09Eh	; called while mapper F is active.
+T9508h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T950Bh	EB......  ....	EX	DE,HL	
 T950Ch	5E......  ^...	LD	E,(HL)	
 T950Dh	23......  #...	INC	HL			;
 T950Eh	56......  V...	LD	D,(HL)	
-T950Fh	23......  #...	INC	HL			;
+T950Fh	23......  #...	INC	HL			;	DE = address on first 2 bytes
 T9510h	42......  B...	LD	B,D	
-T9511h	4B......  K...	LD	C,E	
+T9511h	4B......  K...	LD	C,E			;	BC = copy of DE
+; while (*HL != 0xff)
 T9512h	7E......  ~...	LD	A,(HL)	
 T9513h	3C......  <...	INC	A			;
 T9514h	C8......  ....	RET	Z		
 
 T9515h	3C......  <...	INC	A			;
-T9516h	2806....  (...	JR	Z,006h			; Jump to 0951EH
+T9516h	2806....  (...	JR	Z,006h			; Jump to 0951EH	if *HL == 0xfe
 T9518h	7E......  ~...	LD	A,(HL)	
 T9519h	12......  ....	LD	(DE),A	
 T951Ah	23......  #...	INC	HL			;
-T951Bh	13......  ....	INC	DE			;
-T951Ch	18F4....  ....	JR	0F4h			; Jump to 09512H
+T951Bh	13......  ....	INC	DE			;	; copy memory.
+T951Ch	18F4....  ....	JR	0F4h			; Jump to 09512H	; end while
 
-T951Eh	23......  #...	INC	HL			;
+T951Eh	23......  #...	INC	HL			; 0xfe is found: goto next line.
 T951Fh	EB......  ....	EX	DE,HL	
 T9520h	60......  `...	LD	H,B	
-T9521h	69......  i...	LD	L,C	
+T9521h	69......  i...	LD	L,C		; HL = original destination
 T9522h	012000..  ....	LD	BC,00020h
-T9525h	09......  ....	ADD	HL,BC	
+T9525h	09......  ....	ADD	HL,BC		; + 0x20
 T9526h	44......  D...	LD	B,H	
-T9527h	4D......  M...	LD	C,L	
+T9527h	4D......  M...	LD	C,L		; BC = copy of new DE
 T9528h	EB......  ....	EX	DE,HL	
 T9529h	18E7....  ....	JR	0E7h			; Jump to 09512H
 
@@ -12848,7 +12867,7 @@ T9751h	3E01....  >...	LD	A,001h
 T9753h	322DE0..  2-..	LD	(TE02DH),A
 T9756h	C9......  ....	RET			
 
-T9757h	3A08E0..  :...	LD	A,(TE008H)
+T9757h	3A08E0..  :...	LD	A,(pressed_controls)
 T975Ah	E60C....  ....	AND	00Ch	
 T975Ch	C8......  ....	RET	Z		
 
@@ -13169,12 +13188,12 @@ T995Eh	C0......  ....	RET	NZ
 
 T995Fh	3A6EE0..  :n..	LD	A,(TE06EH)
 T9962h	21AB99..  !...	LD	HL,099ABh
-T9965h	CD4C41..  .LA.	CALL	GetWorldAddress
+T9965h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T9968h	1807....  ....	JR	007h			; Jump to 09971H
 
 T996Ah	79......  y...	LD	A,C	
 T996Bh	219799..  !...	LD	HL,09997h
-T996Eh	CD4C41..  .LA.	CALL	GetWorldAddress
+T996Eh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T9971h	2188E6..  !...	LD	HL,0E688h
 T9974h	71......  q...	LD	(HL),C	
 T9975h	2C......  ,...	INC	L			;
@@ -13330,7 +13349,7 @@ T9A41h	3A7CE0..  :|..	LD	A,(Necklace)
 T9A44h	B7......  ....	OR	A	
 T9A45h	C8......  ....	RET	Z		
 
-T9A46h	3A09E0..  :...	LD	A,(TE009H)
+T9A46h	3A09E0..  :...	LD	A,(active_controls)
 T9A49h	E602....  ....	AND	002h	
 T9A4Bh	C8......  ....	RET	Z		
 
@@ -13381,7 +13400,7 @@ T9A87h	B7......  ....	OR	A			; Test if any bit of A is set.
 T9A88h	C8......  ....	RET	Z			; if (A == 0) return
 
 ;; We only get here if the player has the salt item.
-T9A89h	3A09E0..  :...	LD	A,(TE009H)		; A = *(0xe009)
+T9A89h	3A09E0..  :...	LD	A,(active_controls)		; A = *(0xe009)
 T9A8Ch	E602....  ....	AND	002h			; A &= 2
 T9A8Eh	C8......  ....	RET	Z			; if (A == 0) return
 
@@ -13393,7 +13412,7 @@ T9A95h	321CE0..  2...	LD	(TE01CH),A		; *(0xe01c) = 1
 T9A98h	C9......  ....	RET			
 
 
-
+try_feather: ; {{{
 T9A99h	3A96E0..  :...	LD	A,(TE096H)	; Feather
 T9A9Ch	A7......  ....	AND	A	
 T9A9Dh	C8......  ....	RET	Z		
@@ -13425,16 +13444,18 @@ T9AC0h	3242E0..  2B..	LD	(RoomNumber),A
 T9AC3h	3E01....  >...	LD	A,001h	
 T9AC5h	3200F0..  2...	LD	(TF000H),A
 T9AC8h	C9......  ....	RET			
+; }}}
 
+try_halo: ; {{{
 T9AC9h	3A84E0..  :...	LD	A,(TE084H)	; Halo
 T9ACCh	A7......  ....	AND	A	
 T9ACDh	C8......  ....	RET	Z		
 
-T9ACEh	3AD2E0..  :...	LD	A,(TE0D2H)
+T9ACEh	3AD2E0..  :...	LD	A,(TE0D2H)	; ? during boss monster?
 T9AD1h	A7......  ....	AND	A	
 T9AD2h	C0......  ....	RET	NZ		
 
-T9AD3h	3AD4E0..  :...	LD	A,(TE0D4H)
+T9AD3h	3AD4E0..  :...	LD	A,(TE0D4H)	; ?
 T9AD6h	A7......  ....	AND	A	
 T9AD7h	C0......  ....	RET	NZ		
 
@@ -13449,6 +13470,7 @@ T9AE2h	C9......  ....	RET
 
 T9AE3h	37......  7...	SCF		
 T9AE4h	C9......  ....	RET			
+; }}}
 
 T9AE5h	AF......  ....	XOR	A			; Clear A and F
 T9AE6h	3215E6..  2...	LD	(TE615H),A
@@ -14192,7 +14214,7 @@ T9ED8h	0608....  ....	LD	B,008h
 T9EDAh	E5......  ....	PUSH	HL	
 T9EDBh	78......  x...	LD	A,B	
 T9EDCh	21FD9E..  !...	LD	HL,09EFDh
-T9EDFh	CD4C41..  .LA.	CALL	GetWorldAddress
+T9EDFh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T9EE2h	D9......  ....	EXX		
 T9EE3h	7D......  }...	LD	A,L	
 T9EE4h	D9......  ....	EXX		
@@ -14403,7 +14425,7 @@ TA030h	B8......  ....	CP	B
 TA031h	2816....  (...	JR	Z,016h			; Jump to 0A049H
 TA033h	CD5541..  .UA.	CALL	A=HL[A]	
 TA036h	57......  W...	LD	D,A	
-TA037h	3A08E0..  :...	LD	A,(TE008H)
+TA037h	3A08E0..  :...	LD	A,(pressed_controls)
 TA03Ah	A7......  ....	AND	A	
 TA03Bh	C8......  ....	RET	Z		
 
@@ -14703,7 +14725,7 @@ TA251h	7E......  ~...	LD	A,(HL)
 TA252h	80......  ....	ADD	A,B	
 TA253h	C393A8..  ....	JP	TA893H		
 
-TA256h	3A08E0..  :...	LD	A,(TE008H)
+TA256h	3A08E0..  :...	LD	A,(pressed_controls)
 TA259h	E601....  ....	AND	001h	
 TA25Bh	C8......  ....	RET	Z		
 
@@ -14726,7 +14748,7 @@ TA283h	3E03....  >...	LD	A,003h
 TA285h	3200E5..  2...	LD	(TE500H),A
 TA288h	C311A9..  ....	JP	TA911H		
 
-TA28Bh	3A08E0..  :...	LD	A,(TE008H)
+TA28Bh	3A08E0..  :...	LD	A,(pressed_controls)
 TA28Eh	E601....  ....	AND	001h	
 TA290h	C8......  ....	RET	Z		
 
@@ -14742,7 +14764,7 @@ TA29Eh	3200E5..  2...	LD	(TE500H),A
 TA2A1h	3E01....  >...	LD	A,001h	
 TA2A3h	C31F4E..  ..N.	JP	T4E1FH		
 
-TA2A6h	3A08E0..  :...	LD	A,(TE008H)
+TA2A6h	3A08E0..  :...	LD	A,(pressed_controls)
 TA2A9h	E602....  ....	AND	002h	
 TA2ABh	CA78A1..  .x..	JP	Z,TA178H	
 TA2AEh	CDF2AE..  ....	CALL	TAEF2H	
@@ -14779,7 +14801,7 @@ defw 0xa437
 defw 0xa43d
 
 TA2ECh	0601....  ....	LD	B,001h	
-TA2EEh	3A09E0..  :...	LD	A,(TE009H)
+TA2EEh	3A09E0..  :...	LD	A,(active_controls)
 TA2F1h	1F......  ....	RRA		
 TA2F2h	1F......  ....	RRA		
 TA2F3h	E603....  ....	AND	003h	
@@ -14818,7 +14840,7 @@ TA334h	060D....  ....	LD	B,00Dh
 TA336h	C5......  ....	PUSH	BC	
 TA337h	B8......  ....	CP	B	
 TA338h	383C....  8<..	JR	C,03Ch			; Jump to 0A376H
-TA33Ah	3A09E0..  :...	LD	A,(TE009H)
+TA33Ah	3A09E0..  :...	LD	A,(active_controls)
 TA33Dh	1F......  ....	RRA		
 TA33Eh	1F......  ....	RRA		
 TA33Fh	E603....  ....	AND	003h	
@@ -14864,7 +14886,7 @@ TA389h	2807....  (...	JR	Z,007h			; Jump to 0A392H
 TA38Bh	3A09E5..  :...	LD	A,(TE509H)
 TA38Eh	FE06....  ....	CP	006h	
 TA390h	3807....  8...	JR	C,007h			; Jump to 0A399H
-TA392h	3A09E0..  :...	LD	A,(TE009H)
+TA392h	3A09E0..  :...	LD	A,(active_controls)
 TA395h	E601....  ....	AND	001h	
 TA397h	280E....  (...	JR	Z,00Eh			; Jump to 0A3A7H
 TA399h	3A05E5..  :...	LD	A,(TE505H)
@@ -15343,7 +15365,7 @@ TA715h	CD1EA7..  ....	CALL	TA71EH
 TA718h	CD6FA7..  .o..	CALL	TA76FH	
 TA71Bh	C3CFA9..  ....	JP	TA9CFH		
 
-TA71Eh	3A08E0..  :...	LD	A,(TE008H)
+TA71Eh	3A08E0..  :...	LD	A,(pressed_controls)
 TA721h	CB67....  .g..	BIT	4,A	
 TA723h	F5......  ....	PUSH	AF	
 TA724h	C447A7..  .G..	CALL	NZ,TA747H
@@ -15576,12 +15598,12 @@ TA8A6h	3A82E0..  :...	LD	A,(TE082H)	; Robe
 TA8A9h	B7......  ....	OR	A	
 TA8AAh	C0......  ....	RET	NZ		
 
-TA8ABh	3A09E0..  :...	LD	A,(TE009H)
+TA8ABh	3A09E0..  :...	LD	A,(active_controls)
 TA8AEh	CDBEA8..  ....	CALL	flip_controls	
-TA8B1h	3209E0..  2...	LD	(TE009H),A
-TA8B4h	3A08E0..  :...	LD	A,(TE008H)
+TA8B1h	3209E0..  2...	LD	(active_controls),A
+TA8B4h	3A08E0..  :...	LD	A,(pressed_controls)
 TA8B7h	CDBEA8..  ....	CALL	flip_controls	
-TA8BAh	3208E0..  2...	LD	(TE008H),A
+TA8BAh	3208E0..  2...	LD	(pressed_controls),A
 TA8BDh	C9......  ....	RET			
 
 flip_controls:
@@ -15607,11 +15629,11 @@ TA8D6h	CB47....  .G..	BIT	0,A
 TA8D8h	C9......  ....	RET			
 
 TA8D9h	212EE5..  !...	LD	HL,0E52Eh
-TA8DCh	3A09E0..  :...	LD	A,(TE009H)
+TA8DCh	3A09E0..  :...	LD	A,(active_controls)
 TA8DFh	E60F....  ....	AND	00Fh	
 TA8E1h	47......  G...	LD	B,A	
 TA8E2h	280C....  (...	JR	Z,00Ch			; Jump to 0A8F0H
-TA8E4h	3A08E0..  :...	LD	A,(TE008H)
+TA8E4h	3A08E0..  :...	LD	A,(pressed_controls)
 TA8E7h	E60F....  ....	AND	00Fh	
 TA8E9h	2005....  ....	JR	NZ,005h			; Jump to 0A8F0H
 TA8EBh	78......  x...	LD	A,B	
@@ -16157,7 +16179,7 @@ TAD3Ah	3A10E5..  :...	LD	A,(current_weapon)
 TAD3Dh	FE06....  ....	CP	006h	
 TAD3Fh	C0......  ....	RET	NZ		
 
-TAD40h	3A08E0..  :...	LD	A,(TE008H)
+TAD40h	3A08E0..  :...	LD	A,(pressed_controls)
 TAD43h	E620....  ....	AND	020h	
 TAD45h	C8......  ....	RET	Z		
 
@@ -17798,7 +17820,7 @@ TB8CAh	57......  W...	LD	D,A
 TB8CBh	D9......  ....	EXX		
 TB8CCh	FD7E00..  .~..	LD	A,(IY+000h)
 TB8CFh	21EFB8..  !...	LD	HL,0B8EFh
-TB8D2h	CD4C41..  .LA.	CALL	GetWorldAddress
+TB8D2h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 TB8D5h	D9......  ....	EXX		
 TB8D6h	FD7E00..  .~..	LD	A,(IY+000h)
 TB8D9h	FE05....  ....	CP	005h	
@@ -18988,7 +19010,7 @@ TBFFEh	49......  I...	LD	C,C
 TBFFFh	AA......  ....	XOR	D	
 ; }}}
 
-File:            mog-4-6.rom ; {{{
+File:            mog-4-6.rom ; {{{ 8000-e000 -> 6000-c000
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
 ;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
@@ -18998,7 +19020,7 @@ Initial Address: 6000h
 T6000h	CD9160..  ..`.	CALL	T6091H	
 T6003h	3A41E0..  :A..	LD	A,(WorldNumber)
 T6006h	21CBB5..  !...	LD	HL,0B5CBh
-T6009h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T6009h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T600Ch	EB......  ....	EX	DE,HL	
 T600Dh	3A42E0..  :B..	LD	A,(RoomNumber)
 T6010h	3D......  ....	DEC	A	
@@ -19055,7 +19077,7 @@ T605Dh	FE0B....  ....	CP	00Bh
 T605Fh	C8......  ....	RET	Z		
 
 T6060h	21EE60..  !.`.	LD	HL,060EEh
-T6063h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T6063h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T6066h	1A......  ....	LD	A,(DE)	
 T6067h	B7......  ....	OR	A	
 T6068h	C8......  ....	RET	Z		
@@ -19097,7 +19119,7 @@ T6095h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 T6099h	79......  y...	LD	A,C	
 T609Ah	3D......  ....	DEC	A	
 T609Bh	21AE60..  !.`.	LD	HL,060AEh
-T609Eh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T609Eh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T60A1h	1A......  ....	LD	A,(DE)	
 T60A2h	B7......  ....	OR	A	
 T60A3h	C8......  ....	RET	Z		
@@ -20027,7 +20049,7 @@ T65A2h	3D......  ....	DEC	A
 T65A3h	F8......  ....	RET	M		
 
 T65A4h	21BC65..  !.e.	LD	HL,065BCh
-T65A7h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T65A7h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T65AAh	EB......  ....	EX	DE,HL	
 T65ABh	3A19F0..  :...	LD	A,(TF019H)
 T65AEh	47......  G...	LD	B,A	
@@ -21018,7 +21040,7 @@ T6CB5h	2001....  ....	JR	NZ,001h			; Jump to 06CB8H
 T6CB7h	AF......  ....	XOR	A			; Clear A and F
 T6CB8h	DD771F..  .w..	LD	(IX+01Fh),A
 T6CBBh	21C46C..  !.l.	LD	HL,06CC4h
-T6CBEh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T6CBEh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T6CC1h	C36F73..  .os.	JP	T736FH		
 
 T6CC4h	A0......  ....	AND	B	
@@ -21892,7 +21914,7 @@ T735Ch	DDCB0F7E  ...~	BIT	7,(IX+00Fh)
 T7360h	2803....  (...	JR	Z,003h			; Jump to 07365H
 T7362h	21B273..  !.s.	LD	HL,073B2h
 T7365h	DD7E1E..  .~..	LD	A,(IX+01Eh)
-T7368h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T7368h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T736Bh	DD360804  .6..	LD	(IX+008h),004h
 T736Fh	DD730A..  .s..	LD	(IX+00Ah),E
 T7372h	DD7211..  .r..	LD	(IX+011h),D
@@ -22565,11 +22587,11 @@ T7888h	47......  G...	LD	B,A
 T7889h	DD701C..  .p..	LD	(IX+01Ch),B
 T788Ch	78......  x...	LD	A,B	
 T788Dh	212779..  !'y.	LD	HL,07927h
-T7890h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T7890h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T7893h	CD8C96..  ....	CALL	T968CH	
 T7896h	78......  x...	LD	A,B	
 T7897h	212F79..  !/y.	LD	HL,0792Fh
-T789Ah	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T789Ah	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T789Dh	CD37B1..  .7..	CALL	TB137H	
 T78A0h	118000..  ....	LD	DE,00080h
 T78A3h	CD45B1..  .E..	CALL	TB145H	
@@ -22614,7 +22636,7 @@ T78F2h	F5......  ....	PUSH	AF
 T78F3h	3A24E6..  :$..	LD	A,(TE624H)
 T78F6h	3D......  ....	DEC	A	
 T78F7h	211F79..  !.y.	LD	HL,0791Fh
-T78FAh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T78FAh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T78FDh	7A......  z...	LD	A,D	
 T78FEh	C630....  .0..	ADD	A,030h	
 T7900h	47......  G...	LD	B,A	
@@ -23256,7 +23278,7 @@ T7E22h	C37140..  .q@.	JP	T4071H
 
 T7E25h	F5......  ....	PUSH	AF	
 T7E26h	21497E..  !I~.	LD	HL,07E49h
-T7E29h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T7E29h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T7E2Ch	210000..  !...	LD	HL,00000h
 T7E2Fh	C5......  ....	PUSH	BC	
 T7E30h	19......  ....	ADD	HL,DE	
@@ -23266,7 +23288,7 @@ T7E34h	CD3EB1..  .>..	CALL	TB13EH
 T7E37h	C1......  ....	POP	BC	
 T7E38h	F1......  ....	POP	AF	
 T7E39h	21697E..  !i~.	LD	HL,07E69h
-T7E3Ch	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T7E3Ch	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T7E3Fh	210000..  !...	LD	HL,00000h
 T7E42h	19......  ....	ADD	HL,DE	
 T7E43h	10FD....  ....	DJNZ	0FDh			; Jump to 07E42H
@@ -23702,7 +23724,7 @@ T8175h	DD3401..  .4..	INC	(IX+001h)		;
 T8178h	DD361718  .6..	LD	(IX+017h),018h
 T817Ch	DD7E16..  .~..	LD	A,(IX+016h)
 T817Fh	219E81..  !...	LD	HL,0819Eh
-T8182h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T8182h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T8185h	CDF181..  ....	CALL	T81F1H	
 T8188h	E603....  ....	AND	003h	
 T818Ah	FE03....  ....	CP	003h	
@@ -26116,7 +26138,7 @@ T94ACh	CD37B1..  .7..	CALL	TB137H
 T94AFh	87......  ....	ADD	A,A	
 T94B0h	DD861D..  ....	ADD	A,(IX+01Dh)
 T94B3h	211095..  !...	LD	HL,09510h
-T94B6h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T94B6h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T94B9h	CD3EB1..  .>..	CALL	TB13EH	
 T94BCh	3EA8....  >...	LD	A,0A8h	
 T94BEh	DDCB1D46  ...F	BIT	0,(IX+01Dh)
@@ -26752,7 +26774,7 @@ T99F0h	DD3519..  .5..	DEC	(IX+019h)
 T99F3h	F5......  ....	PUSH	AF	
 T99F4h	DD7E19..  .~..	LD	A,(IX+019h)
 T99F7h	21619A..  !a..	LD	HL,09A61h
-T99FAh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T99FAh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T99FDh	CD6F73..  .os.	CALL	T736FH	
 T9A00h	F1......  ....	POP	AF	
 T9A01h	DD361B3C  .6.<	LD	(IX+01Bh),03Ch
@@ -26842,7 +26864,7 @@ T9A9Fh	C8......  ....	RET	Z
 T9AA0h	3D......  ....	DEC	A	
 T9AA1h	87......  ....	ADD	A,A	
 T9AA2h	DD861D..  ....	ADD	A,(IX+01Dh)
-T9AA5h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T9AA5h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T9AA8h	DD7E05..  .~..	LD	A,(IX+005h)
 T9AABh	82......  ....	ADD	A,D	
 T9AACh	6F......  o...	LD	L,A	
@@ -27623,7 +27645,7 @@ TA0B4h	FE08....  ....	CP	008h
 TA0B6h	2802....  (...	JR	Z,002h			; Jump to 0A0BAH
 TA0B8h	0E04....  ....	LD	C,004h	
 TA0BAh	21D1A0..  !...	LD	HL,0A0D1h
-TA0BDh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TA0BDh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TA0C0h	DD7108..  .q..	LD	(IX+008h),C
 TA0C3h	C36F73..  .os.	JP	T736FH		
 
@@ -28062,7 +28084,7 @@ TA467h	DD771F..  .w..	LD	(IX+01Fh),A
 TA46Ah	ED5F....  ._..	LD	A,R	
 TA46Ch	E603....  ....	AND	003h	
 TA46Eh	2158A5..  !X..	LD	HL,0A558h
-TA471h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TA471h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TA474h	DD730F..  .s..	LD	(IX+00Fh),E
 TA477h	DD720D..  .r..	LD	(IX+00Dh),D
 TA47Ah	CDE4A4..  ....	CALL	TA4E4H	
@@ -28205,11 +28227,11 @@ TA595h	CD8340..  ..@.	CALL	A=HL[A]_hook
 TA598h	DD770A..  .w..	LD	(IX+00Ah),A
 TA59Bh	DD7E14..  .~..	LD	A,(IX+014h)
 TA59Eh	21B3A5..  !...	LD	HL,0A5B3h
-TA5A1h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TA5A1h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TA5A4h	CD3EB1..  .>..	CALL	TB13EH	
 TA5A7h	DD7E14..  .~..	LD	A,(IX+014h)
 TA5AAh	21C5A5..  !...	LD	HL,0A5C5h
-TA5ADh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TA5ADh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TA5B0h	C337B1..  .7..	JP	TB137H		
 
 TA5B3h	96......  ....	SUB	(HL)	
@@ -29242,11 +29264,11 @@ TAE09h	1F......  ....	RRA
 TAE0Ah	F5......  ....	PUSH	AF	
 TAE0Bh	47......  G...	LD	B,A	
 TAE0Ch	212CAE..  !,..	LD	HL,0AE2Ch
-TAE0Fh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TAE0Fh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TAE12h	CD37B1..  .7..	CALL	TB137H	
 TAE15h	78......  x...	LD	A,B	
 TAE16h	213CAE..  !<..	LD	HL,0AE3Ch
-TAE19h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TAE19h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TAE1Ch	F1......  ....	POP	AF	
 TAE1Dh	DC6840..  .h@.	CALL	C,DE=-DE_hook
 TAE20h	CD3EB1..  .>..	CALL	TB13EH	
@@ -32599,7 +32621,7 @@ TBFFEh	FF......  ....	RST	38h
 TBFFFh	FF......  ....	RST	38h	
 ; }}}
 
-File:            mog-7-9.rom ; {{{
+File:            mog-7-9.rom ; {{{ e000-14000 -> 6000-c000
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
 ;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
@@ -47238,7 +47260,7 @@ T9D06h	2100EA..  !...	LD	HL,0EA00h
 T9D09h	220CF0..  "...	LD	(TF00CH),HL
 T9D0Ch	3A41E0..  :A..	LD	A,(WorldNumber)
 T9D0Fh	21BCA7..  !...	LD	HL,0A7BCh
-T9D12h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T9D12h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T9D15h	EB......  ....	EX	DE,HL	
 T9D16h	3A42E0..  :B..	LD	A,(RoomNumber)
 T9D19h	3D......  ....	DEC	A	
@@ -47431,7 +47453,7 @@ T9E4Ch	18B9....  ....	JR	0B9h			; Jump to 09E07H
 
 T9E4Eh	79......  y...	LD	A,C	
 T9E4Fh	2109AF..  !...	LD	HL,0AF09h
-T9E52h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+T9E52h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T9E55h	68......  h...	LD	L,B	
 T9E56h	2D......  -...	DEC	L	
 T9E57h	2600....  &...	LD	H,000h	
@@ -47611,7 +47633,7 @@ T9FA2h	3AA2E0..  :...	LD	A,(TE0A2H)
 T9FA5h	B7......  ....	OR	A	
 T9FA6h	C0......  ....	RET	NZ		
 
-T9FA7h	1180ED..  ....	LD	DE,0ED80h
+T9FA7h	1180ED..  ....	LD	DE,screen_buffer
 T9FAAh	1828....  .(..	JR	028h			; Jump to 09FD4H
 
 T9FACh	3AA3E0..  :...	LD	A,(TE0A3H)
@@ -47761,7 +47783,7 @@ TA087h	C0......  ....	RET	NZ
 TA088h	CD09A1..  ....	CALL	TA109H	
 TA08Bh	C0......  ....	RET	NZ		
 
-TA08Ch	3A09E0..  :...	LD	A,(TE009H)
+TA08Ch	3A09E0..  :...	LD	A,(active_controls)
 TA08Fh	A1......  ....	AND	C	
 TA090h	2865....  (e..	JR	Z,065h			; Jump to 0A0F7H
 TA092h	DD3507..  .5..	DEC	(IX+007h)
@@ -47904,7 +47926,7 @@ TA17Fh	C0......  ....	RET	NZ
 TA180h	CD09A1..  ....	CALL	TA109H	
 TA183h	C0......  ....	RET	NZ		
 
-TA184h	3A09E0..  :...	LD	A,(TE009H)
+TA184h	3A09E0..  :...	LD	A,(active_controls)
 TA187h	A1......  ....	AND	C	
 TA188h	CA05A2..  ....	JP	Z,TA205H	
 TA18Bh	DD3505..  .5..	DEC	(IX+005h)
@@ -48046,7 +48068,7 @@ TA25Dh	C0......  ....	RET	NZ
 TA25Eh	CD09A1..  ....	CALL	TA109H	
 TA261h	C0......  ....	RET	NZ		
 
-TA262h	3A09E0..  :...	LD	A,(TE009H)
+TA262h	3A09E0..  :...	LD	A,(active_controls)
 TA265h	A1......  ....	AND	C	
 TA266h	2831....  (1..	JR	Z,031h			; Jump to 0A299H
 TA268h	23......  #...	INC	HL			;
@@ -48219,7 +48241,7 @@ TA39Bh	20F1....  ....	JR	NZ,0F1h			; Jump to 0A38EH
 TA39Dh	CD09A1..  ....	CALL	TA109H	
 TA3A0h	C0......  ....	RET	NZ		
 
-TA3A1h	3A09E0..  :...	LD	A,(TE009H)
+TA3A1h	3A09E0..  :...	LD	A,(active_controls)
 TA3A4h	A1......  ....	AND	C	
 TA3A5h	28E7....  (...	JR	Z,0E7h			; Jump to 0A38EH
 TA3A7h	FD3506..  .5..	DEC	(IY+006h)
@@ -48702,7 +48724,7 @@ TA6D3h	C0......  ....	RET	NZ
 TA6D4h	3E0F....  >...	LD	A,00Fh	
 TA6D6h	90......  ....	SUB	B	
 TA6D7h	21EBA6..  !...	LD	HL,0A6EBh
-TA6DAh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TA6DAh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TA6DDh	2A41E0..  *A..	LD	HL,(WorldNumber)
 TA6E0h	AF......  ....	XOR	A			; Clear A and F
 TA6E1h	ED52....  .R..	SBC	HL,DE	
@@ -48800,7 +48822,7 @@ TA760h	C9......  ....	RET
 TA761h	3E0F....  >...	LD	A,00Fh	
 TA763h	90......  ....	SUB	B	
 TA764h	21EBA6..  !...	LD	HL,0A6EBh
-TA767h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TA767h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TA76Ah	2A41E0..  *A..	LD	HL,(WorldNumber)
 TA76Dh	AF......  ....	XOR	A			; Clear A and F
 TA76Eh	ED52....  .R..	SBC	HL,DE	
@@ -54385,7 +54407,7 @@ TBFFEh	FF......  ....	RST	38h
 TBFFFh	FF......  ....	RST	38h	
 ; }}}
 
-File:            mog-a-c.rom	; {{{
+File:            mog-a-c.rom	; {{{ 14000-1a000 -> 6000-c000
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
 ;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
@@ -70099,7 +70121,7 @@ TA3CBh	C281C0..  ....	JP	NZ,TC081H
 TA3CEh	07......  ....	RLCA		
 TA3CFh	C282C0..  ....	JP	NZ,TC082H
 TA3D2h	200E....  ....	JR	NZ,00Eh			; Jump to 0A3E2H
-TA3D4h	C209E0..  ....	JP	NZ,TE009H
+TA3D4h	C209E0..  ....	JP	NZ,active_controls
 TA3D7h	02......  ....	LD	(BC),A	
 TA3D8h	C0......  ....	RET	NZ		
 
@@ -76610,7 +76632,7 @@ TBFFEh	FF......  ....	RST	38h
 TBFFFh	FF......  ....	RST	38h	
 ; }}}
 
-File:            mog-d-f.rom	; {{{
+File:            mog-d-f.rom	; {{{ 1a000-20000 -> 6000-c000
 DASM As:         Memory Mirror File (Non executable file)
 Initial Address: 6000h
 ;. MSX DASM v0.9 for Linux i386 - CopyRight Fudeba Software, 2004
@@ -93274,97 +93296,18 @@ TB097h	FEFE....  ....	CP	0FEh
 TB099h	FEFE....  ....	CP	0FEh	
 TB09Bh	FEFE....  ....	CP	0FEh	
 TB09Dh	FF......  ....	RST	38h	
-TB09Eh	06B1....  ....	LD	B,0B1h	
-TB0A0h	48......  H...	LD	C,B	
-TB0A1h	B1......  ....	OR	C	
-TB0A2h	68......  h...	LD	L,B	
-TB0A3h	B1......  ....	OR	C	
-TB0A4h	9A......  ....	SBC	A,D	
-TB0A5h	B1......  ....	OR	C	
-TB0A6h	D7......  ....	RST	10h	
-TB0A7h	B1......  ....	OR	C	
-TB0A8h	FCB11D..  ....	CALL	M,T1DB1H
-TB0ABh	B2......  ....	OR	D	
-TB0ACh	36B2....  6...	LD	(HL),0B2h
-TB0AEh	59......  Y...	LD	E,C	
-TB0AFh	B2......  ....	OR	D	
-TB0B0h	72......  r...	LD	(HL),D	
-TB0B1h	B2......  ....	OR	D	
-TB0B2h	89......  ....	ADC	A,C	
-TB0B3h	B2......  ....	OR	D	
-TB0B4h	A2......  ....	AND	D	
-TB0B5h	B2......  ....	OR	D	
-TB0B6h	CCB20C..  ....	CALL	Z,T0CB2H
-TB0B9h	B3......  ....	OR	E	
-TB0BAh	1EB3....  ....	LD	E,0B3h	
-TB0BCh	41......  A...	LD	B,C	
-TB0BDh	B3......  ....	OR	E	
-TB0BEh	51......  Q...	LD	D,C	
-TB0BFh	B3......  ....	OR	E	
-TB0C0h	5B......  [...	LD	E,E	
-TB0C1h	B3......  ....	OR	E	
-TB0C2h	7D......  }...	LD	A,L	
-TB0C3h	B3......  ....	OR	E	
-TB0C4h	8D......  ....	ADC	A,L	
-TB0C5h	B3......  ....	OR	E	
-TB0C6h	A2......  ....	AND	D	
-TB0C7h	B3......  ....	OR	E	
-TB0C8h	A2......  ....	AND	D	
-TB0C9h	B3......  ....	OR	E	
-TB0CAh	A2......  ....	AND	D	
-TB0CBh	B3......  ....	OR	E	
-TB0CCh	A2......  ....	AND	D	
-TB0CDh	B3......  ....	OR	E	
-TB0CEh	A2......  ....	AND	D	
-TB0CFh	B3......  ....	OR	E	
-TB0D0h	AA......  ....	XOR	D	
-TB0D1h	B3......  ....	OR	E	
-TB0D2h	B7......  ....	OR	A	
-TB0D3h	B3......  ....	OR	E	
-TB0D4h	C3B3CD..  ....	JP	TCDB3H		
 
-TB0D7h	B3......  ....	OR	E	
-TB0D8h	D4B3DD..  ....	CALL	NC,TDDB3H
-TB0DBh	B3......  ....	OR	E	
-TB0DCh	DDB3....  ....
-TB0DEh	DDB3....  ....
-TB0E0h	25......  %...	DEC	H	
-TB0E1h	B4......  ....	OR	H	
-TB0E2h	4D......  M...	LD	C,L	
-TB0E3h	B4......  ....	OR	H	
-TB0E4h	93......  ....	SUB	E	
-TB0E5h	B4......  ....	OR	H	
-TB0E6h	DF......  ....	RST	18h	
-TB0E7h	B4......  ....	OR	H	
-TB0E8h	14......  ....	INC	D			;
-TB0E9h	B5......  ....	OR	L	
-TB0EAh	37......  7...	SCF		
-TB0EBh	B5......  ....	OR	L	
-TB0ECh	66......  f...	LD	H,(HL)	
-TB0EDh	B5......  ....	OR	L	
-TB0EEh	AF......  ....	XOR	A			; Clear A and F
-TB0EFh	B5......  ....	OR	L	
-TB0F0h	D6B5....  ....	SUB	0B5h	
-TB0F2h	FB......  ....	EI		
-TB0F3h	B5......  ....	OR	L	
-TB0F4h	2EB6....  ....	LD	L,0B6h	
-TB0F6h	74......  t...	LD	(HL),H	
-TB0F7h	B6......  ....	OR	(HL)	
-TB0F8h	BE......  ....	CP	(HL)	
-TB0F9h	B6......  ....	OR	(HL)	
-TB0FAh	CF......  ....	RST	8h	
-TB0FBh	B6......  ....	OR	(HL)	
-TB0FCh	F9......  ....	LD	SP,HL	
-TB0FDh	B6......  ....	OR	(HL)	
-TB0FEh	14......  ....	INC	D			;
-TB0FFh	B7......  ....	OR	A	
-TB100h	25......  %...	DEC	H	
-TB101h	B7......  ....	OR	A	
-TB102h	6A......  j...	LD	L,D	
-TB103h	B7......  ....	OR	A	
-TB104h	82......  ....	ADD	A,D	
-TB105h	B7......  ....	OR	A	
-TB106h	26EE....  &...	LD	H,0EEh	
+; {{{ God text info
+TB09Eh	defw 0xb106, 0xb148, 0xb168, 0xb19a, 0xb1d7, 0xb1fc, 0xb21d, 0xb236
+TB0AEh	defw 0xb259, 0xb272, 0xb289, 0xb2a2, 0xb2cc, 0xb30c, 0xb31e, 0xb341
+TB0BEh	defw 0xb351, 0xb35b, 0xb37d, 0xb38d, 0xb3a2, 0xb3a2, 0xb3a2, 0xb3a2
+TB0CEh	defw 0xb3a2, 0xb3aa, 0xb3b7, 0xb3c3, 0xb3cd, 0xb3d4, 0xb3dd, 0xb3dd
+TB0DEh	defw 0xb3dd, 0xb425, 0xb44d, 0xb493, 0xb4df, 0xb514, 0xb537, 0xb566
+TB0EEh	defw 0xb5af, 0xb5d6, 0xb5fb, 0xb62e, 0xb674, 0xb6be, 0xb6cf, 0xb6f9
+TB0FEh	defw 0xb714, 0xb725, 0xb76a, 0xb782
+
+; God texts: first coordinate, then text.
+TB106h	defw 0xee26
 TB108h	CEE7....  ....	ADC	A,0E7h	
 TB10Ah	C5......  ....	PUSH	BC	
 TB10Bh	ECD200..  ....	CALL	PE,T00D2H
@@ -93402,6 +93345,7 @@ TB144h	E3......  ....	EX	(SP),HL
 TB145h	DF......  ....	RST	18h	
 TB146h	EF......  ....	RST	40	
 TB147h	FF......  ....	RST	38h	
+
 TB148h	26EE....  &...	LD	H,0EEh	
 TB14Ah	C9......  ....	RET			
 
@@ -94634,8 +94578,10 @@ TB7B8h	FE21....  .!..	CP	021h
 TB7BAh	0B......  ....	DEC	BC	
 TB7BBh	1E0F....  ....	LD	E,00Fh	
 TB7BDh	1C......  ....	INC	E			;
-TB7BEh	2AFFCD..  *...	LD	HL,(TCDFFH)
-TB7C1h	10B8....  ....	DJNZ	0B8h			; Jump to 0B77BH
+TB7BEh	2AFF..  *...	LD	HL,(TCDFFH)
+; }}}
+
+TB7C0h	CD10B8..  ....	CALL	0B810H
 TB7C3h	3EBF....  >...	LD	A,0BFh	
 TB7C5h	322BF0..  2+..	LD	(TF02BH),A
 TB7C8h	CD1CB8..  ....	CALL	TB81CH	
@@ -95553,7 +95499,7 @@ TBCB6h	0101FF..  ....	LD	BC,0FF01h
 TBCB9h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 TBCBDh	79......  y...	LD	A,C	
 TBCBEh	21D3BC..  !...	LD	HL,0BCD3h
-TBCC1h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TBCC1h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TBCC4h	EB......  ....	EX	DE,HL	
 TBCC5h	7E......  ~...	LD	A,(HL)	
 TBCC6h	B7......  ....	OR	A	
@@ -95657,7 +95603,7 @@ TBD57h	C9......  ....	RET
 TBD58h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 TBD5Ch	79......  y...	LD	A,C	
 TBD5Dh	2172BD..  !r..	LD	HL,0BD72h
-TBD60h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TBD60h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TBD63h	EB......  ....	EX	DE,HL	
 TBD64h	7E......  ~...	LD	A,(HL)	
 TBD65h	B7......  ....	OR	A	
@@ -95730,7 +95676,7 @@ TBDB3h	2002....  ....	JR	NZ,002h			; Jump to 0BDB7H
 TBDB5h	AF......  ....	XOR	A			; Clear A and F
 TBDB6h	77......  w...	LD	(HL),A	
 TBDB7h	21CEBD..  !...	LD	HL,0BDCEh
-TBDBAh	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TBDBAh	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TBDBDh	EB......  ....	EX	DE,HL	
 TBDBEh	5E......  ^...	LD	E,(HL)	
 TBDBFh	23......  #...	INC	HL			;
@@ -95875,7 +95821,7 @@ TBE7Eh	C9......  ....	RET
 
 TBE7Fh	3A9AE6..  :...	LD	A,(TE69AH)
 TBE82h	21C8BE..  !...	LD	HL,0BEC8h
-TBE85h	CD5340..  .S@.	CALL	GetWorldAddress_hook	
+TBE85h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 TBE88h	3A9BE6..  :...	LD	A,(TE69BH)
 TBE8Bh	6F......  o...	LD	L,A	
 TBE8Ch	2600....  &...	LD	H,000h	

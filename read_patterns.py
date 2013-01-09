@@ -27,7 +27,7 @@ palette = ((0, 0, 0,
 		204, 204, 204,
 		255, 255, 255))
 
-data = open ('/home/shevek/msx/rom/MazeOfGalious.rom').read ()
+data = open ('MazeOfGalious.rom').read ()
 world = struct.unpack ('<' + 'H' * 11, data[0xeac0:0xead6])
 world = [x - 0x6000 + 0xe000 for x in world]
 rooms = [(world[x + 1] - world[x]) / 40 for x in range (len (world) - 1)] + [6]
