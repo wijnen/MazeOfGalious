@@ -224,7 +224,7 @@ T4152h	23......  #...	INC	HL		;
 T4153h	56......  V...	LD	D,(HL)	
 T4154h	C9......  ....	RET			
 
-;A=HL[A]	; not used.
+;A=HL[A]
 T4155h	85......  ....	ADD	A,L	
 T4156h	6F......  o...	LD	L,A	
 T4157h	3001....  0...	JR	NC,001h		; Jump to 0415AH
@@ -806,7 +806,7 @@ T4505h	CD1E4D..  ..M.	CALL	T4D1EH
 T4508h	F0......  ....	RET	P		
 
 T4509h	3A01E5..  :...	LD	A,(am_I_Popolon)
-T450Ch	2158E0..  !X..	LD	HL,0E058h
+T450Ch	2158E0..  !X..	LD	HL,is_Aphrodite_alive
 T450Fh	85......  ....	ADD	A,L	
 T4510h	6F......  o...	LD	L,A	
 T4511h	7E......  ~...	LD	A,(HL)	
@@ -970,7 +970,7 @@ T463Ch	3276E0..  2v..	LD	(TE076H),A
 T463Fh	CB66....  .f..	BIT	4,(HL)	
 T4641h	C8......  ....	RET	Z		
 
-T4642h	3279E0..  2y..	LD	(TE079H),A
+T4642h	3279E0..  2y..	LD	(have_map),A
 T4645h	C9......  ....	RET			
 
 T4646h	3A41E0..  :A..	LD	A,(WorldNumber)
@@ -1240,7 +1240,7 @@ T481Ch	1812....  ....	JR	012h			; Jump to 04830H
 
 normal_item_screen:
 T481Eh	CD219E..  .!..	CALL	check_F1	
-T4821h	D2E267..  ..g.	JP	NC,draw_itemscreen
+T4821h	D2E267..  ..g.	JP	NC,handle_itemscreen
 T4824h	CD8052..  ..R.	CALL	clear_ec80
 T4827h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T482Ah	CD0369..  ..i.	CALL	T6903H	
@@ -1614,7 +1614,7 @@ T4B02h	2D......  -...	DEC	L
 T4B03h	77......  w...	LD	(HL),A	
 T4B04h	3A01E5..  :...	LD	A,(am_I_Popolon)
 T4B07h	B7......  ....	OR	A	
-T4B08h	2159E0..  !Y..	LD	HL,0E059h
+T4B08h	2159E0..  !Y..	LD	HL,is_Popolon_alive
 T4B0Bh	1157E0..  .W..	LD	DE,0E057h
 T4B0Eh	2803....  (...	JR	Z,003h			; Jump to 04B13H
 T4B10h	2D......  -...	DEC	L	
@@ -1771,7 +1771,6 @@ T4C18h	3603....  6...	LD	(HL),003h
 T4C1Ah	23......  #...	INC	HL			;
 T4C1Bh	3600....  6...	LD	(HL),000h
 T4C1Dh	C9......  ....	RET			
-; }}}
 
 T4C1Eh	04......  ....	INC	B			;
 T4C1Fh	08......  ....	EX	AF,AF'	
@@ -1788,6 +1787,7 @@ T4C33h	AF......  ....	XOR	A			; Clear A and F
 T4C34h	CD1F4E..  ..N.	CALL	T4E1FH	
 T4C37h	CDC95C..  ..\.	CALL	T5CC9H	
 T4C3Ah	C3F142..  ..B.	JP	T42F1H		
+; }}}
 
 # {{{ Init:
 T4C3Dh	CDED4D..  ..M.	CALL	T4DEDH			; reset some variables.
@@ -5470,28 +5470,29 @@ setup_itemscreen_variables:
 T65A8h	CD2B42..  .+B.	CALL	SetMapper9	
 T65ABh	CD0D66..  ..f.	CALL	clear_screen
 T65AEh	CD8052..  ..R.	CALL	clear_ec80
-T65B1h	CDC665..  ..e.	CALL	T65C6H	
-T65B4h	CDC266..  ..f.	CALL	T66C2H	
-T65B7h	CD1567..  ..g.	CALL	T6715H	
-T65BAh	CD7A67..  .zg.	CALL	T677AH	
-T65BDh	CD1B66..  ..f.	CALL	T661BH	
+T65B1h	CDC665..  ..e.	CALL	setup_persons_and_weapons
+T65B4h	CDC266..  ..f.	CALL	draw_people
+T65B7h	CD1567..  ..g.	CALL	draw_all_items
+T65BAh	CD7A67..  .zg.	CALL	draw_all_weapons
+T65BDh	CD1B66..  ..f.	CALL	draw_map
 T65C0h	CDBF54..  ..T.	CALL	PasteScreen	
 T65C3h	C31542..  ..B.	JP	SetMapper3		
 
+setup_persons_and_weapons:
 T65C6h	3A01E5..  :...	LD	A,(am_I_Popolon)
 T65C9h	B7......  ....	OR	A	
 T65CAh	215EE0..  !^..	LD	HL,0E05Eh
 T65CDh	2802....  (...	JR	Z,002h			; Jump to 065D1H
-T65CFh	2E61....  .a..	LD	L,061h	
+T65CFh	2E61....  .a..	LD	L,061h		; Do this if you are Aphrodite: HL = 0xe061
 T65D1h	7E......  ~...	LD	A,(HL)	
 T65D2h	B7......  ....	OR	A	
 T65D3h	F2D865..  ..e.	JP	P,T65D8H	
 T65D6h	3600....  6...	LD	(HL),000h	; Set thing to 0 if bit 8 was set.
 T65D8h	3A01E5..  :...	LD	A,(am_I_Popolon)
-T65DBh	2158E0..  !X..	LD	HL,0E058h
+T65DBh	2158E0..  !X..	LD	HL,is_Aphrodite_alive
 T65DEh	85......  ....	ADD	A,L	
 T65DFh	6F......  o...	LD	L,A	
-T65E0h	7E......  ~...	LD	A,(HL)		; HL = e058/e059
+T65E0h	7E......  ~...	LD	A,(HL)		; HL = e058/e059: is_(Aphrodite|Popolon)_alive
 T65E1h	C601....  ....	ADD	A,001h	
 T65E3h	27......  '...	DAA			; correct previous computation for BCD
 T65E4h	77......  w...	LD	(HL),A	
@@ -5506,10 +5507,10 @@ T65F3h	77......  w...	LD	(HL),A
 T65F4h	B7......  ....	OR	A	
 T65F5h	C0......  ....	RET	NZ		
 
-Set current weapon to the first available; called if no weapon is selected now.
+Set current weapon to the first available; reached if no weapon is selected now.
 T65F6h	0E01....  ....	LD	C,001h	
 T65F8h	0606....  ....	LD	B,006h	
-T65FAh	1170E0..  .p..	LD	DE,weaon_list
+T65FAh	1170E0..  .p..	LD	DE,weapon_list
 T65FDh	1A......  ....	LD	A,(DE)	
 T65FEh	B7......  ....	OR	A	
 T65FFh	2006....  ....	JR	NZ,006h			; Jump to 06607H
@@ -5530,46 +5531,49 @@ T6616h	3600....  6...	LD	(HL),000h
 T6618h	EDB0....  ....	LDIR		
 T661Ah	C9......  ....	RET			
 
-T661Bh	3A79E0..  :y..	LD	A,(TE079H)
+draw_map:
+T661Bh	3A79E0..  :y..	LD	A,(have_map)
 T661Eh	B7......  ....	OR	A	
 T661Fh	C8......  ....	RET	Z		
 
-T6620h	1126EF..  .&..	LD	DE,0EF26h
-T6623h	21BF66..  !.f.	LD	HL,066BFh
+T6620h	1126EF..  .&..	LD	DE,0EF26h	; location of word.
+T6623h	21BF66..  !.f.	LD	HL,066BFh	; "MAP"
 T6626h	010300..  ....	LD	BC,00003h
 T6629h	EDB0....  ....	LDIR		
-T662Bh	212AAF..  !*..	LD	HL,0AF2Ah
+T662Bh	212AAF..  !*..	LD	HL,maps - 2	; in mapper 9
 T662Eh	3A41E0..  :A..	LD	A,(WorldNumber)
 T6631h	3D......  ....	DEC	A	
-T6632h	C8......  ....	RET	Z		
+T6632h	C8......  ....	RET	Z		; Don't draw a map if not in a world.
 
 T6633h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6636h	EB......  ....	EX	DE,HL	
 T6637h	5E......  ^...	LD	E,(HL)	
 T6638h	23......  #...	INC	HL			;
 T6639h	56......  V...	LD	D,(HL)	
-T663Ah	ED5300F0  .S..	LD	(TF000H),DE
+T663Ah	ED5300F0  .S..	LD	(TF000H),DE	; memory location of top left map corner
 T663Eh	23......  #...	INC	HL			;
 T663Fh	4E......  N...	LD	C,(HL)	
 T6640h	23......  #...	INC	HL			;
-T6641h	46......  F...	LD	B,(HL)	
+T6641h	46......  F...	LD	B,(HL)		; B = height, C = width
 T6642h	ED4302F0  .C..	LD	(TF002H),BC
 T6646h	23......  #...	INC	HL			;
-T6647h	2204F0..  "...	LD	(TF004H),HL
-T664Ah	ED5B00F0  .[..	LD	DE,(TF000H)
+T6647h	2204F0..  "...	LD	(TF004H),HL	; Address of data
+
+T664Ah	ED5B00F0  .[..	LD	DE,(TF000H)	; screen address
 T664Eh	3A02F0..  :...	LD	A,(TF002H)
-T6651h	4F......  O...	LD	C,A	
+T6651h	4F......  O...	LD	C,A		; width
 T6652h	0600....  ....	LD	B,000h	
-T6654h	2A04F0..  *...	LD	HL,(TF004H)
+T6654h	2A04F0..  *...	LD	HL,(TF004H)	; data
 T6657h	EDB0....  ....	LDIR		
 T6659h	2204F0..  "...	LD	(TF004H),HL
-T665Ch	2A00F0..  *...	LD	HL,(TF000H)
+T665Ch	2A00F0..  *...	LD	HL,(TF000H)	; goto next line
 T665Fh	012000..  ....	LD	BC,00020h
 T6662h	09......  ....	ADD	HL,BC	
 T6663h	2200F0..  "...	LD	(TF000H),HL
 T6666h	2103F0..  !...	LD	HL,0F003h
-T6669h	35......  5...	DEC	(HL)	
+T6669h	35......  5...	DEC	(HL)		; one line less to do
 T666Ah	20DE....  ....	JR	NZ,0DEh			; Jump to 0664AH
+
 T666Ch	3A41E0..  :A..	LD	A,(WorldNumber)
 T666Fh	2138B0..  !8..	LD	HL,0B038h
 T6672h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
@@ -5578,7 +5582,7 @@ T6676h	3A42E0..  :B..	LD	A,(RoomNumber)
 T6679h	5F......  _...	LD	E,A	
 T667Ah	1600....  ....	LD	D,000h	
 T667Ch	19......  ....	ADD	HL,DE	
-T667Dh	EB......  ....	EX	DE,HL	
+T667Dh	EB......  ....	EX	DE,HL	; DE = &(0xb038 + 2 * WorldNumber)[RoomNumber]
 T667Eh	3A41E0..  :A..	LD	A,(WorldNumber)
 T6681h	3D......  ....	DEC	A	
 T6682h	2170E6..  !p..	LD	HL,0E670h
@@ -5588,134 +5592,125 @@ T6689h	C8......  ....	RET	Z
 
 T668Ah	0E08....  ....	LD	C,008h	
 T668Ch	CDA566..  ..f.	CALL	T66A5H	
-T668Fh	3A89E0..  :...	LD	A,(TE089H)	; Lamp
+T668Fh	3A89E0..  :...	LD	A,(TE089H)	; Lamp: mark guardian
 T6692h	A7......  ....	AND	A	
 T6693h	C8......  ....	RET	Z		
 
+; Do this only if we have a lamp.
 T6694h	3A41E0..  :A..	LD	A,(WorldNumber)
-T6697h	21FCB0..  !...	LD	HL,0B0FCh
+T6697h	21FCB0..  !...	LD	HL,boss_location - 2
 T669Ah	CD5541..  .UA.	CALL	A=HL[A]	
 T669Dh	3220F0..  2...	LD	(TF020H),A
 T66A0h	2174E6..  !t..	LD	HL,0E674h
 T66A3h	0E05....  ....	LD	C,005h	
+; do this always, called from just above, C == 8, HL == 0xe670, (f020) == 
 T66A5h	E6F0....  ....	AND	0F0h	
 T66A7h	0F......  ....	RRCA		
 T66A8h	0F......  ....	RRCA		
-T66A9h	E63C....  .<..	AND	03Ch	
-T66ABh	C690....  ....	ADD	A,090h	
-T66ADh	77......  w...	LD	(HL),A	
+T66A9h	E63C....  .<..	AND	03Ch		; redundant...
+T66ABh	C690....  ....	ADD	A,090h		; 10xXxx00, with bits 4-7.
+T66ADh	77......  w...	LD	(HL),A		; HL = 0xe674
 T66AEh	3A20F0..  :...	LD	A,(TF020H)
 T66B1h	17......  ....	RLA		
 T66B2h	17......  ....	RLA		
 T66B3h	17......  ....	RLA		
-T66B4h	E678....  .x..	AND	078h	
-T66B6h	3C......  <...	INC	A			;
+T66B4h	E678....  .x..	AND	078h		
+T66B6h	3C......  <...	INC	A		; 0xxxx001, with bits 0-3
 T66B7h	2C......  ,...	INC	L			;
-T66B8h	77......  w...	LD	(HL),A	
+T66B8h	77......  w...	LD	(HL),A		; HL = 0xe675
 T66B9h	2C......  ,...	INC	L			;
-T66BAh	36A4....  6...	LD	(HL),0A4h
+T66BAh	36A4....  6...	LD	(HL),0A4h	; HL = 0xe676
 T66BCh	2C......  ,...	INC	L			;
-T66BDh	71......  q...	LD	(HL),C	
+T66BDh	71......  q...	LD	(HL),C		; HL = 0xe677; C = 5
 T66BEh	C9......  ....	RET			
 
-T66BFh	17......  ....	RLA		
-T66C0h	0B......  ....	DEC	BC	
-T66C1h	1A......  ....	LD	A,(DE)	
-T66C2h	2158E0..  !X..	LD	HL,0E058h
+T66BFh	defb "MAP"	; in MoG chars: 0x17, 0x0b, 0x1a
+
+draw_people:
+T66C2h	2158E0..  !X..	LD	HL,is_Aphrodite_alive
 T66C5h	0E00....  ....	LD	C,000h	
-T66C7h	CDD566..  ..f.	CALL	T66D5H	
-T66CAh	2159E0..  !Y..	LD	HL,0E059h
+T66C7h	CDD566..  ..f.	CALL	draw_person
+T66CAh	2159E0..  !Y..	LD	HL,is_Popolon_alive
 T66CDh	0E02....  ....	LD	C,002h	
-T66CFh	CDD566..  ..f.	CALL	T66D5H	
+T66CFh	CDD566..  ..f.	CALL	draw_person
 T66D2h	C38E68..  ..h.	JP	T688EH		
 
+draw_person:
 T66D5h	7E......  ~...	LD	A,(HL)	
 T66D6h	B7......  ....	OR	A	
 T66D7h	2801....  (...	JR	Z,001h			; Jump to 066DAH
-T66D9h	0C......  ....	INC	C			;
+T66D9h	0C......  ....	INC	C			; C = 0: dead aphrodite, 1: living aphrodite, 2: dead popolon, 3: living popolon
 T66DAh	79......  y...	LD	A,C	
 T66DBh	87......  ....	ADD	A,A	
 T66DCh	4F......  O...	LD	C,A	
 T66DDh	87......  ....	ADD	A,A	
 T66DEh	81......  ....	ADD	A,C	
-T66DFh	4F......  O...	LD	C,A	
+T66DFh	4F......  O...	LD	C,A			; C *= 6
 T66E0h	0600....  ....	LD	B,000h	
 T66E2h	21F766..  !.f.	LD	HL,066F7h
 T66E5h	09......  ....	ADD	HL,BC	
 T66E6h	5E......  ^...	LD	E,(HL)	
 T66E7h	23......  #...	INC	HL			;
 T66E8h	56......  V...	LD	D,(HL)	
-T66E9h	23......  #...	INC	HL			;
+T66E9h	23......  #...	INC	HL			; read address
 T66EAh	EDA0....  ....	LDI		
-T66ECh	EDA0....  ....	LDI		
+T66ECh	EDA0....  ....	LDI			; copy 2 bytes
 T66EEh	3E1E....  >...	LD	A,01Eh	
 T66F0h	83......  ....	ADD	A,E	
-T66F1h	5F......  _...	LD	E,A	
+T66F1h	5F......  _...	LD	E,A		; DE += 0x20-2 (1 line down, two chars back)
 T66F2h	EDA0....  ....	LDI		
-T66F4h	EDA0....  ....	LDI		
+T66F4h	EDA0....  ....	LDI			; copy 2 bytes
 T66F6h	C9......  ....	RET			
 
-T66F7h	B2......  ....	OR	D	
-T66F8h	ED00....  ....
-T66FAh	00......  ....	NOP		
-T66FBh	00......  ....	NOP		
-T66FCh	00......  ....	NOP		
-T66FDh	B2......  ....	OR	D	
-T66FEh	ED7E....  .~..
-T6700h	7F......  ....	LD	A,A	
-T6701h	80......  ....	ADD	A,B	
-T6702h	81......  ....	ADD	A,C	
-T6703h	AC......  ....	XOR	H	
-T6704h	ED00....  ....
-T6706h	00......  ....	NOP		
-T6707h	00......  ....	NOP		
-T6708h	00......  ....	NOP		
-T6709h	AC......  ....	XOR	H	
-T670Ah	ED76....  .v..
-T670Ch	77......  w...	LD	(HL),A	
-T670Dh	78......  x...	LD	A,B	
-T670Eh	79......  y...	LD	A,C	
+defwb 0xedb2, 0x00, 0x00, 0x00, 0x00
+defwb 0xedb2, 0x7e, 0x7f, 0x80, 0x81
+defwb 0xedac, 0x00, 0x00, 0x00, 0x00
+defwb 0xedac, 0x76, 0x77, 0x78, 0x79
 T670Fh	AF......  ....	XOR	A			; Clear A and F
 T6710h	ED7A....  .z..	ADC	HL,SP	
 T6712h	7B......  {...	LD	A,E	
 T6713h	7C......  |...	LD	A,H	
 T6714h	7D......  }...	LD	A,L	
-T6715h	112EEE..  ....	LD	DE,0EE2Eh
-T6718h	217667..  !vg.	LD	HL,06776h
+
+draw_all_items:
+T6715h	112EEE..  ....	LD	DE,0EE2Eh	; location of "ITEM"
+T6718h	217667..  !vg.	LD	HL,06776h	; "ITEM"
 T671Bh	010400..  ....	LD	BC,00004h
 T671Eh	EDB0....  ....	LDIR		
-T6720h	2146EE..  !F..	LD	HL,0EE46h
+T6720h	2146EE..  !F..	LD	HL,0EE46h	; top left corner of items
 T6723h	D9......  ....	EXX		
 T6724h	117CE0..  .|..	LD	DE,0E07Ch		; DE = 0xe07c
 							;    = Necklace == first item
-T6727h	010A03..  ....	LD	BC,0030Ah
+T6727h	010A03..  ....	LD	BC,0030Ah	; 3 rows, 0xa items each
 T672Ah	2E81....  ....	LD	L,081h	
 T672Ch	D9......  ....	EXX		
-T672Dh	CD3D67..  ..g.	CALL	T673DH	
+T672Dh	CD3D67..  ..g.	CALL	draw_items
 T6730h	214FEF..  !O..	LD	HL,0EF4Fh
 T6733h	D9......  ....	EXX		
-T6734h	1176E0..  .v..	LD	DE,0E076h
-T6737h	010601..  ....	LD	BC,00106h
+T6734h	1176E0..  .v..	LD	DE,0E076h	; world items and cross
+T6737h	010601..  ....	LD	BC,00106h	; 1 row, 6 items
 T673Ah	2E56....  .V..	LD	L,056h	
 T673Ch	D9......  ....	EXX		
-T673Dh	CD5A67..  .Zg.	CALL	T675AH	
-T6740h	010200..  ....	LD	BC,00002h
+draw_items:
+T673Dh	CD5A67..  .Zg.	CALL	draw_one_item
+T6740h	010200..  ....	LD	BC,00002h	; if no item was drawn, position += 2
 T6743h	3003....  0...	JR	NC,003h			; Jump to 06748H
-T6745h	01E1FF..  ....	LD	BC,0FFE1h
+T6745h	01E1FF..  ....	LD	BC,0FFE1h	; otherwise, position += 1 - 0x20 (1 line)
 T6748h	09......  ....	ADD	HL,BC	
 T6749h	D9......  ....	EXX		
 T674Ah	0D......  ....	DEC	C	
 T674Bh	D9......  ....	EXX		
-T674Ch	20EF....  ....	JR	NZ,0EFh			; Jump to 0673DH
-T674Eh	012C00..  .,..	LD	BC,0002Ch
+T674Ch	20EF....  ....	JR	NZ,0EFh			; Jump to 0673DH: continue
+T674Eh	012C00..  .,..	LD	BC,0002Ch	; next line: skip one line; go a bit back
 T6751h	09......  ....	ADD	HL,BC	
 T6752h	D9......  ....	EXX		
-T6753h	0E0A....  ....	LD	C,00Ah	
-T6755h	05......  ....	DEC	B	
+T6753h	0E0A....  ....	LD	C,00Ah		; reset item counter
+T6755h	05......  ....	DEC	B
 T6756h	D9......  ....	EXX		
-T6757h	20E4....  ....	JR	NZ,0E4h			; Jump to 0673DH
+T6757h	20E4....  ....	JR	NZ,0E4h			; Jump to 0673DH: next line
 T6759h	C9......  ....	RET			
 
+draw_one_item:	; L' is first char -4; DE' is owning check; HL is target memory; set carry if item drawn
 T675Ah	D9......  ....	EXX		
 T675Bh	7D......  }...	LD	A,L	
 T675Ch	C604....  ....	ADD	A,004h	
@@ -5743,16 +5738,16 @@ T6773h	77......  w...	LD	(HL),A
 T6774h	37......  7...	SCF		
 T6775h	C9......  ....	RET			
 
-T6776h	13......  ....	INC	DE			;
-T6777h	1E0F....  ....	LD	E,00Fh	
-T6779h	17......  ....	RLA		
-T677Ah	21AEEF..  !...	LD	HL,0EFAEh
+T6776h	defb "ITEM"	; in MoG font: 0x13, 0x1e, 0x0f, 0x17
+
+draw_all_weapons:
+T677Ah	21AEEF..  !...	LD	HL,0EFAEh	; screen location for weapon list
 T677Dh	D9......  ....	EXX		
-T677Eh	1170E0..  .p..	LD	DE,weaon_list
+T677Eh	1170E0..  .p..	LD	DE,weapon_list
 T6781h	0E06....  ....	LD	C,006h	
 T6783h	D9......  ....	EXX		
 T6784h	E5......  ....	PUSH	HL	
-T6785h	CDB967..  ..g.	CALL	T67B9H	
+T6785h	CDB967..  ..g.	CALL	draw_one_weapon
 T6788h	E1......  ....	POP	HL	
 T6789h	D9......  ....	EXX		
 T678Ah	79......  y...	LD	A,C	
@@ -5767,6 +5762,7 @@ T6797h	D9......  ....	EXX
 T6798h	0D......  ....	DEC	C	
 T6799h	D9......  ....	EXX		
 T679Ah	20E8....  ....	JR	NZ,0E8h			; Jump to 06784H
+; draw border around weapons
 T679Ch	218DEF..  !...	LD	HL,0EF8Dh
 T679Fh	114842..  .HB.	LD	DE,04248h
 T67A2h	CDD667..  ..g.	CALL	T67D6H	
@@ -5778,6 +5774,7 @@ T67B0h	32ADEF..  2...	LD	(TEFADH),A
 T67B3h	32BDEF..  2...	LD	(TEFBDH),A
 T67B6h	C3B668..  ..h.	JP	T68B6H		
 
+draw_one_weapon:
 T67B9h	D9......  ....	EXX		
 T67BAh	1A......  ....	LD	A,(DE)	
 T67BBh	13......  ....	INC	DE			;
@@ -5812,20 +5809,21 @@ T67DEh	10FC....  ....	DJNZ	0FCh			; Jump to 067DCH
 T67E0h	73......  s...	LD	(HL),E	
 T67E1h	C9......  ....	RET			
 
-draw_itemscreen:
+handle_itemscreen:
 T67E2h	CD2B42..  .+B.	CALL	SetMapper9	
 T67E5h	CDBF54..  ..T.	CALL	PasteScreen	
 T67E8h	CD684C..  .hL.	CALL	store_controls	
-T67EBh	CDF467..  ..g.	CALL	T67F4H	
+T67EBh	CDF467..  ..g.	CALL	handle_itemscreen_controls
 T67EEh	CD8568..  ..h.	CALL	T6885H	
 T67F1h	C31542..  ..B.	JP	SetMapper3		
 
+handle_itemscreen_controls:
 T67F4h	3A08E0..  :...	LD	A,(pressed_controls)
 T67F7h	E603....  ....	AND	003h		; up or down
 T67F9h	C46F68..  .oh.	CALL	NZ,select_person_or_weapon
-T67FCh	3A4CE0..  :L..	LD	A,(TE04CH)
+T67FCh	3A4CE0..  :L..	LD	A,(am_selecting_weapon)
 T67FFh	B7......  ....	OR	A	
-T6800h	283B....  (;..	JR	Z,03Bh			; Jump to 0683DH
+T6800h	283B....  (;..	JR	Z,03Bh			; Jump to 0683DH: select_person
 T6802h	3A4EE0..  :N..	LD	A,(itemscreen_selected_weapon)
 T6805h	B7......  ....	OR	A	
 T6806h	C8......  ....	RET	Z		
@@ -5865,6 +5863,7 @@ T6838h	B7......  ....	OR	A
 T6839h	28EE....  (...	JR	Z,0EEh			; Jump to 06829H
 T683Bh	18E6....  ....	JR	0E6h			; Jump to 06823H
 
+select_person:
 T683Dh	3A41E0..  :A..	LD	A,(WorldNumber)		; A = *(WorldNumber)
 T6840h	FE06....  ....	CP	006h			; 
 T6842h	2007....  ....	JR	NZ,007h			; if (A - 6 != 0) goto 0684BH
@@ -5873,6 +5872,7 @@ T6844h	3A92E0..  :...	LD	A,(TE092H)		; A = *(TrumpetShell)
 T6847h	B7......  ....	OR	A			; 
 T6848h	C8......  ....	RET	Z			; Return if user does not have the TrumpetShell.
 							; Aphrodite cannot enter world 5 without the TrumpetShell.
+							; We are selecting a person while in world 5, so we don't need to test who we are. If we don't have the TrumpetShell, we cannot be Aphrodite.
 
 T6849h	1809....  ....	JR	009h			; Jump to 06854H
 
@@ -5883,22 +5883,23 @@ T684Fh	3A7CE0..  :|..	LD	A,(TE07CH)		; A = *(Necklace)
 T6852h	B7......  ....	OR	A			;
 T6853h	C8......  ....	RET	Z			; Return if user does not have the Necklace.
 							; Popolon cannot enter world 7 without the Necklace.
+							; We are selecting a person while in world 7, so we don't need to test who we are. If we don't have the Necklace, we cannot be Popolon.
 
 T6854h	3A08E0..  :...	LD	A,(pressed_controls)		; A = *(0xe008)
-T6857h	E60C....  ....	AND	00Ch			; A &= 0b00001100
+T6857h	E60C....  ....	AND	00Ch			; A &= 0b00001100	; left or right
 T6859h	C8......  ....	RET	Z		
 
-;; ???
+change_selected_person:
 T685Ah	214DE0..  !M..	LD	HL,itemscreen_selected_character ; HL = 0xe04d
 T685Dh	7E......  ~...	LD	A,(HL)			; A  = *(e04d)
 T685Eh	EE01....  ....	XOR	001h			; A ^= 1
 T6860h	4F......  O...	LD	C,A			; C = A
-T6861h	1158E0..  .X..	LD	DE,0E058h		; DE = 0xe058
+T6861h	1158E0..  .X..	LD	DE,is_Aphrodite_alive	; DE = 0xe058
 T6864h	83......  ....	ADD	A,E			; A += 0x58
-T6865h	5F......  _...	LD	E,A			; E = A
+T6865h	5F......  _...	LD	E,A			; E = A	-> DE += A, with A in (0, 1) now DE in is_(Aphrodite|Popolon)_alive
 T6866h	1A......  ....	LD	A,(DE)			; A = *(DE)
 T6867h	B7......  ....	OR	A			;
-T6868h	C8......  ....	RET	Z			;
+T6868h	C8......  ....	RET	Z			;	See if this person is still alive
 
 T6869h	71......  q...	LD	(HL),C			; *(HL) = C
 ;; T6879h jumps here, unconditionally.
@@ -5939,7 +5940,7 @@ T6894h	2802....  (...	JR	Z,002h			; Jump to 06898H
 T6896h	3E61....  >a..	LD	A,061h	
 T6898h	47......  G...	LD	B,A	
 T6899h	1180EC..  ....	LD	DE,0EC80h
-T689Ch	3A4CE0..  :L..	LD	A,(TE04CH)
+T689Ch	3A4CE0..  :L..	LD	A,(am_selecting_weapon)
 T689Fh	B7......  ....	OR	A	
 T68A0h	2008....  ....	JR	NZ,008h			; Jump to 068AAH
 T68A2h	3A03E0..  :...	LD	A,(TE003H)
@@ -5959,7 +5960,7 @@ T68B6h	1184EC..  ....	LD	DE,0EC84h
 T68B9h	3A4EE0..  :N..	LD	A,(itemscreen_selected_weapon)
 T68BCh	B7......  ....	OR	A	
 T68BDh	CA236E..  .#n.	JP	Z,T6E23H	
-T68C0h	3A4CE0..  :L..	LD	A,(TE04CH)
+T68C0h	3A4CE0..  :L..	LD	A,(am_selecting_weapon)
 T68C3h	B7......  ....	OR	A	
 T68C4h	2808....  (...	JR	Z,008h			; Jump to 068CEH
 T68C6h	3A03E0..  :...	LD	A,(TE003H)
@@ -6002,7 +6003,7 @@ T6900h	C3236E..  .#n.	JP	T6E23H
 T6903h	114DE0..  .M..	LD	DE,itemscreen_selected_character
 T6906h	1A......  ....	LD	A,(DE)	
 T6907h	3201E5..  2...	LD	(am_I_Popolon),A
-T690Ah	2158E0..  !X..	LD	HL,0E058h
+T690Ah	2158E0..  !X..	LD	HL,is_Aphrodite_alive
 T690Dh	85......  ....	ADD	A,L	
 T690Eh	6F......  o...	LD	L,A	
 T690Fh	7E......  ~...	LD	A,(HL)	
@@ -9609,9 +9610,9 @@ T7EA9h	3254E0..  2T..	LD	(TE054H),A
 T7EACh	3261E0..  2a..	LD	(TE061H),A
 T7EAFh	225CE0..  "\..	LD	(TE05CH),HL
 T7EB2h	225FE0..  "_..	LD	(TE05FH),HL
-T7EB5h	3259E0..  2Y..	LD	(TE059H),A
+T7EB5h	3259E0..  2Y..	LD	(is_Popolon_alive),A
 T7EB8h	3C......  <...	INC	A			;
-T7EB9h	3258E0..  2X..	LD	(TE058H),A
+T7EB9h	3258E0..  2X..	LD	(is_Aphrodite_alive),A
 T7EBCh	3201E5..  2...	LD	(am_I_Popolon),A
 T7EBFh	3226E0..  2&..	LD	(TE026H),A
 T7EC2h	3A53E0..  :S..	LD	A,(TE053H)
@@ -11658,7 +11659,7 @@ defw 0x9075
 defw 0x90e6
 
 T8F84h	CD6F91..  .o..	CALL	T916FH	
-T8F87h	2158E0..  !X..	LD	HL,0E058h
+T8F87h	2158E0..  !X..	LD	HL,is_Aphrodite_alive
 T8F8Ah	3A01E5..  :...	LD	A,(am_I_Popolon)
 T8F8Dh	EE01....  ....	XOR	001h	
 T8F8Fh	85......  ....	ADD	A,L	
@@ -12601,7 +12602,7 @@ T95BDh	1163E0..  .c..	LD	DE,0E063h
 T95C0h	3E0A....  >...	LD	A,00Ah		; [BD] A = 10;
 T95C2h	0E00....  ....	LD	C,000h		; [BD] Clear all carry flags.
 T95C4h	CDC496..  ....	CALL	T96C4H	
-T95C7h	1170E0..  .p..	LD	DE,weaon_list
+T95C7h	1170E0..  .p..	LD	DE,weapon_list
 T95CAh	0E2C....  .,..	LD	C,02Ch	
 T95CCh	0605....  ....	LD	B,005h	
 T95CEh	3600....  6...	LD	(HL),000h
@@ -12752,7 +12753,7 @@ T969Fh	13......  ....	INC	DE			;
 T96A0h	10FA....  ....	DJNZ	0FAh			; Jump to 0969CH
 T96A2h	C9......  ....	RET			
 
-T96A3h	2A58E0..  *X..	LD	HL,(TE058H)
+T96A3h	2A58E0..  *X..	LD	HL,(is_Aphrodite_alive)
 T96A6h	ED5B5AE0  .[Z.	LD	DE,(TE05AH)
 T96AAh	7C......  |...	LD	A,H	
 T96ABh	07......  ....	RLCA		
@@ -13026,7 +13027,7 @@ T984Bh	3E0A....  >...	LD	A,00Ah
 T984Dh	0E00....  ....	LD	C,000h	
 T984Fh	CDAD98..  ....	CALL	T98ADH	
 T9852h	2161EB..  !a..	LD	HL,0EB61h
-T9855h	1170E0..  .p..	LD	DE,weaon_list
+T9855h	1170E0..  .p..	LD	DE,weapon_list
 T9858h	D9......  ....	EXX		
 T9859h	0E2C....  .,..	LD	C,02Ch	
 T985Bh	D9......  ....	EXX		
@@ -13065,7 +13066,7 @@ T988Bh	2804....  (...	JR	Z,004h			; Jump to 09891H
 T988Dh	78......  x...	LD	A,B	
 T988Eh	3297E0..  2...	LD	(TE097H),A	; Shield
 T9891h	3A6AEB..  :j..	LD	A,(TEB6AH)
-T9894h	2158E0..  !X..	LD	HL,0E058h
+T9894h	2158E0..  !X..	LD	HL,is_Aphrodite_alive
 T9897h	0604....  ....	LD	B,004h	
 T9899h	3600....  6...	LD	(HL),000h
 T989Bh	1F......  ....	RRA		
@@ -50578,101 +50579,32 @@ TAF28h	14......  ....	INC	D			;
 TAF29h	15......  ....	DEC	D	
 TAF2Ah	1B......  ....	DEC	DE	
 TAF2Bh	03......  ....	INC	BC			;
-TAF2Ch	40......  @...	LD	B,B	
-TAF2Dh	AF......  ....	XOR	A			; Clear A and F
-TAF2Eh	53......  S...	LD	D,E	
-TAF2Fh	AF......  ....	XOR	A			; Clear A and F
-TAF30h	72......  r...	LD	(HL),D	
-TAF31h	AF......  ....	XOR	A			; Clear A and F
-TAF32h	8F......  ....	ADC	A,A	
-TAF33h	AF......  ....	XOR	A			; Clear A and F
-TAF34h	A2......  ....	AND	D	
-TAF35h	AF......  ....	XOR	A			; Clear A and F
-TAF36h	BE......  ....	CP	(HL)	
-TAF37h	AF......  ....	XOR	A			; Clear A and F
-TAF38h	DEAF....  ....	SBC	A,0AFh	
-TAF3Ah	F7......  ....	RST	30h	
-TAF3Bh	AF......  ....	XOR	A			; Clear A and F
-TAF3Ch	10B0....  ....	DJNZ	0B0h			; Jump to 0AEEEH
-TAF3Eh	32B046..  2.F.	LD	(T46B0H),A
-TAF41h	EF......  ....	RST	40	
-TAF42h	03......  ....	INC	BC			;
-TAF43h	05......  ....	DEC	B	
-TAF44h	00......  ....	NOP		
-TAF45h	83......  ....	ADD	A,E	
-TAF46h	83......  ....	ADD	A,E	
-TAF47h	00......  ....	NOP		
-TAF48h	84......  ....	ADD	A,H	
-TAF49h	83......  ....	ADD	A,E	
-TAF4Ah	00......  ....	NOP		
-TAF4Bh	84......  ....	ADD	A,H	
-TAF4Ch	00......  ....	NOP		
-TAF4Dh	84......  ....	ADD	A,H	
-TAF4Eh	82......  ....	ADD	A,D	
-TAF4Fh	84......  ....	ADD	A,H	
-TAF50h	82......  ....	ADD	A,D	
-TAF51h	82......  ....	ADD	A,D	
-TAF52h	82......  ....	ADD	A,D	
-TAF53h	63......  c...	LD	H,E	
-TAF54h	EF......  ....	RST	40	
-TAF55h	09......  ....	ADD	HL,BC	
-TAF56h	03......  ....	INC	BC			;
-TAF57h	00......  ....	NOP		
-TAF58h	00......  ....	NOP		
-TAF59h	00......  ....	NOP		
-TAF5Ah	00......  ....	NOP		
-TAF5Bh	00......  ....	NOP		
-TAF5Ch	00......  ....	NOP		
-TAF5Dh	00......  ....	NOP		
-TAF5Eh	83......  ....	ADD	A,E	
-TAF5Fh	00......  ....	NOP		
-TAF60h	00......  ....	NOP		
-TAF61h	83......  ....	ADD	A,E	
-TAF62h	83......  ....	ADD	A,E	
-TAF63h	84......  ....	ADD	A,H	
-TAF64h	84......  ....	ADD	A,H	
-TAF65h	82......  ....	ADD	A,D	
-TAF66h	82......  ....	ADD	A,D	
-TAF67h	82......  ....	ADD	A,D	
-TAF68h	82......  ....	ADD	A,D	
-TAF69h	84......  ....	ADD	A,H	
-TAF6Ah	84......  ....	ADD	A,H	
-TAF6Bh	00......  ....	NOP		
-TAF6Ch	00......  ....	NOP		
-TAF6Dh	00......  ....	NOP		
-TAF6Eh	00......  ....	NOP		
-TAF6Fh	00......  ....	NOP		
-TAF70h	00......  ....	NOP		
-TAF71h	00......  ....	NOP		
-TAF72h	45......  E...	LD	B,L	
-TAF73h	EF......  ....	RST	40	
-TAF74h	05......  ....	DEC	B	
-TAF75h	05......  ....	DEC	B	
-TAF76h	00......  ....	NOP		
-TAF77h	00......  ....	NOP		
-TAF78h	00......  ....	NOP		
-TAF79h	83......  ....	ADD	A,E	
-TAF7Ah	00......  ....	NOP		
-TAF7Bh	00......  ....	NOP		
-TAF7Ch	00......  ....	NOP		
-TAF7Dh	83......  ....	ADD	A,E	
-TAF7Eh	84......  ....	ADD	A,H	
-TAF7Fh	00......  ....	NOP		
-TAF80h	00......  ....	NOP		
-TAF81h	00......  ....	NOP		
-TAF82h	84......  ....	ADD	A,H	
-TAF83h	84......  ....	ADD	A,H	
-TAF84h	00......  ....	NOP		
-TAF85h	83......  ....	ADD	A,E	
-TAF86h	83......  ....	ADD	A,E	
-TAF87h	84......  ....	ADD	A,H	
-TAF88h	83......  ....	ADD	A,E	
-TAF89h	83......  ....	ADD	A,E	
-TAF8Ah	00......  ....	NOP		
-TAF8Bh	00......  ....	NOP		
-TAF8Ch	84......  ....	ADD	A,H	
-TAF8Dh	00......  ....	NOP		
-TAF8Eh	00......  ....	NOP		
+
+maps:	; {{{
+; pointers to map data, per world.
+TAF2Ch	defw 0xaf40, 0xaf53, 0xaf72, 0xaf8f, 0xafa2, 0xafbe, 0xafde, 0xaff7, 0xb010, 0xb032
+; Each world is defined as a starting location (given as shadow memory address), size, and the map itself as characters.
+; Location of end daemon on rooms is not in this list.
+map1:
+TAF40h	defw 0xef46, 0x0503
+defb 0x00, 0x83, 0x83
+defb 0x00, 0x84, 0x83
+defb 0x00, 0x84, 0x00
+defb 0x84, 0x82, 0x84
+defb 0x82, 0x82, 0x82
+map2:
+TAF53h	defw 0xef63, 0x0309
+defb 00 00 00 00 00 00 00 83 00
+defb 00 83 83 84 84 82 82 82 82
+defb 84 84 00 00 00 00 00 00 00
+map3:
+TAF72h	defw 0xef45, 0x0505
+defb 00 00 00 83 00
+defb 00 00 83 84 00
+defb 00 00 84 84 00
+defb 83 83 84 83 83
+defb 00 00 84 00 00
+map4:
 TAF8Fh	65......  e...	LD	H,L	
 TAF90h	EF......  ....	RST	40	
 TAF91h	05......  ....	DEC	B	
@@ -50692,6 +50624,7 @@ TAF9Eh	84......  ....	ADD	A,H
 TAF9Fh	84......  ....	ADD	A,H	
 TAFA0h	82......  ....	ADD	A,D	
 TAFA1h	84......  ....	ADD	A,H	
+map5:
 TAFA2h	64......  d...	LD	H,H	
 TAFA3h	EF......  ....	RST	40	
 TAFA4h	08......  ....	EX	AF,AF'	
@@ -50720,6 +50653,7 @@ TAFBAh	83......  ....	ADD	A,E
 TAFBBh	83......  ....	ADD	A,E	
 TAFBCh	84......  ....	ADD	A,H	
 TAFBDh	83......  ....	ADD	A,E	
+map6:
 TAFBEh	64......  d...	LD	H,H	
 TAFBFh	EF......  ....	RST	40	
 TAFC0h	07......  ....	RLCA		
@@ -50752,6 +50686,7 @@ TAFDAh	82......  ....	ADD	A,D
 TAFDBh	00......  ....	NOP		
 TAFDCh	00......  ....	NOP		
 TAFDDh	00......  ....	NOP		
+map7:
 TAFDEh	64......  d...	LD	H,H	
 TAFDFh	EF......  ....	RST	40	
 TAFE0h	07......  ....	RLCA		
@@ -50777,6 +50712,7 @@ TAFF3h	84......  ....	ADD	A,H
 TAFF4h	82......  ....	ADD	A,D	
 TAFF5h	00......  ....	NOP		
 TAFF6h	00......  ....	NOP		
+map8:
 TAFF7h	64......  d...	LD	H,H	
 TAFF8h	EF......  ....	RST	40	
 TAFF9h	07......  ....	RLCA		
@@ -50802,6 +50738,7 @@ TB00Ch	84......  ....	ADD	A,H
 TB00Dh	83......  ....	ADD	A,E	
 TB00Eh	84......  ....	ADD	A,H	
 TB00Fh	83......  ....	ADD	A,E	
+map9:
 TB010h	45......  E...	LD	B,L	
 TB011h	EF......  ....	RST	40	
 TB012h	0605....  ....	LD	B,005h	
@@ -50835,35 +50772,15 @@ TB02Eh	82......  ....	ADD	A,D
 TB02Fh	82......  ....	ADD	A,D	
 TB030h	82......  ....	ADD	A,D	
 TB031h	00......  ....	NOP		
-TB032h	84......  ....	ADD	A,H	
-TB033h	EF......  ....	RST	40	
-TB034h	0601....  ....	LD	B,001h	
-TB036h	83......  ....	ADD	A,E	
-TB037h	83......  ....	ADD	A,E	
-TB038h	83......  ....	ADD	A,E	
-TB039h	83......  ....	ADD	A,E	
-TB03Ah	83......  ....	ADD	A,E	
-TB03Bh	83......  ....	ADD	A,E	
-TB03Ch	4F......  O...	LD	C,A	
-TB03Dh	B0......  ....	OR	B	
-TB03Eh	5E......  ^...	LD	E,(HL)	
-TB03Fh	B0......  ....	OR	B	
-TB040h	6D......  m...	LD	L,L	
-TB041h	B0......  ....	OR	B	
-TB042h	7D......  }...	LD	A,L	
-TB043h	B0......  ....	OR	B	
-TB044h	8E......  ....	ADC	A,(HL)	
-TB045h	B0......  ....	OR	B	
-TB046h	A0......  ....	AND	B	
-TB047h	B0......  ....	OR	B	
-TB048h	B3......  ....	OR	E	
-TB049h	B0......  ....	OR	B	
-TB04Ah	C7......  ....	RST	0	
-TB04Bh	B0......  ....	OR	B	
-TB04Ch	DCB0F7..  ....	CALL	C,TF7B0H
-TB04Fh	B0......  ....	OR	B	
-TB050h	1817....  ....	JR	017h			; Jump to 0B069H
+map10:
+defw 0xef84, 0x0106
+defb 83 83 83 83 83 83
+; }}}
 
+RoomInfoPointers: ; {{{
+TB03Ch	defw 0xb04f, 0xb05e, 0xb06d, 0xb07d, 0xb08e, 0xb0a0, 0xb0b3, 0xb0c7, 0xb0dc, 0xb0f7
+World1RoomInfo:
+TB050h	1817....  ....	JR	017h			; Jump to 0B069H
 TB052h	27......  '...	DAA		
 TB053h	37......  7...	SCF		
 TB054h	3847....  8G..	JR	C,047h			; Jump to 0B09DH
@@ -50876,6 +50793,7 @@ TB05Bh	88......  ....	ADC	A,B
 TB05Ch	87......  ....	ADD	A,A	
 TB05Dh	86......  ....	ADD	A,(HL)	
 TB05Eh	76......  v...	HALT		
+World2RoomInfo:
 TB05Fh	74......  t...	LD	(HL),H	
 TB060h	73......  s...	LD	(HL),E	
 TB061h	64......  d...	LD	H,H	
@@ -50902,7 +50820,6 @@ TB077h	47......  G...	LD	B,A
 TB078h	37......  7...	SCF		
 TB079h	58......  X...	LD	E,B	
 TB07Ah	1838....  .8..	JR	038h			; Jump to 0B0B4H
-
 TB07Ch	2848....  (H..	JR	Z,048h			; Jump to 0B0C6H
 TB07Eh	75......  u...	LD	(HL),L	
 TB07Fh	76......  v...	HALT		
@@ -51015,22 +50932,19 @@ TB0F3h	66......  f...	LD	H,(HL)
 TB0F4h	76......  v...	HALT		
 TB0F5h	15......  ....	DEC	D	
 TB0F6h	1617....  ....	LD	D,017h	
+; world 10
 TB0F8h	54......  T...	LD	D,H	
 TB0F9h	55......  U...	LD	D,L	
 TB0FAh	56......  V...	LD	D,(HL)	
 TB0FBh	57......  W...	LD	D,A	
 TB0FCh	58......  X...	LD	E,B	
-TB0FDh	59......  Y...	LD	E,C	
-TB0FEh	87......  ....	ADD	A,A	
-TB0FFh	4B......  K...	LD	C,E	
-TB100h	1879....  .y..	JR	079h			; Jump to 0B17BH
+TB0FDh	59
+; }}}
 
-TB102h	7B......  {...	LD	A,E	
-TB103h	87......  ....	ADD	A,A	
-TB104h	77......  w...	LD	(HL),A	
-TB105h	7A......  z...	LD	A,D	
-TB106h	15......  ....	DEC	D	
-TB107h	58......  X...	LD	E,B	
+boss_location:	; coordinate in map, in absolute coordinates (same as room coordinates above) {{{
+TB0FEh	defb 0x87, 0x4b, 0x18, 0x79, 0x7b, 0x87, 0x77, 0x7a, 0x15, 0x58
+; }}}
+
 TB108h	1D......  ....	DEC	E	
 TB109h	B1......  ....	OR	C	
 TB10Ah	B0......  ....	OR	B	
