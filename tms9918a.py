@@ -150,9 +150,9 @@ class tms9918a:
         pgt_base = self.get_pattern_generator_table_base_address ()
         pct_base = self.get_pattern_color_table_base_address ()
         
-        print 'pnt_base=0x%05x' % pnt_base
-        print 'pct_base=0x%05x' % pct_base
-        print 'pgt_base=0x%05x' % pgt_base
+        #print 'pnt_base=0x%05x' % pnt_base
+        #print 'pct_base=0x%05x' % pct_base
+        #print 'pgt_base=0x%05x' % pgt_base
         
         h = self.height
         w = self.width
