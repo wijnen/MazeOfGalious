@@ -1,27 +1,27 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # vim: set fileencoding=utf8 :
 
 import struct
 
-data = open ('MazeOfGalious.rom').read ()
+data = open('MazeOfGalious.rom', 'rb').read()
 
 pointerbase = 0xb09e - 0xa000 + 0x1e000
 num = 0x34
 
-for n in range (num):
+for n in range(num):
 	paddr = pointerbase + n * 2
-	pointer = struct.unpack ('<H', data[paddr:paddr + 2])[0] - 0xa000 + 0x1e000 + 2	# +2 to skip the coordinate
-	print '%x:' % n
-	while ord (data[pointer]) != 0xff:
+	pointer = struct.unpack('<H', data[paddr:paddr + 2])[0] - 0xa000 + 0x1e000 + 2	# +2 to skip the coordinate
+	print('%x:' % n)
+	while data[pointer] != 0xff:
 		line = ''
-		while ord (data[pointer]) not in (0xff, 0xfe):
-			c = ord (data[pointer])
+		while data[pointer] not in (0xff, 0xfe):
+			c = data[pointer]
 			if c == 0:
 				line += ' '
 			elif c <= 10:
-				line += chr (ord ('0') + c - 1)
+				line += '%d' % (c - 1)
 			elif c <= 10 + 26:
-				line += chr (ord ('a') + c - 11)
+				line += chr(ord('a') + c - 11)
 			elif c == 0x26:
 				line += '×'
 			elif c == 0x27:
@@ -35,7 +35,7 @@ for n in range (num):
 			elif c == 0x54:
 				line += '<'	# arrows
 			elif c == 0x55:
-				line += '<'	# arrows
+				line += '«'	# arrows
 			elif c == 0x56:
 				line += '$'	# coins
 			elif c == 0x57:
@@ -47,7 +47,7 @@ for n in range (num):
 			else:
 				line += '[%02x]' % c
 			pointer += 1
-		print line
-		if ord (data[pointer]) == 0xfe:
+		print(line)
+		if data[pointer] == 0xfe:
 			pointer += 1
-	print '-' * 74
+	print('-' * 74)

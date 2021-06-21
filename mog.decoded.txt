@@ -3200,7 +3200,7 @@ T5691h	CD115E..  ..^.	CALL	set_some_patterns_1
 T5694h	CDB741..  ..A.	CALL	SetMapperABC	
 T5697h	CDE959..  ..Y.	CALL	setup_per_screen_characters
 T569Ah	CD2B42..  .+B.	CALL	SetMapper9	
-T569Dh	CDC95D..  ..].	CALL	GetSomePropertyFromCurrentRoom	; object in room?
+T569Dh	CDC95D..  ..].	CALL	GetCurrentRoomItem
 T56A0h	F5......  ....	PUSH	AF	
 T56A1h	CD3642..  .6B.	CALL	SetMapperC	
 T56A4h	F1......  ....	POP	AF	
@@ -4193,39 +4193,39 @@ T5D68h	2A0EE6..  *...	LD	HL,(TE60EH)
 T5D6Bh	CB46....  .F..	BIT	0,(HL)	
 T5D6Dh	C0......  ....	RET	NZ		
 
-T5D6Eh	CDC95D..  ..].	CALL	GetSomePropertyFromCurrentRoom	
+T5D6Eh	CDC95D..  ..].	CALL	GetCurrentRoomItem	
 T5D71h	C8......  ....	RET	Z		
 
-T5D72h	4F......  O...	LD	C,A	
-T5D73h	46......  F...	LD	B,(HL)	
+T5D72h	4F......  O...	LD	C,A	; item nr
+T5D73h	46......  F...	LD	B,(HL)	; B = 98 ........
 T5D74h	23......  #...	INC	HL			;
-T5D75h	7E......  ~...	LD	A,(HL)	
+T5D75h	7E......  ~...	LD	A,(HL)	; other info
 T5D76h	E6F8....  ....	AND	0F8h	
-T5D78h	57......  W...	LD	D,A	
+T5D78h	57......  W...	LD	D,A	; D = .. 76543...	This is the Y coordinate
 T5D79h	7E......  ~...	LD	A,(HL)	
-T5D7Ah	E607....  ....	AND	007h	
+T5D7Ah	E607....  ....	AND	007h	; A = .. .....210
 T5D7Ch	CB10....  ....	RL	B	
 T5D7Eh	17......  ....	RLA		
 T5D7Fh	CB10....  ....	RL	B	
 T5D81h	17......  ....	RLA		
 T5D82h	17......  ....	RLA		
 T5D83h	17......  ....	RLA		
-T5D84h	17......  ....	RLA		
+T5D84h	17......  ....	RLA		; A = 21098...
 T5D85h	E6F8....  ....	AND	0F8h	
-T5D87h	5F......  _...	LD	E,A	
+T5D87h	5F......  _...	LD	E,A	; this is the X coordinate
 T5D88h	7A......  z...	LD	A,D	
 T5D89h	B3......  ....	OR	E	
-T5D8Ah	C8......  ....	RET	Z		
+T5D8Ah	C8......  ....	RET	Z		; If all 10 bits are zero, the item no longer exists.
 
 T5D8Bh	79......  y...	LD	A,C	
 T5D8Ch	FE2D....  .-..	CP	02Dh	
-T5D8Eh	301B....  0...	JR	NC,01Bh			; Invalid item. Jump to 05DABH
+T5D8Eh	301B....  0...	JR	NC,01Bh			; Respawning item (coins, key, arrows). Jump to 05DABH
 T5D90h	0600....  ....	LD	B,000h	
 T5D92h	216FE0..  !o..	LD	HL,0E06Fh
 T5D95h	09......  ....	ADD	HL,BC	
 T5D96h	7E......  ~...	LD	A,(HL)	
 T5D97h	B7......  ....	OR	A	
-T5D98h	C0......  ....	RET	NZ		
+T5D98h	C0......  ....	RET	NZ		; If non-respawning item is already owned, don't place it in the room
 
 T5D99h	79......  y...	LD	A,C	
 T5D9Ah	FE0C....  ....	CP	00Ch			; World key
@@ -4237,30 +4237,30 @@ T5DA7h	7E......  ~...	LD	A,(HL)
 T5DA8h	E603....  ....	AND	003h	
 T5DAAh	C0......  ....	RET	NZ		
 
-T5DABh	2140E7..  !@..	LD	HL,0E740h
+T5DABh	2140E7..  !@..	LD	HL,0E740h	; If there already is an item in this screen somehow, don't place another.
 T5DAEh	7E......  ~...	LD	A,(HL)	
 T5DAFh	B7......  ....	OR	A	
 T5DB0h	C0......  ....	RET	NZ		
 
-T5DB1h	71......  q...	LD	(HL),C	
+T5DB1h	71......  q...	LD	(HL),C	; record item as being in this screen
 T5DB2h	2C......  ,...	INC	L			;
 T5DB3h	2C......  ,...	INC	L			;
 T5DB4h	79......  y...	LD	A,C	
 T5DB5h	FE07....  ....	CP	007h	
-T5DB7h	3004....  0...	JR	NC,004h			; Jump to 05DBDH
+T5DB7h	3004....  0...	JR	NC,004h			; Not a weapon: Jump to 05DBDH
 T5DB9h	7A......  z...	LD	A,D	
 T5DBAh	C608....  ....	ADD	A,008h	
-T5DBCh	57......  W...	LD	D,A	
-T5DBDh	72......  r...	LD	(HL),D	
+T5DBCh	57......  W...	LD	D,A		; If it is a weapon, add 8 to Y coordinate (because weapons are half height)
+T5DBDh	72......  r...	LD	(HL),D		; Store Y
 T5DBEh	2C......  ,...	INC	L			;
-T5DBFh	73......  s...	LD	(HL),E	
+T5DBFh	73......  s...	LD	(HL),E		; Store X
 T5DC0h	63......  c...	LD	H,E	
 T5DC1h	6A......  j...	LD	L,D	
 T5DC2h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
 T5DC5h	2244E7..  "D..	LD	(TE744H),HL
 T5DC8h	C9......  ....	RET			
 
-GetSomePropertyFromCurrentRoom:
+GetCurrentRoomItem:
 ; At b6fe is a list of addresses, at those addresses are lists of room, data(2 bytes). This function returns byte 1 & 0x3f of that data for the current room, or 0 if the room is not special.
 T5DC9h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 T5DCDh	79......  y...	LD	A,C	

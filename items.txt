@@ -1,0 +1,52 @@
+Items:
+
+inv.	code	name
+----------------------
+e070	01	arrow
+e071	02	ceramic arrow
+e072	03	rolling fire
+e073	04	falling fire
+e074	05	mine
+e075	06	magnifier	; read graves
+e076	07	holy water	; do double damage during boss fight
+e077	08	cape		; take half damage during boss fight
+e078	09	magic wand	; use no ammo during boss fight
+e079	0a	map		; see map of current world
+e07a	0b	cross		; defeat Galious
+e07b	0c	world key
+e07c	0d	Neclace		; enter world 7
+e07d	0e	Crown		; protect against 0x2a: white witches
+e07e	0f	White helmet	; protect against 0x28: plasma shots
+e07f	10	Oar		; Walk on water in two screens
+e080	11	Boots		; Walk faster
+e081	12	Doll		; Make bridge
+e082	13	Robe		; Prevent flipping controls
+e083	14	Bell		; Locate next world door
+e084	15	Halo		; Teleport to Demeter
+e085	16	Candle		; See one room
+e086	17	Armor		; protect against 0x2e: green plants
+e087	18	Carpet		; Change lava into stone in some rooms
+e088	19	Green helm	; damage -> (damage - 1) / 2
+e089	1a	Lamp		; Mark guardian
+e08a	1b	Vase		; Double experience
+e08b	1c	Pendant		; Aphrodite can shatter weak walls
+e08c	1d	Earrings	; Allow 3 arrows
+e08d	1e	Bracelet	; Allow 3 mines
+e08e	1f	Ring		; Aphrodites rock hits count for 5
+e08f	20	Bible		; Freeze
+e090	21	Harp		; Shatter rocks
+e091	22	Triangle	; protect against 0x31: gas clouds
+e092	23	Trumpet shell	; enter world 5
+e093	24	Pitcher		; protect against 0x08: fireballs
+e094	25	Sabre		; Double damage
+e095	26	Dagger		; umbrella
+e096	27	Feather		; Teleport to world door
+e097	28	Shield		; Protect
+e098	29	Water and bread	; Aphrodite can go through push doors
+e099	2a	Salt		; See death
+	2b	Silver shield
+	2c	Gold shield
+	2d	Arrows
+	2e	Coins
+	2f	Keys
+

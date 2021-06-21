@@ -1,13 +1,16 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # vim: set fileencoding=utf-8 :
 
+# Imports {{{
 import sys
 import struct
 import numpy
-import Image
-import ImageDraw
+from PIL import Image
+from PIL import ImageDraw
 import read_patterns
+# }}}
 
+# Palette {{{
 palette = ((0, 0, 0,
 		0, 0, 0,
 		62, 184, 73,
@@ -25,98 +28,138 @@ palette = ((0, 0, 0,
 		204, 204, 204,
 		255, 255, 255,
 	))
+# }}}
 
-def get_pattern (room):
-	d = ord (data[0x140d7 + (room + 1) / 2])
+def get_room_charset(room): # {{{
+	'Every room has a charset (16 options). This function reads the charset id for a given room.'
+	d = data[0x140d7 + (room + 1) // 2]
 	if (room + 1) & 1:
 		return d & 0xf
 	else:
 		return d >> 4
+# }}}
 
-data = open ('MazeOfGalious.rom').read ()
-world = struct.unpack ('<' + 'H' * 11, data[0xeac0:0xead6])
+# Prepare global data. {{{
+data = open('MazeOfGalious.rom', 'rb').read()
+# Get pointers for data to each world. First world is the castle.
+world = struct.unpack('<' + 'H' * 11, data[0xeac0:0xead6])
+# Convert pointers in CPU view to pointers in flat ROM image.
 world = [x - 0x6000 + 0xe000 for x in world]
-rooms = [(world[x + 1] - world[x]) / 40 for x in range (len (world) - 1)] + [6]
-patterns = [get_pattern (i) for i in range (rooms[0])]
-tiles = numpy.array ([[[ord (data[0xe000 + t * 0x10 + y * 4 + x]) for x in range (4)] for y in range (4)] for t in range (0xac)], dtype = numpy.uint8)
+# Compute number of rooms from address of next room. This does not work for the last world, so hardcode that value.
+rooms = [(world[x + 1] - world[x]) // 40 for x in range(len(world) - 1)] + [6]
+# Read charset ids for all castle rooms.
+charset_id = [get_room_charset(i) for i in range(rooms[0])]
+# Rooms are built from tiles of 4x4 characters. There are a total of 0xac tiles defined.
+tiles = numpy.array([[[data[0xe000 + t * 0x10 + y * 4 + x] for x in range(4)] for y in range(4)] for t in range(0xac)], dtype = numpy.uint8)
+# }}}
 
-def makeimage (data, patterns):
-	ret = numpy.zeros ((20 * 8, 32 * 8), dtype = numpy.uint8)
-	for y in range (20):
-		for x in range (32):
-			if data[y, x] != 0x6c: # Hide walk-through walls.
-				ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char (patterns, data[y, x])
-	im = Image.fromarray (ret, 'P')
-	im.putpalette (palette)
+def makeimage(roomdata, charset_id, item, item_x, item_y): # {{{
+	'Convert data into image'
+	ret = numpy.zeros((20 * 8, 32 * 8), dtype = numpy.uint8)
+	for y in range(20):
+		for x in range(32):
+			if roomdata[y, x] != 0x6c: # Hide walk-through walls.
+				ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char(charset_id, roomdata[y, x])
+	im = Image.fromarray(ret, 'P')
+	im.putpalette(palette)
+	itemimg = read_patterns.create_item_image(item)
+	if itemimg is not None:
+		im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]))
 	## Show bit-pattern of character code on top line.
-	#for y in range (20):
-	#	for x in range (32):
-	#		for bit in range (8):
-	#			im.putpixel ((x * 8 + bit, y * 8), 15 if (data[y, x] >> (7 - bit)) & 1 else 1)
+	#for y in range(20):
+	#	for x in range(32):
+	#		for bit in range(8):
+	#			im.putpixel((x * 8 + bit, y * 8), 15 if (roomdata[y, x] >> (7 - bit)) & 1 else 1)
 	return im
+# }}}
 
+# Make images of all rooms. {{{
 out = []
-for idx, w in enumerate (world):
+for idx, w in enumerate(world):
+	# Get a list of all items.
+	items = {}	# key is room, value is id, x, y
+	itemworldaddr = 0xb6fc + 2 * (idx + 1) - 0xa000 + 9 * 0x2000
+	itemptr = struct.unpack('<H', data[itemworldaddr:itemworldaddr + 2])[0] - 0xa000 + 9 * 0x2000
+	while data[itemptr] != 0:
+		# Data is: room(8-bit) x4,x3,item(6-bit) y7,y6,y5,y4,y3,x7,x6,x5
+		room, xitem, yx = data[itemptr:itemptr + 3]
+		item = xitem & 0x3f
+		y = yx & 0xf8
+		x = ((yx & 0x7) << 5) | ((xitem & 0xc0) >> 3)
+		# Weapons are half height.
+		if item < 7:
+			y += 8
+		items[room - 1] = (item, x, y - 32)
+		print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, idx, room, item, x, y))
+		itemptr += 3
 	# Create all rooms in a world.
-	fullmap = numpy.zeros ((rooms[idx], 20, 32), dtype = numpy.uint8)
-	roomdata = numpy.array ([[ord (x) for x in data[w + 40 * room:w + 40 * (room + 1)]] for room in range (rooms[idx])], dtype = numpy.uint8).reshape ((rooms[idx], 5, 8))
-	for y in range (5):
-		for x in range (8):
-			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range (rooms[idx])]
-	out.append ([makeimage (fullmap[r], patterns[r] if idx == 0 else -1) for r in range (rooms[idx])])
+	fullmap = numpy.zeros((rooms[idx], 20, 32), dtype = numpy.uint8)
+	# Read tiles in a room (8x5, so 40 bytes total).
+	roomdata = numpy.array([[x for x in data[w + 40 * room:w + 40 * (room + 1)]] for room in range(rooms[idx])], dtype = numpy.uint8).reshape((rooms[idx], 5, 8))
+	# Unpack characters from tiles.
+	for y in range(5):
+		for x in range(8):
+			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range(rooms[idx])]
+	# Convert character map to image.
+	out.append([makeimage(fullmap[r], charset_id[r] if idx == 0 else -1, *(items.get(r, [None, 0, 0]))) for r in range(rooms[idx])])
+# }}}
 
-# Link stuff together.
+# Link stuff together. {{{
 worldmap = []
 textmap = []
-invalid = Image.new ('P', (256, 160), 13)
-exits = [numpy.zeros ((4, rooms[w]), dtype = numpy.uint8) for w in range (11)]
-l = [[0, 0] for w in range (11)]
-h = [[0, 0] for w in range (11)]
-for w in range (11):
+invalid = Image.new('P', (256, 160), 13)
+# Prepare data structure for storing all room exits.
+exits = [numpy.zeros((4, rooms[w]), dtype = numpy.uint8) for w in range(11)]
+# Compute bounding box.
+l = [[0, 0] for w in range(11)]
+h = [[0, 0] for w in range(11)]
+for w in range(11):
 	waddr = 0x129f1 + 2 * w
-	a = struct.unpack ('<H', data[waddr:waddr + 2])[0] - 0xa000 + 0x12000
-	for r in range (rooms[w]):
+	# Convert from CPU view to flat ROM address.
+	a = struct.unpack('<H', data[waddr:waddr + 2])[0] - 0xa000 + 0x12000
+	# Read all exits.
+	for r in range(rooms[w]):
 		raddr = a + 4 * (r + 1)
-		exits[w][:, r] = struct.unpack ('<BBBB', data[raddr:raddr + 4])
+		exits[w][:, r] = struct.unpack('<BBBB', data[raddr:raddr + 4])
 	# check if values are sane.
-	for r in range (rooms[w]):
-		for e in range (4):
+	for r in range(rooms[w]):
+		for e in range(4):
 			target = exits[w][e, r]
 			# rooms[w] + 1 is meeting a god; 0xff - w is world exit
 			if target == 0xff or target == 0xff - w or target == rooms[w] + 1:
 				#print 'world %d, found room %x' % (w, target)
 				continue
 			if not 0 < target <= rooms[w]:
-				print 'invalid exit %d=%x for room %x world %d' % (e, target, r, w)
+				print('invalid exit %d=%x for room %x world %d' % (e, target, r, w))
 				continue
 			# World 4, room 4 has an upper exit to itself; ignore it.
 			if (r + 1, w + 1, e) != (4, 4, 0) and exits[w][e ^ 1, target - 1] != r + 1:
-				print "exit %d=%x for room %x world %d doesn't return (%x)" % (e, exits[w][e, r], r + 1, w + 1, exits[w][e ^ 1, exits[w][e, r] - 1])
+				print("exit %d=%x for room %x world %d doesn't return (%x)" % (e, exits[w][e, r], r + 1, w + 1, exits[w][e ^ 1, exits[w][e, r] - 1]))
 				continue
 			#print 'exit %d room %x world %d is %x; exit %d room %x world %d is %x' % (e, r, w, target, e ^ 1, target, w, exits[w][e ^ 1, target - 1])
-	# compute screen positions.
-	screenpos = {1: numpy.array ((0, 0))}
-	queue = [screenpos.keys ()[0]]
-	done = set ()
-	todo = set (range (1, rooms[w] + 1))
-	delta = numpy.array (((0, -1), (0, 1), (-1, 0), (1, 0)))
+	# compute screen positions. Do a flood fill and compute bounding boxes along the way.
+	screenpos = {1: numpy.array((0, 0))}
+	queue = [list(screenpos.keys())[0]]
+	done = set()
+	todo = set(range(1, rooms[w] + 1))
+	delta = numpy.array(((0, -1), (0, 1), (-1, 0), (1, 0)))
 	if w == 0:
 		# Screen 94 is not linked, but belongs at (1,-1). Link it there.
-		screenpos[94] = numpy.array ((1, -1))
-		todo.remove (94)
-		done.add (94)
+		screenpos[94] = numpy.array((1, -1))
+		todo.remove(94)
+		done.add(94)
 		h[w][0] = 1
 		l[w][1] = -1
 	elif w == 10:
 		# Screen 6 is not linked, but belongs at (5,0). Link it there.
-		screenpos[6] = numpy.array ((5, 0))
-		todo.remove (6)
-		done.add (6)
+		screenpos[6] = numpy.array((5, 0))
+		todo.remove(6)
+		done.add(6)
 		h[w][0] = 5
 	while queue != []:
-		current = queue.pop (0)
-		todo.remove (current)
-		for e in range (4):
+		current = queue.pop(0)
+		todo.remove(current)
+		for e in range(4):
 			target = exits[w][e, current - 1]
 			if target == 0xff:
 				continue
@@ -125,15 +168,16 @@ for w in range (11):
 				assert current == target
 				continue
 			if target in screenpos:
-				if not all (screenpos[target] == screenpos[current] + delta[e]):
-					print 'screen %d exists in different position (%s != %s)' % (target, str (screenpos[target]), str (screenpos[current] + delta[e]))
+				if not all(screenpos[target] == screenpos[current] + delta[e]):
+					print('screen %d exists in different position (%s != %s)' % (target, str(screenpos[target]), str(screenpos[current] + delta[e])))
 				continue
 			# Add screen in any case.
 			x, y = screenpos[current] + delta[e]
 			double = [s for s in screenpos if screenpos[s][0] == x and screenpos[s][1] == y]
 			if double != []:
-				print 'two screens in one position: %x %x' % (double[0], target)
+				print('two screens in one position: %x %x' % (double[0], target))
 			screenpos[target] = x, y
+			# Update bounding box.
 			if x < l[w][0]:
 				l[w][0] = x
 			if x > h[w][0]:
@@ -144,32 +188,39 @@ for w in range (11):
 				h[w][1] = y
 			# Only add real screens to queue.
 			if 0 < target <= rooms[w]:
-				queue.append (target)
-		done.add (current)
-	print 'done: %d/%d, todo: %s, w,h=%d,%d' % (len (done), rooms[w], str (todo), h[w][0] - l[w][0], h[w][1] - l[w][1])
-#print '\n'.join (['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate (world)])
+				queue.append(target)
+		done.add(current)
+	print('done: %d/%d, todo: %s, w,h=%d,%d' % (len(done), rooms[w], str(todo), h[w][0] - l[w][0], h[w][1] - l[w][1]))
+#print '\n'.join(['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate(world)])
 
-	# Create the world.
+	# Create the world image.
 	size = h[w][0] - l[w][0] + 1, h[w][1] - l[w][1] + 1
-	textmap.append ([['   ' for x in range (size[0])] for y in range (size[1])])
-	worldmap.append (Image.new ('P', (size[0] * 257 - 1, size[1] * 161 - 1), 1))
-	worldmap[w].putpalette (palette)
-	worldmapt = ImageDraw.Draw (worldmap[w])
+	textmap.append([['  ' for x in range(size[0])] for y in range(size[1])])
+	worldmap.append(Image.new('P', (size[0] * 257 - 1, size[1] * 161 - 1), 1))
+	worldmap[w].putpalette(palette)
+	worldmapt = ImageDraw.Draw(worldmap[w])
 	for sp in screenpos:
 		tx = screenpos[sp][0] - l[w][0]
 		ty = screenpos[sp][1] - l[w][1]
+		# Add 1 pixel to separate screens in the image.
 		x = tx * 257
 		y = ty * 161
 		if 0 < sp <= rooms[w]: 
-			worldmap[w].paste (out[w][sp - 1], (x, y, x + 256, y + 160))
-			textmap[w][ty][tx] = '%03d' % sp
-			worldmapt.rectangle ((x, y, x + 22, y + 10), fill=255)
-			worldmapt.text ((x + 2, y), "%03d" % sp)
+			debug_charset = False	# w == 0	# Use this to debug charsets castle.
+			worldmap[w].paste(out[w][sp - 1], (x, y, x + 256, y + 160))
+			textmap[w][ty][tx] = '%02x' % sp
+			worldmapt.rectangle((x, y, x + 15 + (15 if debug_charset else 0), y + 10), fill=255)
+			if debug_charset:
+				worldmapt.text((x + 2, y), "%02x/%x" % (sp, charset_id[sp - 1]))
+			else:
+				worldmapt.text((x + 2, y), "%02x" % sp)
 		else:
-			worldmap[w].paste (invalid, (x, y, x + 256, y + 160))
-			textmap[w][ty][tx] = '+++'
+			worldmap[w].paste(invalid, (x, y, x + 256, y + 160))
+			textmap[w][ty][tx] = '++'
+# }}}
 
-for w, im in enumerate (worldmap):
-	im.save ('/tmp/mog-world-%02d.png' % (w + 1))
-	print '\nRooms in world %d' % (w + 1)
-	print '\n'.join ([' '.join (y) for y in textmap[w]])
+# Finally, output everything to image files and screen.
+for w, im in enumerate(worldmap):
+	im.save('/tmp/mog-world-%02d.png' % w)
+	print('\nRooms in world %d' % w)
+	print('\n'.join([' '.join(y) for y in textmap[w]]))

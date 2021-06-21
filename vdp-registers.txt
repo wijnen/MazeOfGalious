@@ -111,35 +111,3 @@ Me6b0+0x10	shift buffer containing entered characters (Me6bf is last)
 Mec30+3 times 8	information about rocks on screen (max 3 rocks per screen)
 Mec80+0x80	buffer; use unknown; cleared to 0xE0
 Med80+0x280	buffer; use unknown; cleared to 0 only when writing item screen
-
-Items:
-e07c	Neclace		; enter world 7
-e07d	Crown		; protect against 0x2a: white witches
-e07e	White helmet	; protect against 0x28: plasma shots
-e07f	Oar		; Walk on water in two screens
-e080	Boots		; Walk faster
-e081	Doll		; Make bridge
-e082	Robe		; Prevent flipping controls
-e083	Bell		; Locate next world door
-e084	Halo		; Teleport to Demeter
-e085	Candle		; See one room
-e086	Armor		; protect against 0x2e: green plants
-e087	Carpet		; Change lava into stone in some rooms
-e088	Green helm	; damage -> (damage - 1) / 2
-e089	Lamp		; Mark guardian
-e08a	Vase		; Double experience
-e08b	Pendant		; Aphrodite can shatter weak walls
-e08c	Earrings	; Allow 3 arrows
-e08d	Bracelet	; Allow 3 mines
-e08e	Ring		; Aphrodites rock hits count for 5
-e08f	Bible		; Freeze
-e090	Harp		; Shatter rocks
-e091	Triangle	; protect against 0x31: gas clouds
-e092	Trumpet shell	; enter world 5
-e093	Pitcher		; protect against 0x08: fireballs
-e094	Sabre		; Double damage
-e095	Dagger		; umbrella
-e096	Feather		; Teleport to world door
-e097	Shield		; Protect
-e098	Water and bread	; Aphrodite can go through push doors
-e099	Salt		; See death
