@@ -1,0 +1,20 @@
+Shrine info is in rom at 5dda (in code; mapped as 9dda)
+4 bytes per record. Contents are below.
+
+First byte is room.
+Second is shrine ID, used when entering
+Third is Y coordinate, fourth is X coordinate (both are truncated to k*8)
+
+04 09 68 88	Ares Gold Shield
+0a 0a 28 48	Ares Helmet
+05 06 28 e0	Hephaestus Harp
+36 08 a8 d0	Asclepius See a fairy to restore your vitality
+37 07 a8 48	Hephaestus Sea shell
+41 05 28 48	Ares Silver Shield
+48 01 68 70	Demeter Secret Code
+57 03 88 28	Death
+73 02 68 b0	Hephaestus Mine
+8f 04 48 48	Ares Bronze Shield and Magnifying Glass
+20 0b 48 70	Demeter Necklace
+00
+

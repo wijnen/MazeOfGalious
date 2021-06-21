@@ -4,7 +4,7 @@
 import sys
 import struct
 import numpy
-from PIL import Image
+from PIL import Image, ImageOps
 
 pattern_data_pointers = [
 		0x14000,	# 00: Common characters for every charset.
@@ -183,8 +183,8 @@ for idx in range(7, 0x2d):
 	colors = decompress(addr).reshape((-1, 8))
 	items[idx] = numpy.array([decode_screen2(patterns[i], colors[i]) for i in range(patterns.shape[0])])
 # Add weapons images.
-print('debug', setup_vram_patterns[0][0][2])
 default_chars = [create_image(None, None, (0, 0, p.reshape(1, 8, 8))) for p in setup_vram_patterns[0][0][2]]
+default_chars1 = [create_image(None, None, (0, 0, p.reshape(1, 8, 8))) for p in setup_vram_patterns[0][1][2]]
 weaponchars = ((0x1f, 0x20), (0x21, 0x22), (0x28, 0x29), (0x28, 0x2a), (0x2b, 0x2c), (0x2d, 0x2e))
 for w, c in enumerate(weaponchars):
 	im = Image.new('P', (16, 8))
@@ -200,6 +200,13 @@ for i in range(3):
 		for x in range(2):
 			im.paste(default_chars[0x3b + 4 * i + 2 * y + x], (8 * x, 8 * y, 8 * (x + 1), 8 * (y + 1)))
 	items[0x2d + i] = im
+# Create the shrine image.
+shrine_img = Image.new('P', (16, 16))
+shrine_img.putpalette(palette)
+shrine_img.paste(default_chars1[0x13], (0, 0, 8, 8))
+shrine_img.paste(default_chars1[0x14], (0, 8, 8, 16))
+shrine_img.paste(ImageOps.mirror(default_chars1[0x13]), (8, 0, 16, 8))
+shrine_img.paste(ImageOps.mirror(default_chars1[0x14]), (8, 8, 16, 16))
 
 # Write everything to files.
 def create_output():

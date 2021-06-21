@@ -1,0 +1,18 @@
+How to find which code is responsible for placing an item on screen?
+
+Using the vram-debug.tcl script, it is possible to simulate watchpoints on vram
+write operations. This can be useful to find the code that is causing things.
+
+Sometimes you know about variables which are affected. For example, when an
+item is on screen, it needs to check if that item is already in the inventory.
+Because if it is, it shouldn't be shown on screen. This can be used to set
+watchpoints which will trigger when the code is checking if it should place the
+item.
+
+Finally, this game uses a copy of the video ram to prepare the screen. Because
+of this, monitoring vram writes is not very useful, because you'll only see the
+screen update, not the code that was drawing the items on the buffer. To do
+that, you need to know where it is. The buffer starts at 0xed00 and is 0x300
+bytes long (so the last byte in the buffer is 0xefff).  Putting watchpoints on
+there is very helpful for code that draws characters on the screen. (It does
+not work for sprites, of course.)

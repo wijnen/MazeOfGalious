@@ -53,7 +53,7 @@ charset_id = [get_room_charset(i) for i in range(rooms[0])]
 tiles = numpy.array([[[data[0xe000 + t * 0x10 + y * 4 + x] for x in range(4)] for y in range(4)] for t in range(0xac)], dtype = numpy.uint8)
 # }}}
 
-def makeimage(roomdata, charset_id, item, item_x, item_y): # {{{
+def makeimage(roomdata, charset_id, item, item_x, item_y, shrine_id, shrine_x, shrine_y): # {{{
 	'Convert data into image'
 	ret = numpy.zeros((20 * 8, 32 * 8), dtype = numpy.uint8)
 	for y in range(20):
@@ -65,6 +65,10 @@ def makeimage(roomdata, charset_id, item, item_x, item_y): # {{{
 	itemimg = read_patterns.create_item_image(item)
 	if itemimg is not None:
 		im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]))
+	if shrine_id:
+		im.paste(read_patterns.shrine_img, (shrine_x, shrine_y, shrine_x + 16, shrine_y + 16))
+		imt = ImageDraw.Draw(im)
+		imt.text((shrine_x + 5, shrine_y + 5), '%x' % shrine_id, fill = 4)
 	## Show bit-pattern of character code on top line.
 	#for y in range(20):
 	#	for x in range(32):
@@ -80,6 +84,14 @@ for idx, w in enumerate(world):
 	items = {}	# key is room, value is id, x, y
 	itemworldaddr = 0xb6fc + 2 * (idx + 1) - 0xa000 + 9 * 0x2000
 	itemptr = struct.unpack('<H', data[itemworldaddr:itemworldaddr + 2])[0] - 0xa000 + 9 * 0x2000
+	shrines = {}
+	if idx == 0:
+		target = 0x5dda
+		while data[target] != 0:
+			room, shrine_id, shrine_y, shrine_x = data[target:target + 4]
+			# Room-1, because this data starts counting at 1. y-32, because the coordinate includes the screen header.
+			shrines[room - 1] = [shrine_id, shrine_x, shrine_y - 32]
+			target += 4
 	while data[itemptr] != 0:
 		# Data is: room(8-bit) x4,x3,item(6-bit) y7,y6,y5,y4,y3,x7,x6,x5
 		room, xitem, yx = data[itemptr:itemptr + 3]
@@ -90,7 +102,7 @@ for idx, w in enumerate(world):
 		if item < 7:
 			y += 8
 		items[room - 1] = (item, x, y - 32)
-		print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, idx, room, item, x, y))
+		#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, idx, room, item, x, y))
 		itemptr += 3
 	# Create all rooms in a world.
 	fullmap = numpy.zeros((rooms[idx], 20, 32), dtype = numpy.uint8)
@@ -101,7 +113,12 @@ for idx, w in enumerate(world):
 		for x in range(8):
 			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range(rooms[idx])]
 	# Convert character map to image.
-	out.append([makeimage(fullmap[r], charset_id[r] if idx == 0 else -1, *(items.get(r, [None, 0, 0]))) for r in range(rooms[idx])])
+	worldmap = []
+	for r in range(rooms[idx]):
+		it = tuple(items.get(r, [None, 0, 0]))
+		sh = tuple(shrines.get(r, [None, None, None]))
+		worldmap.append(makeimage(fullmap[r], charset_id[r] if idx == 0 else -1, *(it + sh)))
+	out.append(worldmap)
 # }}}
 
 # Link stuff together. {{{
@@ -190,7 +207,7 @@ for w in range(11):
 			if 0 < target <= rooms[w]:
 				queue.append(target)
 		done.add(current)
-	print('done: %d/%d, todo: %s, w,h=%d,%d' % (len(done), rooms[w], str(todo), h[w][0] - l[w][0], h[w][1] - l[w][1]))
+	#print('done: %d/%d, todo: %s, w,h=%d,%d' % (len(done), rooms[w], str(todo), h[w][0] - l[w][0], h[w][1] - l[w][1]))
 #print '\n'.join(['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate(world)])
 
 	# Create the world image.

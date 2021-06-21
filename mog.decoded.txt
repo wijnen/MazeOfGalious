@@ -39,8 +39,8 @@ T4050h	C34041..  .@A.	JP	switch
 DE=*(HL+2*A)_hook:
 T4053h	C34C41..  .LA.	JP	DE=*(HL+2*A)
 
-HL=ED00+HL/8_hook
-T4056h	C3A14D..  ..M.	JP	HL=ED00+HL/8
+HL=ED00+H_as_X+L_as_Y_hook
+T4056h	C3A14D..  ..M.	JP	HL=ED00+H_as_X+L_as_Y
 
 T4059h	C31F4E..  ..N.	JP	T4E1FH		
 
@@ -2009,29 +2009,29 @@ T4D9Dh	23......  #...	INC	HL			;
 T4D9Eh	10E9....  ....	DJNZ	0E9h			; Jump to 04D89H
 T4DA0h	C9......  ....	RET			
 
-HL=ED00+HL/8:
+HL=ED00+H_as_X+L_as_Y:
 ; HL = 0xED00 + HL / 8
-T4DA1h	7D......  }...	LD	A,L	
+T4DA1h	7D......  }...	LD	A,L	; A = L7,L6,L5,L4,L3,L2,L1,L0
 T4DA2h	1F......  ....	RRA		
 T4DA3h	1F......  ....	RRA		
-T4DA4h	1F......  ....	RRA		; A = xxxHHLLL
-T4DA5h	1F......  ....	RRA		
-T4DA6h	CB1C....  ....	RR	H	
-T4DA8h	1F......  ....	RRA		
-T4DA9h	CB1C....  ....	RR	H	
-T4DABh	1F......  ....	RRA		; A = xxxxxxHH
-T4DACh	CB1C....  ....	RR	H
+T4DA4h	1F......  ....	RRA		; A = x,x,x,L7,L6,L5,L4,L3
+T4DA5h	1F......  ....	RRA		; A = x,x,x,x,L7,L6,L5,L4 c=L3
+T4DA6h	CB1C....  ....	RR	H	; H = L3,H7,H6,H5,H4,H3,H2,H1 c=H0
+T4DA8h	1F......  ....	RRA		; A = H0,x,x,x,x,L7,L6,L5 c=L4
+T4DA9h	CB1C....  ....	RR	H	; H = L4,L3,H7,H6,H5,H4,H3,H2 c=H1
+T4DABh	1F......  ....	RRA		; A = H1,H0,x,x,x,x,L7,L6 c=L5
+T4DACh	CB1C....  ....	RR	H	; H = L5,L4,L3,H7,H6,H5,H4,H3 c=H2
 T4DAEh	6C......  l...	LD	L,H	; L = (HL / 8) & 0xff
-T4DAFh	E603....  ....	AND	003h	; A = 000000HH
+T4DAFh	E603....  ....	AND	003h	; A = x,x,x,x,x,x,L7,L6
 T4DB1h	C6ED....  ....	ADD	A,0EDh	
-T4DB3h	67......  g...	LD	H,A	; HL = 0xED00 + HL / 8
+T4DB3h	67......  g...	LD	H,A	; HL = 0xED00 + (H as X) + (L as Y), both truncated to multiple of 8
 T4DB4h	C9......  ....	RET			
 
 T4DB5h	DD6607..  .f..	LD	H,(IX+007h)
 T4DB8h	DD7E05..  .~..	LD	A,(IX+005h)
 T4DBBh	C610....  ....	ADD	A,010h	
 T4DBDh	6F......  o...	LD	L,A	
-T4DBEh	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T4DBEh	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T4DC1h	3EB9....  >...	LD	A,0B9h	
 T4DC3h	BE......  ....	CP	(HL)	
 T4DC4h	D8......  ....	RET	C		
@@ -2040,7 +2040,7 @@ T4DC5h	23......  #...	INC	HL			;
 T4DC6h	BE......  ....	CP	(HL)	
 T4DC7h	C9......  ....	RET			
 
-T4DC8h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T4DC8h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T4DCBh	3EB9....  >...	LD	A,0B9h	
 T4DCDh	BE......  ....	CP	(HL)	
 T4DCEh	C9......  ....	RET			
@@ -2480,12 +2480,12 @@ T513Eh	CD1542..  ..B.	CALL	SetMapper3
 T5141h	CDE59A..  ....	CALL	T9AE5H	
 T5144h	CD0B52..  ..R.	CALL	T520BH	
 T5147h	CDEF8E..  ....	CALL	T8EEFH	
-T514Ah	CD6155..  .aU.	CALL	T5561H	
+T514Ah	CD6155..  .aU.	CALL	T5561H			; Draw background and walls, and handle special world actions.
 T514Dh	3A90E6..  :...	LD	A,(TE690H)
 T5150h	B7......  ....	OR	A	
 T5151h	2053....  .S..	JR	NZ,053h			; Jump to 051A6H
 T5153h	CD2B42..  .+B.	CALL	SetMapper9	
-T5156h	CD685D..  .h].	CALL	T5D68H	
+T5156h	CD685D..  .h].	CALL	T5D68H			; Add item to room
 T5159h	CD1A69..  ..i.	CALL	T691AH	
 T515Ch	CD6E65..  .ne.	CALL	T656EH	
 T515Fh	CD1542..  ..B.	CALL	SetMapper3	
@@ -2687,7 +2687,7 @@ T52FFh	CDC676..  ..v.	CALL	T76C6H
 T5302h	CDB279..  ..y.	CALL	T79B2H	
 T5305h	CD566C..  .Vl.	CALL	T6C56H	
 T5308h	CD956C..  ..l.	CALL	T6C95H	
-T530Bh	CDB773..  ..s.	CALL	T73B7H	
+T530Bh	CDB773..  ..s.	CALL	T73B7H		; Draw shrine?
 T530Eh	CDE371..  ..q.	CALL	T71E3H	
 T5311h	CDDD54..  ..T.	CALL	lock_e602
 T5314h	CDD673..  ..s.	CALL	T73D6H	
@@ -2918,7 +2918,7 @@ T5505h	E5......  ....	PUSH	HL
 T5506h	7C......  |...	LD	A,H	
 T5507h	82......  ....	ADD	A,D	
 T5508h	67......  g...	LD	H,A	
-T5509h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T5509h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T550Ch	7E......  ~...	LD	A,(HL)	
 T550Dh	E1......  ....	POP	HL	
 T550Eh	D9......  ....	EXX		
@@ -2930,7 +2930,7 @@ T5512h	D8......  ....	RET	C
 T5513h	7C......  |...	LD	A,H	
 T5514h	83......  ....	ADD	A,E	
 T5515h	67......  g...	LD	H,A	
-T5516h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T5516h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T5519h	7E......  ~...	LD	A,(HL)	
 T551Ah	D9......  ....	EXX		
 T551Bh	BE......  ....	CP	(HL)	
@@ -2943,7 +2943,7 @@ T5522h	7C......  |...	LD	A,H
 T5523h	80......  ....	ADD	A,B	
 T5524h	67......  g...	LD	H,A	
 T5525h	E5......  ....	PUSH	HL	
-T5526h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T5526h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T5529h	7E......  ~...	LD	A,(HL)	
 T552Ah	E1......  ....	POP	HL	
 T552Bh	D9......  ....	EXX		
@@ -2956,7 +2956,7 @@ T5530h	E5......  ....	PUSH	HL
 T5531h	7D......  }...	LD	A,L	
 T5532h	82......  ....	ADD	A,D	
 T5533h	6F......  o...	LD	L,A	
-T5534h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T5534h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T5537h	7E......  ~...	LD	A,(HL)	
 T5538h	E1......  ....	POP	HL	
 T5539h	D9......  ....	EXX		
@@ -2969,7 +2969,7 @@ T553Eh	CD4D55..  .MU.	CALL	T554DH
 T5541h	7D......  }...	LD	A,L	
 T5542h	83......  ....	ADD	A,E	
 T5543h	6F......  o...	LD	L,A	
-T5544h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T5544h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T5547h	7E......  ~...	LD	A,(HL)	
 T5548h	D9......  ....	EXX		
 T5549h	BE......  ....	CP	(HL)	
@@ -2996,9 +2996,9 @@ T5564h	B7......  ....	OR	A
 T5565h	C0......  ....	RET	NZ		
 
 T5566h	CD9E41..  ..A.	CALL	SetMapper789	
-T5569h	CDC655..  ..U.	CALL	T55C6H	
-T556Ch	CD7555..  .uU.	CALL	T5575H	
-T556Fh	CD9055..  ..U.	CALL	T5590H	
+T5569h	CDC655..  ..U.	CALL	T55C6H			; Draw background times (incl. walls)
+T556Ch	CD7555..  .uU.	CALL	T5575H			; Handle carpet special actions. (turn lava to stone in world 8)
+T556Fh	CD9055..  ..U.	CALL	T5590H			; Handle world 3 special actions. (loop in screen 04)
 T5572h	C36C41..  .lA.	JP	SetMapper123		
 
 T5575h	3A87E0..  :...	LD	A,(TE087H)		; A = *(Carpet)
@@ -3013,13 +3013,13 @@ T557Fh	3A41E0..  :A..	LD	A,(WorldNumber)		;
 T5582h	FE09....  ....	CP	009h			; A - 9
 T5584h	C0......  ....	RET	NZ			; return if not World8
 
-;; Starting at 0xef00: write 256 times 0xf0: Build bridge?
+;; Starting at 0xef00: write 256 times 0xf0: replace lava by stones.
 T5585h	0600....  ....	LD	B,000h			; B = 0
 T5587h	2100EF..  !...	LD	HL,0EF00h		; HL = 0xef00
 T558Ah	36F0....  6...	LD	(HL),0F0h		; *(0xef00) = 0xf0
 T558Ch	23......  #...	INC	HL			; ++HL
 T558Dh	10FB....  ....	DJNZ	0FBh			; if (--B != 0) goto 0558AH
-T558Fh	C9......  ....	RET				; Not reachable
+T558Fh	C9......  ....	RET				; After 256 writes, return.
 
 T5590h	3A41E0..  :A..	LD	A,(WorldNumber)		;
 T5593h	FE04....  ....	CP	004h			; A - 4
@@ -3054,8 +3054,8 @@ T55C3h	20EE....  ....	JR	NZ,0EEh			; if (C != 0) goto 055B3H
 T55C5h	C9......  ....	RET			
 
 ;; ?
-T55C6h	CDF755..  ..U.	CALL	T55F7H	
-T55C9h	3A15E6..  :...	LD	A,(TE615H)
+T55C6h	CDF755..  ..U.	CALL	T55F7H			; Draw room tiles
+T55C9h	3A15E6..  :...	LD	A,(TE615H)	; something about the boss?
 T55CCh	B7......  ....	OR	A	
 T55CDh	C8......  ....	RET	Z		
 
@@ -3066,18 +3066,18 @@ T55D4h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T55D7h	EB......  ....	EX	DE,HL	
 T55D8h	110CEE..  ....	LD	DE,0EE0Ch
 T55DBh	3A41E0..  :A..	LD	A,(WorldNumber)
-T55DEh	FE07....  ....	CP	007h	
+T55DEh	FE07....  ....	CP	007h			; World 7 is special here. Why?
 T55E0h	2003....  ....	JR	NZ,003h			; Jump to 055E5H
 T55E2h	114CEE..  .L..	LD	DE,0EE4Ch
 T55E5h	D9......  ....	EXX		
 T55E6h	0608....  ....	LD	B,008h	
 T55E8h	D9......  ....	EXX		
 T55E9h	010800..  ....	LD	BC,00008h
-T55ECh	EDB0....  ....	LDIR		
+T55ECh	EDB0....  ....	LDIR			; copy 8 bytes from 0x9be2[world] to ee0c (or ee4c for world 7)
 T55EEh	3E18....  >...	LD	A,018h	
 T55F0h	CD3B41..  .;A.	CALL	DE+=A
 T55F3h	D9......  ....	EXX		
-T55F4h	10F2....  ....	DJNZ	0F2h			; Jump to 055E8H
+T55F4h	10F2....  ....	DJNZ	0F2h			; Jump to 055E8H	Repeat 8 times, with 0x18 offset.
 T55F6h	C9......  ....	RET			
 
 ;; ?
@@ -4256,7 +4256,7 @@ T5DBEh	2C......  ,...	INC	L			;
 T5DBFh	73......  s...	LD	(HL),E		; Store X
 T5DC0h	63......  c...	LD	H,E	
 T5DC1h	6A......  j...	LD	L,D	
-T5DC2h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T5DC2h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T5DC5h	2244E7..  "D..	LD	(TE744H),HL
 T5DC8h	C9......  ....	RET			
 
@@ -5123,7 +5123,7 @@ T6347h	2C......  ,...	INC	L			;
 T6348h	72......  r...	LD	(HL),D	
 T6349h	E5......  ....	PUSH	HL	
 T634Ah	EB......  ....	EX	DE,HL	
-T634Bh	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T634Bh	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T634Eh	EB......  ....	EX	DE,HL	
 T634Fh	E1......  ....	POP	HL	
 T6350h	2C......  ,...	INC	L			;
@@ -6535,7 +6535,7 @@ T6C9Dh	5E......  ^...	LD	E,(HL)
 T6C9Eh	2C......  ,...	INC	L			;
 T6C9Fh	56......  V...	LD	D,(HL)	
 T6CA0h	EB......  ....	EX	DE,HL	
-T6CA1h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T6CA1h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T6CA4h	EB......  ....	EX	DE,HL	
 T6CA5h	21C76C..  !.l.	LD	HL,06CC7h
 T6CA8h	3A8CE6..  :...	LD	A,(TE68CH)
@@ -6621,7 +6621,7 @@ T6D1Ah	DD7115..  .q..	LD	(IX+015h),C
 T6D1Dh	DD7014..  .p..	LD	(IX+014h),B
 T6D20h	DD6E05..  .n..	LD	L,(IX+005h)
 T6D23h	DD6607..  .f..	LD	H,(IX+007h)
-T6D26h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T6D26h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T6D29h	DD7512..  .u..	LD	(IX+012h),L
 T6D2Ch	DD7413..  .t..	LD	(IX+013h),H
 T6D2Fh	DD4E0B..  .N..	LD	C,(IX+00Bh)
@@ -6731,7 +6731,7 @@ T6DDBh	C9......  ....	RET
 
 T6DDCh	DD6E05..  .n..	LD	L,(IX+005h)
 T6DDFh	DD6607..  .f..	LD	H,(IX+007h)
-T6DE2h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T6DE2h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T6DE5h	DD7512..  .u..	LD	(IX+012h),L
 T6DE8h	DD7413..  .t..	LD	(IX+013h),H
 T6DEBh	7D......  }...	LD	A,L	
@@ -8380,7 +8380,7 @@ T76FAh	DD7E0A..  .~..	LD	A,(IX+00Ah)
 T76FDh	CDA76E..  ..n.	CALL	T6EA7H	
 T7700h	DD6E05..  .n..	LD	L,(IX+005h)
 T7703h	DD6607..  .f..	LD	H,(IX+007h)
-T7706h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T7706h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T7709h	DD7512..  .u..	LD	(IX+012h),L
 T770Ch	DD7413..  .t..	LD	(IX+013h),H
 T770Fh	C5......  ....	PUSH	BC	
@@ -8453,7 +8453,7 @@ T777Fh	C0......  ....	RET	NZ
 
 T7780h	DD6E05..  .n..	LD	L,(IX+005h)
 T7783h	DD6607..  .f..	LD	H,(IX+007h)
-T7786h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T7786h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T7789h	DD7515..  .u..	LD	(IX+015h),L
 T778Ch	DD7416..  .t..	LD	(IX+016h),H
 T778Fh	EDA0....  ....	LDI		
@@ -8562,7 +8562,7 @@ T7842h	6F......  o...	LD	L,A
 T7843h	13......  ....	INC	DE			;
 T7844h	1A......  ....	LD	A,(DE)	
 T7845h	67......  g...	LD	H,A	
-T7846h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T7846h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T7849h	13......  ....	INC	DE			;
 T784Ah	13......  ....	INC	DE			;
 T784Bh	7D......  }...	LD	A,L	
@@ -8613,7 +8613,7 @@ T7884h	6F......  o...	LD	L,A
 T7885h	13......  ....	INC	DE			;
 T7886h	1A......  ....	LD	A,(DE)	
 T7887h	67......  g...	LD	H,A	
-T7888h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T7888h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T788Bh	13......  ....	INC	DE			;
 T788Ch	13......  ....	INC	DE			;
 T788Dh	13......  ....	INC	DE			;
@@ -8694,7 +8694,7 @@ T78F4h	23......  #...	INC	HL			;
 T78F5h	77......  w...	LD	(HL),A	
 T78F6h	57......  W...	LD	D,A	
 T78F7h	EB......  ....	EX	DE,HL	
-T78F8h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T78F8h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T78FBh	EB......  ....	EX	DE,HL	
 T78FCh	23......  #...	INC	HL			;
 T78FDh	23......  #...	INC	HL			;
@@ -8742,7 +8742,7 @@ T7932h	D5......  ....	PUSH	DE
 T7933h	59......  Y...	LD	E,C	
 T7934h	50......  P...	LD	D,B	
 T7935h	EB......  ....	EX	DE,HL	
-T7936h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T7936h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T7939h	EB......  ....	EX	DE,HL	
 T793Ah	23......  #...	INC	HL			;
 T793Bh	73......  s...	LD	(HL),E	
@@ -8763,7 +8763,7 @@ T7950h	B7......  ....	OR	A
 T7951h	C8......  ....	RET	Z		
 
 T7952h	2A21EA..  *!..	LD	HL,(TEA21H)
-T7955h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T7955h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T7958h	2224EA..  "$..	LD	(TEA24H),HL
 T795Bh	3E03....  >...	LD	A,003h	
 T795Dh	EDA0....  ....	LDI		
@@ -14046,7 +14046,7 @@ T9DCBh	1C......  ....	INC	E			;
 T9DCCh	EDA0....  ....	LDI		
 T9DCEh	EDA0....  ....	LDI		
 T9DD0h	2A82E6..  *...	LD	HL,(TE682H)
-T9DD3h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+T9DD3h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T9DD6h	2284E6..  "...	LD	(TE684H),HL
 T9DD9h	C9......  ....	RET			
 
@@ -15301,7 +15301,7 @@ TA69Ah	6F......  o...	LD	L,A
 TA69Bh	3A07E5..  :...	LD	A,(TE507H)
 TA69Eh	82......  ....	ADD	A,D	
 TA69Fh	67......  g...	LD	H,A	
-TA6A0h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+TA6A0h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 TA6A3h	7E......  ~...	LD	A,(HL)	
 TA6A4h	FEBA....  ....	CP	0BAh	
 TA6A6h	D8......  ....	RET	C		
@@ -16260,7 +16260,7 @@ TADD3h	67......  g...	LD	H,A
 TADD4h	FD7E05..  .~..	LD	A,(IY+005h)
 TADD7h	C602....  ....	ADD	A,002h	
 TADD9h	6F......  o...	LD	L,A	
-TADDAh	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+TADDAh	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 TADDDh	3EB9....  >...	LD	A,0B9h	
 TADDFh	BE......  ....	CP	(HL)	
 TADE0h	C9......  ....	RET			
@@ -16420,7 +16420,7 @@ TAF02h	E5......  ....	PUSH	HL
 TAF03h	7C......  |...	LD	A,H	
 TAF04h	81......  ....	ADD	A,C	
 TAF05h	67......  g...	LD	H,A	
-TAF06h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+TAF06h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 TAF09h	7E......  ~...	LD	A,(HL)	
 TAF0Ah	E1......  ....	POP	HL	
 TAF0Bh	D69A....  ....	SUB	09Ah	
@@ -16434,7 +16434,7 @@ TAF14h	7C......  |...	LD	A,H
 TAF15h	81......  ....	ADD	A,C	
 TAF16h	67......  g...	LD	H,A	
 TAF17h	E5......  ....	PUSH	HL	
-TAF18h	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+TAF18h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 TAF1Bh	7E......  ~...	LD	A,(HL)	
 TAF1Ch	E1......  ....	POP	HL	
 TAF1Dh	D69A....  ....	SUB	09Ah	
@@ -16586,7 +16586,7 @@ TB012h	3A07E5..  :...	LD	A,(TE507H)
 TB015h	67......  g...	LD	H,A	
 TB016h	3A05E5..  :...	LD	A,(TE505H)
 TB019h	6F......  o...	LD	L,A	
-TB01Ah	CDA14D..  ..M.	CALL	HL=ED00+HL/8
+TB01Ah	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 TB01Dh	3A19E5..  :...	LD	A,(TE519H)
 TB020h	CB5F....  ._..	BIT	3,A	
 TB022h	2804....  (...	JR	Z,004h			; Jump to 0B028H
@@ -20800,7 +20800,7 @@ T6AA9h	0F......  ....	RRCA
 T6AAAh	DD3602C0  .6..	LD	(IX+002h),0C0h
 T6AAEh	DD6E05..  .n..	LD	L,(IX+005h)
 T6AB1h	DD6607..  .f..	LD	H,(IX+007h)
-T6AB4h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T6AB4h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T6AB7h	DD7512..  .u..	LD	(IX+012h),L
 T6ABAh	DD7413..  .t..	LD	(IX+013h),H
 T6ABDh	3A24E6..  :$..	LD	A,(TE624H)
@@ -21116,7 +21116,7 @@ T6D4Dh	67......  g...	LD	H,A
 T6D4Eh	DD7E05..  .~..	LD	A,(IX+005h)
 T6D51h	81......  ....	ADD	A,C	
 T6D52h	6F......  o...	LD	L,A	
-T6D53h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T6D53h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T6D56h	3EB9....  >...	LD	A,0B9h	
 T6D58h	BE......  ....	CP	(HL)	
 T6D59h	C9......  ....	RET			
@@ -21431,7 +21431,7 @@ T6F62h	DD361400  .6..	LD	(IX+014h),000h
 T6F66h	CD716B..  .qk.	CALL	T6B71H	
 T6F69h	DD6E05..  .n..	LD	L,(IX+005h)
 T6F6Ch	DD6607..  .f..	LD	H,(IX+007h)
-T6F6Fh	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T6F6Fh	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T6F72h	DD7512..  .u..	LD	(IX+012h),L
 T6F75h	DD7413..  .t..	LD	(IX+013h),H
 T6F78h	3E0F....  >...	LD	A,00Fh	
@@ -23037,7 +23037,7 @@ T7C3Bh	D0......  ....	RET	NC
 
 T7C3Ch	DD6E05..  .n..	LD	L,(IX+005h)
 T7C3Fh	DD6607..  .f..	LD	H,(IX+007h)
-T7C42h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T7C42h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T7C45h	7E......  ~...	LD	A,(HL)	
 T7C46h	FEBA....  ....	CP	0BAh	
 T7C48h	D2537C..  .S|.	JP	NC,T7C53H
@@ -23118,7 +23118,7 @@ T7CD3h	E5......  ....	PUSH	HL
 T7CD4h	7C......  |...	LD	A,H	
 T7CD5h	81......  ....	ADD	A,C	
 T7CD6h	67......  g...	LD	H,A	
-T7CD7h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T7CD7h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T7CDAh	7E......  ~...	LD	A,(HL)	
 T7CDBh	E1......  ....	POP	HL	
 T7CDCh	D69A....  ....	SUB	09Ah	
@@ -23132,7 +23132,7 @@ T7CE5h	7C......  |...	LD	A,H
 T7CE6h	81......  ....	ADD	A,C	
 T7CE7h	67......  g...	LD	H,A	
 T7CE8h	E5......  ....	PUSH	HL	
-T7CE9h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T7CE9h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T7CECh	7E......  ~...	LD	A,(HL)	
 T7CEDh	E1......  ....	POP	HL	
 T7CEEh	D69A....  ....	SUB	09Ah	
@@ -23603,7 +23603,7 @@ T808Eh	C610....  ....	ADD	A,010h
 T8090h	6F......  o...	LD	L,A	
 T8091h	0605....  ....	LD	B,005h	
 T8093h	DD6607..  .f..	LD	H,(IX+007h)
-T8096h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T8096h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T8099h	3EB9....  >...	LD	A,0B9h	
 T809Bh	BE......  ....	CP	(HL)	
 T809Ch	3004....  0...	JR	NC,004h			; Jump to 080A2H
@@ -26850,7 +26850,7 @@ T9A88h	2802....  (...	JR	Z,002h			; Jump to 09A8CH
 T9A8Ah	0EFF....  ....	LD	C,0FFh	
 T9A8Ch	81......  ....	ADD	A,C	
 T9A8Dh	67......  g...	LD	H,A	
-T9A8Eh	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T9A8Eh	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T9A91h	7E......  ~...	LD	A,(HL)	
 T9A92h	FEBA....  ....	CP	0BAh	
 T9A94h	D0......  ....	RET	NC		
@@ -27200,7 +27200,7 @@ T9D06h	2802....  (...	JR	Z,002h			; Jump to 09D0AH
 T9D08h	0EF0....  ....	LD	C,0F0h	
 T9D0Ah	81......  ....	ADD	A,C	
 T9D0Bh	67......  g...	LD	H,A	
-T9D0Ch	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+T9D0Ch	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 T9D0Fh	E5......  ....	PUSH	HL	
 T9D10h	CD169D..  ....	CALL	T9D16H	
 T9D13h	E1......  ....	POP	HL	
@@ -29187,7 +29187,7 @@ TAD77h	3E1C....  >...	LD	A,01Ch
 TAD79h	CD5940..  .Y@.	CALL	T4059H	
 TAD7Ch	DD6E05..  .n..	LD	L,(IX+005h)
 TAD7Fh	DD6607..  .f..	LD	H,(IX+007h)
-TAD82h	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+TAD82h	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 TAD85h	DD7512..  .u..	LD	(IX+012h),L
 TAD88h	DD7413..  .t..	LD	(IX+013h),H
 TAD8Bh	C9......  ....	RET			
@@ -48857,7 +48857,7 @@ TA794h	3A01EC..  :...	LD	A,(TEC01H)
 TA797h	6F......  o...	LD	L,A	
 TA798h	3A02EC..  :...	LD	A,(TEC02H)
 TA79Bh	67......  g...	LD	H,A	
-TA79Ch	CD5640..  .V@.	CALL	HL=ED00+HL/8_hook	
+TA79Ch	CD5640..  .V@.	CALL	HL=ED00+H_as_X+L_as_Y_hook	
 TA79Fh	2205EC..  "...	LD	(TEC05H),HL
 TA7A2h	D9......  ....	EXX		
 TA7A3h	C9......  ....	RET			
