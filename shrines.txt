@@ -18,3 +18,114 @@ Third is Y coordinate, fourth is X coordinate (both are truncated to k*8)
 20 0b 48 70	Demeter Necklace
 00
 
+
+World doors
+
+Marker: e688
+Rooms: 9990-9998 (for doors 1-9)
+Data: *(9997+2*targetworld)
+
+
+Moais
+
+Code starts at call to 6df7 @def (from 5318)
+de = ecbc
+bc' = *e635: where did this get filled?
+
+There are 32-byte records at e800 (= *ix) that are analyzed
+Code analysis is below. (block 0)
+Conclusion: e800 is list of enemies on screen, 20 bytes per enemy.
+Find initialization.
+
+at 5269, all memory from e600, size 0a40, is cleared. This includes list of enemies.
+from 678d, memory at e800 is filled.
+
+Starting at 6006 @456, enemies are copied from rom to ram
+pointers to per world lists at b5cb+2*world (minimum of 1)
+every room has a list of enemies (2B each), followed by a 0.
+first byte is enemy type, called e here (value of 0e means bat) e6 and e7 are special, see code block 0 below.
+byte 2:
+	d = b7,b6,b5,b4,b3,0,0,0
+	e = b2,b1,b0,e7,0,0,0,0
+
+
+Boulders
+
+at 6342 @123, position is retrieved from f002
+map for room 4 world 0 is at b8aa-b8ac. Bytes contain position.
+765-+--- = Y
+43210--- = X
+
+Only in world 0!
+Boulder map starts at b8a2 @789
+
+
+####### Code block 0
+if not(ix[2] & 0x80): return
+if ix[9] & 0x80:
+	#6eb3
+	if *e630: ret
+	ix[9] := n7...n0
+	l = n7:0
+	b = 0*2,n5:0
+	c = 0*5,n2:0
+	c' -= n2:0
+	if n6:
+		#6f2c
+		jump to table that follows in code based on ix[0b]:
+			6f54, 6f8a, 6fe2, 6fb5, 6fd6, 6fd2, 6fda, 6f73,
+			7079, 707f, 70c6, 7131, 70c6, 6fce, 6fde, 717a, 717b
+			# special handling for special cases?
+		ret
+	if c not in (1,2): ret
+	if c == 2:
+		a = 0*5,n5:3
+		switch:
+			a == 0: hl = 0000
+			a == 1: hl = 0010
+			a == 2: hl = 00f0
+			a == 3: hl = 1000
+			a == 4: hl = f000
+			a == 5: hl = ff10
+			a == 6: hl = fff0
+			a == 7: ret
+		#6eff
+		de[0] = ix[05] + h - 1
+		de[1] = ix[07] + l
+		de[2] = ix[12]		# note: hex
+		de[3] = ix[13]
+		de += 4
+	#6f16
+	de[0] = ix[05] - 1	enemies?
+	de[1] = ix[07]
+	de[2] = ix[0a]
+	de[3] = ix[0b]
+	de += 4
+	ret
+else:
+	#6e36
+	if *e630 == 0:
+		if ix[0] - 5d > 2: ret
+	else:
+		if ix[0] - 5d <= 2: ret
+	# 6e4e
+	if ix[9].6:
+		# 6ea1
+		Do 6f2c special handling.
+	else:
+		# 6e54
+		if ix[0] not in (5c, 6b):
+			# 6e79	copy given block of characters (height B, width C) to screen buffer.
+			bc = *(9d90+2*ix[0a])
+			hl = *(9e0a+2*ix[0a])
+			de = ix[12:13]
+			ldir met b=0 en restore bc
+			de += 20 - c	# next line
+			repeat b times
+		character = ba if ix[0] == 5c else 7a	# mirror check?
+		# Write 2x2 item to screen buffer.
+		*(ix[12:13]) = character
+		*(ix[12:13] + 1) = character + 1
+		*(ix[12:13] + 20) = character + 2
+		*(ix[12:13] + 21) = character + 3
+		ret

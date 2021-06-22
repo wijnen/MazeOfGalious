@@ -185,7 +185,8 @@ for idx in range(7, 0x2d):
 # Add weapons images.
 default_chars = [create_image(None, None, (0, 0, p.reshape(1, 8, 8))) for p in setup_vram_patterns[0][0][2]]
 default_chars1 = [create_image(None, None, (0, 0, p.reshape(1, 8, 8))) for p in setup_vram_patterns[0][1][2]]
-weaponchars = ((0x1f, 0x20), (0x21, 0x22), (0x28, 0x29), (0x28, 0x2a), (0x2b, 0x2c), (0x2d, 0x2e))
+boulder_chars = [create_image(None, None, (0, 0, p.reshape(1, 8, 8))) for p in setup_vram_patterns[0][3][2]]
+weaponchars = ((0x1f, 0x20), (0x21, 0x22), (0x29, 0x28), (0x2a, 0x28), (0x2b, 0x2c), (0x2d, 0x2e))
 for w, c in enumerate(weaponchars):
 	im = Image.new('P', (16, 8))
 	im.putpalette(palette)
@@ -207,6 +208,21 @@ shrine_img.paste(default_chars1[0x13], (0, 0, 8, 8))
 shrine_img.paste(default_chars1[0x14], (0, 8, 8, 16))
 shrine_img.paste(ImageOps.mirror(default_chars1[0x13]), (8, 0, 16, 8))
 shrine_img.paste(ImageOps.mirror(default_chars1[0x14]), (8, 8, 16, 16))
+
+# Create the worlddoor image
+worlddoor_img = Image.new('P', (32, 24))
+worlddoor_img.putpalette(palette)
+for y in range(3):
+	for x in range(4):
+		worlddoor_img.paste(default_chars[0x35 if y == 0 or x in (0, 3) else 0x36], (8 * x, 8 * y, 8 * (x + 1), 8 * (y + 1)))
+
+# Create the boulder image
+boulder_img = Image.new('P', (16, 16))
+boulder_img.putpalette(palette)
+boulder_img.paste(boulder_chars[0], (0, 0, 8, 8))
+boulder_img.paste(boulder_chars[1], (8, 0, 16, 8))
+boulder_img.paste(boulder_chars[2], (0, 8, 8, 16))
+boulder_img.paste(boulder_chars[3], (8, 8, 16, 16))
 
 # Write everything to files.
 def create_output():

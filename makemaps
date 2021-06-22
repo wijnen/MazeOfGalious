@@ -53,7 +53,25 @@ charset_id = [get_room_charset(i) for i in range(rooms[0])]
 tiles = numpy.array([[[data[0xe000 + t * 0x10 + y * 4 + x] for x in range(4)] for y in range(4)] for t in range(0xac)], dtype = numpy.uint8)
 # }}}
 
-def makeimage(roomdata, charset_id, item, item_x, item_y, shrine_id, shrine_x, shrine_y): # {{{
+# Enemy names taken from openmsx mog overlay.
+enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "06", "Ring Worm",
+		"08", "09", "Knight", "Water Strider", "Sparky", "Fish", "Bat", "Pacman",
+		"Insect", "Hedgehog", "Rockman", "Cloud Demon", "Mudman", "Ill", "Bird Dragon", "Egg Bird",
+		"Worm", "Butterfly", "Snake's Fire", "Fireball", "1C", "1D", "1E", "Goblin",
+		"Shadow Blob", "Crawler", "Pea Shooter", "Trapwall", "Swine", "Bones", "Living Helmet", "Owl",
+		"Ectoplasm", "Drifting Cloud", "Poltergeist", "Wizard", "Shoe 1", "Frost Demon", "Bamboo Shoot", "Frog Plant",
+		"Seahorse Demon", "Gas", "Armor>", "Armor's Dart", "Bally", "35", "DingDong", "Great Butterfly",
+		"VerBlob", "39", "Moai>", "Moai Head Projectile", "Trickster Ghost", "Star", "Flocking Bird", "3F",
+		"Cyclop's Ghost", "41", "Maner", "Gero", "44", "45", "46", "47",
+		"48", "Huge Bat", "4A", "4B", "Fuzzball", "4D", "Fairy Dust", "4F",
+		"<Moai", "<Armor", "Middle Bat", "Mini Bat", "Bone", "Small Bone", "Small Fireball", "57",
+		"Crab's Breath", "Seed", "5A", "5B", "Spiral Ball ", "5D", "5E", "5F",
+		"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",
+		"68", "Thunder Cloud", "6A", "6B", "6C", "6D", "6E", "6F",
+		"70", "71", "72", "73", "74", "75", "76", "77",
+		"78", "79", "7A", "7B", "7C", "7D", "7E", "7F")
+
+def makeimage(roomdata, charset_id, item, shrine, worlddoor, enemies, boulders): # {{{
 	'Convert data into image'
 	ret = numpy.zeros((20 * 8, 32 * 8), dtype = numpy.uint8)
 	for y in range(20):
@@ -62,13 +80,36 @@ def makeimage(roomdata, charset_id, item, item_x, item_y, shrine_id, shrine_x, s
 				ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char(charset_id, roomdata[y, x])
 	im = Image.fromarray(ret, 'P')
 	im.putpalette(palette)
-	itemimg = read_patterns.create_item_image(item)
-	if itemimg is not None:
-		im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]))
-	if shrine_id:
-		im.paste(read_patterns.shrine_img, (shrine_x, shrine_y, shrine_x + 16, shrine_y + 16))
-		imt = ImageDraw.Draw(im)
-		imt.text((shrine_x + 5, shrine_y + 5), '%x' % shrine_id, fill = 4)
+	im = im.convert('RGB')
+	imt = ImageDraw.Draw(im)
+	# Draw boulders first, so that what's behind can be shown on top.
+	if boulders is not None:
+		for x, y in boulders:
+			im.paste(read_patterns.boulder_img, (x, y, x + 16, y + 16))
+	if item is not None:
+		item_item, item_x, item_y = item
+		itemimg = read_patterns.create_item_image(item_item)
+		if boulders is not None and (item_x, item_y) in boulders:
+			t = Image.eval(itemimg.convert('L'), lambda p: 128 if p == 0 else 255)
+			im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]), t)
+		else:
+			im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]))
+	if shrine is not None:
+		shrine_id, shrine_x, shrine_y = shrine
+		if boulders is not None and (shrine_x, shrine_y) in boulders:
+			t = Image.eval(read_patterns.shrine_img.convert('L'), lambda p: 128 if p == 0 else 255)
+			im.paste(read_patterns.shrine_img, (shrine_x, shrine_y, shrine_x + 16, shrine_y + 16), t)
+		else:
+			im.paste(read_patterns.shrine_img, (shrine_x, shrine_y, shrine_x + 16, shrine_y + 16))
+		imt.text((shrine_x + 5, shrine_y + 5), '%x' % shrine_id, fill = (0, 0, 255))
+	if worlddoor is not None:
+		num, x, y = worlddoor
+		im.paste(read_patterns.worlddoor_img, (x, y, x + 32, y + 24))
+		imt.text((x + 13, y + 13), '%x' % num, fill = (255, 255, 255))
+	if enemies is not None:
+		for e in enemies:
+			num = enemies[e]
+			imt.text((e[1], e[2] - 32), enemy_names[e[0]] + (' x %d' % num if num > 1 else ''), fill = (255, 255, 255))
 	## Show bit-pattern of character code on top line.
 	#for y in range(20):
 	#	for x in range(32):
@@ -85,13 +126,58 @@ for idx, w in enumerate(world):
 	itemworldaddr = 0xb6fc + 2 * (idx + 1) - 0xa000 + 9 * 0x2000
 	itemptr = struct.unpack('<H', data[itemworldaddr:itemworldaddr + 2])[0] - 0xa000 + 9 * 0x2000
 	shrines = {}
+	worlddoor = {}
+	enemies = {}
+	boulders = {}
 	if idx == 0:
+		# Find shrines
 		target = 0x5dda
 		while data[target] != 0:
 			room, shrine_id, shrine_y, shrine_x = data[target:target + 4]
 			# Room-1, because this data starts counting at 1. y-32, because the coordinate includes the screen header.
 			shrines[room - 1] = [shrine_id, shrine_x, shrine_y - 32]
 			target += 4
+		# Find worlddoors
+		for num, target in enumerate(range(0x9990, 0x9999)):
+			room = data[target - 0x8000 + 2 * 0x2000]
+			addr = 0x9997 + (num + 1) * 2 - 0x8000 + 2 * 0x2000
+			y, x = data[addr:addr + 2]
+			#print('door %x %x %x %x' % (num + 1, room, x, y))
+			worlddoor[room - 1] = (num + 1, x, y - 32)
+		# Find boulders
+		target = 0xb8a2 - 0xa000 + 9 * 0x2000
+		room = 0
+		while room < rooms[idx]:
+			if data[target] == 0:
+				target += 1
+				room += 1
+				continue
+			if room not in boulders:
+				boulders[room] = []
+			x = (data[target] << 3) & 0xf8
+			y = ((data[target] & 0xe0) | 8) - 32
+			boulders[room].append((x, y))
+			target += 1
+	# Find enemies
+	target = 0xb5cb + (idx + 1) * 2 - 0xa000 + 6 * 0x2000
+	e = struct.unpack('<H', data[target:target + 2])[0] - 0xa000 + 6 * 0x2000
+	room = 0
+	while room < rooms[idx]:
+		if data[e] == 0:
+			room += 1
+			e += 1
+			continue
+		if room not in enemies:
+			enemies[room] = {}
+		etype = data[e] & 0x7f
+		ey = data[e + 1] & 0xf8
+		ex = ((data[e + 1] << 5) | ((data[e] & 0x80) >> 3)) & 0xf0
+		record = (etype, ex, ey)
+		if record not in enemies[room]:
+			enemies[room][record] = 0
+		enemies[room][record] += 1
+		#print('enemy %s at %02x %02x in room %02x world %d' % (enemy_names[etype], ex, ey, room + 1, idx))
+		e += 2
 	while data[itemptr] != 0:
 		# Data is: room(8-bit) x4,x3,item(6-bit) y7,y6,y5,y4,y3,x7,x6,x5
 		room, xitem, yx = data[itemptr:itemptr + 3]
@@ -115,9 +201,12 @@ for idx, w in enumerate(world):
 	# Convert character map to image.
 	worldmap = []
 	for r in range(rooms[idx]):
-		it = tuple(items.get(r, [None, 0, 0]))
-		sh = tuple(shrines.get(r, [None, None, None]))
-		worldmap.append(makeimage(fullmap[r], charset_id[r] if idx == 0 else -1, *(it + sh)))
+		it = items.get(r)
+		sh = shrines.get(r)
+		wd = worlddoor.get(r)
+		e = enemies.get(r)
+		b = boulders.get(r)
+		worldmap.append(makeimage(fullmap[r], charset_id[r] if idx == 0 else -1, it, sh, wd, e, b))
 	out.append(worldmap)
 # }}}
 
@@ -213,8 +302,7 @@ for w in range(11):
 	# Create the world image.
 	size = h[w][0] - l[w][0] + 1, h[w][1] - l[w][1] + 1
 	textmap.append([['  ' for x in range(size[0])] for y in range(size[1])])
-	worldmap.append(Image.new('P', (size[0] * 257 - 1, size[1] * 161 - 1), 1))
-	worldmap[w].putpalette(palette)
+	worldmap.append(Image.new('RGB', (size[0] * 257 - 1, size[1] * 161 - 1), (0, 0, 0)))
 	worldmapt = ImageDraw.Draw(worldmap[w])
 	for sp in screenpos:
 		tx = screenpos[sp][0] - l[w][0]
@@ -226,11 +314,11 @@ for w in range(11):
 			debug_charset = False	# w == 0	# Use this to debug charsets castle.
 			worldmap[w].paste(out[w][sp - 1], (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '%02x' % sp
-			worldmapt.rectangle((x, y, x + 15 + (15 if debug_charset else 0), y + 10), fill=255)
+			worldmapt.rectangle((x, y, x + 15 + (15 if debug_charset else 0), y + 10), fill = (0, 0, 0))
 			if debug_charset:
-				worldmapt.text((x + 2, y), "%02x/%x" % (sp, charset_id[sp - 1]))
+				worldmapt.text((x + 2, y), "%02x/%x" % (sp, charset_id[sp - 1]), fill = (255, 255, 255))
 			else:
-				worldmapt.text((x + 2, y), "%02x" % sp)
+				worldmapt.text((x + 2, y), "%02x" % sp, fill = (255, 255, 255))
 		else:
 			worldmap[w].paste(invalid, (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '++'
