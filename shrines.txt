@@ -122,10 +122,15 @@ else:
 			ldir met b=0 en restore bc
 			de += 20 - c	# next line
 			repeat b times
-		character = ba if ix[0] == 5c else 7a	# mirror check?
+		character = ba if ix[0] == 5c (== spiral ball: should look like boulder) else 7a
 		# Write 2x2 item to screen buffer.
 		*(ix[12:13]) = character
 		*(ix[12:13] + 1) = character + 1
 		*(ix[12:13] + 20) = character + 2
 		*(ix[12:13] + 21) = character + 3
 		ret
+	
+##### Code block 1
+#6636
+*f020 is current enemy memory (under e800)
+*f019 is current enemy type

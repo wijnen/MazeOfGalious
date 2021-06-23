@@ -8,6 +8,7 @@ import numpy
 from PIL import Image
 from PIL import ImageDraw
 import read_patterns
+import read_sprites
 # }}}
 
 # Palette {{{
@@ -71,16 +72,32 @@ enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "06"
 		"70", "71", "72", "73", "74", "75", "76", "77",
 		"78", "79", "7A", "7B", "7C", "7D", "7E", "7F")
 
-def makeimage(roomdata, charset_id, item, shrine, worlddoor, enemies, boulders): # {{{
+# Find sprite codes that are loaded for a room. Can be used to check that sprite patterns are available and to map sprite names to their enemy codes.
+room_sprites = []
+for w, num_rooms in enumerate(rooms):
+	room_sprites.append([None])
+	ptr = 0x17737 + 2 * (w + 1)
+	ptr = struct.unpack('<H', data[ptr:ptr + 2])[0] - 0x8000 + 0x16000
+	# ptr is now pointing at a list of enemy codes that are loaded for this room.
+	room = 0
+	for room in range(num_rooms):
+		room_sprites[-1].append([])
+		while data[ptr] != 0:
+			room_sprites[-1][-1].append(data[ptr])
+			ptr += 1
+		ptr += 1
+
+def makeimage(world_num, room_num, roomdata, charset_id, item, shrine, worlddoor, enemies, boulders): # {{{
 	'Convert data into image'
-	ret = numpy.zeros((20 * 8, 32 * 8), dtype = numpy.uint8)
+	im = Image.new('RGB', (32 * 8, 20 * 8))
 	for y in range(20):
 		for x in range(32):
+			c = read_patterns.get_char(read_patterns.sets[charset_id], roomdata[y, x])
 			if roomdata[y, x] != 0x6c: # Hide walk-through walls.
-				ret[y * 8:(y + 1) * 8, x * 8:(x + 1) * 8] = read_patterns.get_char(charset_id, roomdata[y, x])
-	im = Image.fromarray(ret, 'P')
-	im.putpalette(palette)
-	im = im.convert('RGB')
+				if c is not None:
+					im.paste(read_patterns.get_char(read_patterns.sets[charset_id], roomdata[y, x]), (8 * x, 8 * y))
+			else:
+				im.paste(read_patterns.get_char(read_patterns.sets[charset_id], roomdata[y, x]), (8 * x, 8 * y), Image.new('L', (8, 8), 128))
 	imt = ImageDraw.Draw(im)
 	# Draw boulders first, so that what's behind can be shown on top.
 	if boulders is not None:
@@ -88,7 +105,7 @@ def makeimage(roomdata, charset_id, item, shrine, worlddoor, enemies, boulders):
 			im.paste(read_patterns.boulder_img, (x, y, x + 16, y + 16))
 	if item is not None:
 		item_item, item_x, item_y = item
-		itemimg = read_patterns.create_item_image(item_item)
+		itemimg = read_patterns.items[item_item]
 		if boulders is not None and (item_x, item_y) in boulders:
 			t = Image.eval(itemimg.convert('L'), lambda p: 128 if p == 0 else 255)
 			im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]), t)
@@ -106,10 +123,44 @@ def makeimage(roomdata, charset_id, item, shrine, worlddoor, enemies, boulders):
 		num, x, y = worlddoor
 		im.paste(read_patterns.worlddoor_img, (x, y, x + 32, y + 24))
 		imt.text((x + 13, y + 13), '%x' % num, fill = (255, 255, 255))
+	unused_enemies = set(room_sprites[world_num][room_num + 1])
 	if enemies is not None:
 		for e in enemies:
+			fixes = {0x64: 0x2c, 0x69: 0x06}
+			code = fixes.get(e[0], e[0])
 			num = enemies[e]
-			imt.text((e[1], e[2] - 32), enemy_names[e[0]] + (' x %d' % num if num > 1 else ''), fill = (255, 255, 255))
+			pos = e[1], e[2] - 32
+			boss_map = {0x3a: 0x00, 0x50: 0x02, 0x32: 0x04, 0x51: 0x05, 0x5c: None, 0x04: None} # Moais and armors, and baby in boulder
+			if code in boss_map:
+				block = boss_map[code]
+				if block is None:
+					if code == 4:
+						# Hanging snake ("Gate"). Draw as image.
+						target = read_patterns.composite([4], [[0xb5], [0x99]])
+					else:
+						# Baby option. Show baby in boulder.
+						baby = read_sprites.bosses[0x17]
+						boulder = read_sprites.bosses[0x39]
+						target = baby.copy()
+						target.paste(boulder, (0, 0), Image.new('L', boulder.size, 128))
+				else:
+					target = read_sprites.bosses[block]
+				im.paste(target, pos)
+			else:
+				if code not in room_sprites[world_num][room_num + 1]:
+					print('warning: wrong sprite in room %d %02x? %02x(%s) not in %s' % (world_num, room_num + 1, code, enemy_names[code], ','.join('%02x(%s)' % (x, enemy_names[x]) for x in room_sprites[world_num][room_num + 1])))
+				elif code in unused_enemies:
+					unused_enemies.remove(code)
+				if code == 0x31 and not (pos[1] & 8):
+					# Gas at odd row show use different sprite.
+					sprite = read_sprites.sprite_imgs[code][7]
+				else:
+					sprite = read_sprites.sprites[code]
+				im.paste(sprite, pos, sprite)
+				#imt.text(pos, enemy_names[code], fill = (255, 255, 255))
+			if num > 1:
+				imt.text((pos[0], pos[1] + 12), 'x%d' % num, fill = (255, 255, 255))
+	# TODO: show unused enemies on screen as well.
 	## Show bit-pattern of character code on top line.
 	#for y in range(20):
 	#	for x in range(32):
@@ -206,7 +257,8 @@ for idx, w in enumerate(world):
 		wd = worlddoor.get(r)
 		e = enemies.get(r)
 		b = boulders.get(r)
-		worldmap.append(makeimage(fullmap[r], charset_id[r] if idx == 0 else -1, it, sh, wd, e, b))
+		#print('world %d room %x' % (idx, r))
+		worldmap.append(makeimage(idx, r, fullmap[r], charset_id[r] if idx == 0 else 7, it, sh, wd, e, b))
 	out.append(worldmap)
 # }}}
 

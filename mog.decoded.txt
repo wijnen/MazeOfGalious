@@ -3718,9 +3718,9 @@ T5A97h	29......  )...	ADD	HL,HL
 T5A98h	29......  )...	ADD	HL,HL	
 T5A99h	29......  )...	ADD	HL,HL	
 T5A9Ah	223EE0..  ">..	LD	(TE03EH),HL
-T5A9Dh	CD665B..  .f[.	CALL	read_vram	; Copy max 8 characters from VRAM, both pgt and ct; dest: 0xed00
-T5AA0h	CD085B..  ..[.	CALL	mirror_chars
-T5AA3h	CD1E5B..  ..[.	CALL	write_vram
+T5A9Dh	CD665B..  .f[.	CALL	read_vram	; Copy max 8 characters from VRAM, both pgt and ct; dest: 0xed00 and 0xed40 respectively. src char is ix[0] from region ix[2].2:1
+T5AA0h	CD085B..  ..[.	CALL	mirror_chars	; mirror ix[3] chars starting at ed00
+T5AA3h	CD1E5B..  ..[.	CALL	write_vram	; Copy ix[3] chars back to VRAM, both pgt and ct, for all 3 regions (optional). target = ix[1], regions enable is ix[2].5:3
 T5AA6h	110400..  ....	LD	DE,00004h
 T5AA9h	DD19....  ....	ADD	IX,DE	
 T5AABh	18E0....  ....	JR	0E0h			; Jump to 05A8DH
@@ -3841,7 +3841,7 @@ T5B7Ch	1628....  .(..	LD	D,028h
 T5B7Eh	DDCB024E  ...N	BIT	1,(IX+002h)
 T5B82h	2002....  ....	JR	NZ,002h			; Jump to 05B86H
 T5B84h	1630....  .0..	LD	D,030h	
-T5B86h	19......  ....	ADD	HL,DE	
+T5B86h	19......  ....	ADD	HL,DE		; HL is src vram address for char IX[0] in screen region IX[2].2:1
 T5B87h	1100ED..  ....	LD	DE,0ED00h
 T5B8Ah	DDE5....  ....	PUSH	IX	
 T5B8Ch	CD5900..  .Y..	CALL	ldirmv			; Move block of size BC to ED00 from VRAM 3000/2800/2000+8*IX[0]
