@@ -60,6 +60,32 @@ Only in world 0!
 Boulder map starts at b8a2 @789
 
 
+disappearing ladders
+watchpoint for screen coordinate: drawn from 733c @1ef, based on *ec05(pos)+*ec03(height)
+watchpoint for those: written in a78a @789, copied from a730
+Table at a6eb: 16* 2 bytes, which are world+room where the ladder is.
+	when found where A comes from (index into table), check a767 for what it does.
+e0c0 stores something: if it's 1, ladder is not drawn? If 0, it's checked
+	-> probably whether you've disappeared it
+from a746, hl starts at e0b0 and loops through something, 15 (16?) steps.
+for each, if *hl == 1, *hl = 0 (activation?)
+-> Found: list at a6eb contains all 13 disappearing ladders.
+set *ec00 to 10-index
+info at a700 @789:
+	Y, X, Height, ?: 	4 bytes copied to ec01
+	1 byte stored in ec0f
+
+	00 stored in ec07
+	hl = first 2 bytes (from ec01)
+	-> used to compute X(H), Y(L) on screen coordinate
+
+Summary:
+	everything happens in @789
+	table at a6eb contains world+room words with ladders -> get index from this table (note: 1-based)
+	use index on table at a700: record size 5
+	table contains Y, X, height, ?, ? of ladder (note: Y is screen pixels, so offset by 20)
+
+
 ####### Code block 0
 if not(ix[2] & 0x80): return
 if ix[9] & 0x80:

@@ -87,7 +87,7 @@ for w, num_rooms in enumerate(rooms):
 			ptr += 1
 		ptr += 1
 
-def makeimage(world_num, room_num, roomdata, charset_id, item, shrine, worlddoor, enemies, boulders): # {{{
+def makeimage(world_num, room_num, roomdata, charset_id, item, shrine, worlddoor, enemies, boulders, ladder): # {{{
 	'Convert data into image'
 	im = Image.new('RGB', (32 * 8, 20 * 8))
 	for y in range(20):
@@ -124,6 +124,13 @@ def makeimage(world_num, room_num, roomdata, charset_id, item, shrine, worlddoor
 		im.paste(read_patterns.worlddoor_img, (x, y, x + 32, y + 24))
 		imt.text((x + 13, y + 13), '%x' % num, fill = (255, 255, 255))
 	unused_enemies = set(room_sprites[world_num][room_num + 1])
+	if ladder is not None:
+		x, y, h = ladder
+		limg = read_patterns.composite([0], [[0x9a, 0x9b]])
+		t = Image.new('L', limg.size, 128)
+		for i in range(h):
+			print('l at %x %x' % (x, y + i))
+			im.paste(limg, (x, (y + i * 8) - 0x20), t)
 	if enemies is not None:
 		for e in enemies:
 			fixes = {0x64: 0x2c, 0x69: 0x06}
@@ -180,6 +187,7 @@ for idx, w in enumerate(world):
 	worlddoor = {}
 	enemies = {}
 	boulders = {}
+	ladders = {}
 	if idx == 0:
 		# Find shrines
 		target = 0x5dda
@@ -209,6 +217,16 @@ for idx, w in enumerate(world):
 			y = ((data[target] & 0xe0) | 8) - 32
 			boulders[room].append((x, y))
 			target += 1
+	# Find ladders
+	for i in range(0xd):
+		addr = 0x126eb + i * 2
+		ldata = 0x12700 + (i + 1) * 5
+		lw, lr = data[addr:addr + 2]
+		if lw != idx + 1:
+			continue
+		y, x, h, _, _ = data[ldata:ldata + 5]
+		ladders[lr - 1] = [x, y, h]
+	print(ladders)
 	# Find enemies
 	target = 0xb5cb + (idx + 1) * 2 - 0xa000 + 6 * 0x2000
 	e = struct.unpack('<H', data[target:target + 2])[0] - 0xa000 + 6 * 0x2000
@@ -257,8 +275,9 @@ for idx, w in enumerate(world):
 		wd = worlddoor.get(r)
 		e = enemies.get(r)
 		b = boulders.get(r)
+		l = ladders.get(r)
 		#print('world %d room %x' % (idx, r))
-		worldmap.append(makeimage(idx, r, fullmap[r], charset_id[r] if idx == 0 else 7, it, sh, wd, e, b))
+		worldmap.append(makeimage(idx, r, fullmap[r], charset_id[r] if idx == 0 else 7, it, sh, wd, e, b, l))
 	out.append(worldmap)
 # }}}
 
