@@ -86,6 +86,49 @@ Summary:
 	table contains Y, X, height, ?, ? of ladder (note: Y is screen pixels, so offset by 20)
 
 
+
+
+
+##### trap walls
+
+X coordinate: eaa3
+a896 @789 rom source of wall location in this screen
+a7bc @789 seems to be start of table
+code is in 9d0f @789
+a7bc: world pointers; castle: a7d4
+-> 0-terminated variable length fields.
+This room (84: 05 74 -> dropping enemies + trap wall?)
+
+c=05
+a=74
+
+d = 60: upper 3 bits
+e = A0: lower 5 bits << 3 -> == X coordinate
+
+Summary of this session:
+- There is a table with trap walls and some other things.
+- One table per world, pointers to each world table are in a7bc + 2 * world (1-based)
+- Each world table is a list of variable sized zero terminated records, one per room
+- Records can contain any number of 2-byte fields.
+- The first byte of each field is a code which indexes into a jump table. There are 7 options (starting at 1). Only the lower nybble is used. Upper nybble may contain data.
+- Code 5 is a trap wall.
+- For trap walls, the second byte is the coordinate of the top character: upper 3 bit is Y (in steps of 4 characters; options on screen: (20, 40, 60, 80, a0). Lower 5 bits are X in steps of 1 character.
+- Other codes will need to be checked.
+- Code 1 may be an elevator? This is not certain.
+
+Next step: draw trap walls.
+After that: place output on map for other things, assuming that second byte is also a coordinate with same encoding.
+
+Type reference:
+1: key door in castle
+2: key door in world
+3: one way push door (red) +10 == ->; +0 == <-
+4: push door in world (blue)
+5: trap wall
+6: water stones (no coordinate) (only world 5 room 0b)
+7: destructible wall
+
+
 ####### Code block 0
 if not(ix[2] & 0x80): return
 if ix[9] & 0x80:

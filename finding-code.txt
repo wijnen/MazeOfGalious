@@ -22,10 +22,7 @@ different part of the RAM. In that case, the method can simple be repeated to
 see when that was written to, until the source is in ROM.
 
 Still to do:
-- Disappearing ladders
-- Appearing walls
 - Enemy sprite colors
-- Key doors
-- Push doors
 - Elevators
 - Enemies that enter the screen later
+- Killall effects
