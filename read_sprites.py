@@ -5,7 +5,7 @@ Parts that may be called when imported as a module:
 
 - bosses[]: list of boss images. Index is 0-based (unlike in the game, I think)
 - sprite_imgs[]: dict of sprite images, RGBA. keys are game enemy codes (multiples of 4).
-- sprites[]: dict of merged sprite images. TODO
+- sprites[]: dict of merged sprite images.
 '''
 
 import read_patterns
@@ -186,16 +186,17 @@ for y, sp in enumerate(all_sprites):
 	for x, s in enumerate(sp):
 		im.paste(s, (offset + x * 17, y * 17, offset + x * 17 + 16, y * 17 + 16))
 im.save('/tmp/mogsprites.png')
+elevator = all_sprites[7][0]
 
 # Build composits for displaying on map.
 sprite_map = {
 	0x01: [[1]], 0x02: [[0]], 0x03: [[2]], 0x05: [[0]], 0x06: [[7], [1]], 0x07: [[1]],
-	0x08: [[3]], 0x09: [[1]], 0x0a: [[6, 7]], 0x0b: [[1]], 0x0c: [[5]], 0x0d: [[1]], 0x0e: [[3]], 0x0f: [[7]],
+	0x08: [[6]], 0x09: [[1]], 0x0a: [[6, 7]], 0x0b: [[1]], 0x0c: [[5]], 0x0d: [[1]], 0x0e: [[3]], 0x0f: [[7]],
 	0x10: [[1]], 0x11: [[3, 0]], 0x12: [[4]], 0x13: [[3]], 0x14: [[3]], 0x15: [[3, -3], [2, -2]], 0x16: [[1, 2], [3, 4]], 0x17: [[11, 8]],
-	0x18: [[1]], 0x19: [[10]], 0x1f: [[2]],
+	0x18: [[2]], 0x19: [[10]], 0x1f: [[2]],
 	0x20: [[0]], 0x21: [[0]], 0x22: [[0]], 0x23: [[0], [1]], 0x24: [[0]], 0x25: [[4, 5]], 0x26: [[2]], 0x27: [[1]],
 	0x28: [[3]], 0x29: [[0]], 0x2a: [[0]], 0x2b: [[1]], 0x2c: [[3]], 0x2d: [[1, 2]], 0x2e: [[4]], 0x2f: [[0]],
-	0x30: [[1]], 0x31: [[3]], 0x32: [[0]], 0x34: [[0]], 0x35: [[0]], 0x36: [[0]],
+	0x30: [[3, 4]], 0x31: [[3]], 0x32: [[0]], 0x34: [[0]], 0x35: [[0]], 0x36: [[0]],
 	0x38: [[0]], 0x39: [[0]], 0x3a: [[0]], 0x3c: [[1]], 0x3e: [[1]],
 	0x40: [[3, 4], [5, 6]], 0x42: [[1, -1]], 0x43: [[3, -3]],
 	0x49: [[5, -5]], 0x4c: [[0, 1], [2, 3]], 0x4e: [[0]], 0x4f: [[0]],

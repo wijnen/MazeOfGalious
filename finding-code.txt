@@ -23,6 +23,6 @@ see when that was written to, until the source is in ROM.
 
 Still to do:
 - Enemy sprite colors
-- Elevators
+- Horizontal elevators
 - Enemies that enter the screen later
 - Killall effects

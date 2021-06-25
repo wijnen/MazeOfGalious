@@ -147,7 +147,6 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 		item_item, item_x, item_y = extra['item']
 		itemimg = read_patterns.items[item_item]
 		# Special handling for items in destructible walls.
-		print('world %x room %02x item %s traps %s' % (world_num, room_num, extra['item'], extra['traps']))
 		if extra['traps'] is not None and any((item_x & 0xe0) == x and (item_y & 0xe0) == y for x, y, traptype in extra['traps'] if (traptype & 0xf) == 7):
 			t = Image.eval(itemimg.convert('L'), lambda p: 0xc0 if p == 0 else 255)
 			im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]), t)
@@ -177,6 +176,18 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 		t = Image.new('L', limg.size, 128)
 		for i in range(h):
 			im.paste(limg, (x, (y + i * 8) - 0x20), t)
+	# }}}
+	if extra['elevator'] is not None: # {{{
+		e = extra['elevator']
+		sprite = read_sprites.elevator
+		if e['limit'] is not None:
+			x, y = e['limit']
+			im.paste(sprite, (x, y), sprite)
+			im.paste(sprite, (x + 0x10, y), sprite)
+		t = Image.new('L', sprite.size, 0x80)
+		for x, y in e['path']:
+			im.paste(sprite, (x, y), t)
+			im.paste(sprite, (x + 0x10, y), t)
 	# }}}
 	# Draw enemies. {{{
 	unused_enemies = set(room_sprites[world_num][room_num + 1])
@@ -225,16 +236,16 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 out = []
 
 for idx, w in enumerate(world):
-	# Get a list of all items.
+	# Create all lists so they exist even without contents.
 	items = {}	# key is room, value is id, x, y
-	itemworldaddr = 0xb6fc + 2 * (idx + 1) - 0xa000 + 9 * 0x2000
 	shrines = {}
 	worlddoor = {}
 	enemies = {}
 	boulders = {}
 	ladders = {}
 	traps = {}
-	if idx == 0:
+	elevator = {}
+	if idx == 0: # Only in castle.
 		# Find shrines {{{
 		target = 0x5dda
 		while rom[target] != 0:
@@ -266,6 +277,24 @@ for idx, w in enumerate(world):
 			boulders[room].append((x, y))
 			target += 1
 		# }}}
+		# Find vertical elevators. {{{
+		for e in range(6):
+			ptr = 0xbb24 - 0xa000 + 9 * 0x2000 + 8 * (5 - e)
+			y, x, dx, dy, top_room, top_y, bottom_room, bottom_y = rom[ptr:ptr + 8]
+			roomslistptr = 0xba80 + 2 * e - 0xa000 + 9 * 0x2000
+			roomsptr = struct.unpack('<H', rom[roomslistptr:roomslistptr + 2])[0] - 0xa000 + 9 * 0x2000
+			assert top_room == rom[roomsptr]
+			erooms = []
+			while rom[roomsptr] != bottom_room:
+				erooms.append(rom[roomsptr])
+				roomsptr += 1
+			# Elevator struct should be filled per room.
+			elevator[top_room - 1] = {'limit': (x, top_y - 0x20), 'path': [(x, 0x98)]}
+			elevator[bottom_room - 1] = {'limit': (x, bottom_y - 0x20), 'path': [(x, -0x8)]}
+			for r in erooms[1:]:
+				elevator[r - 1] = {'limit': None, 'path': [(x, -0x8), (x, 0x50), (x, 0x98)]}
+		# }}}
+	# Also in worlds.
 	# Find disappearing ladders {{{
 	for i in range(0xd):
 		addr = 0x126eb + i * 2
@@ -292,7 +321,6 @@ for idx, w in enumerate(world):
 				traps[traproom] = []
 			traps[traproom].append((x, y, traptype))
 		ptr += 1
-	print(traps)
 	# }}}
 	# Find enemies {{{
 	target = 0xb5cb + (idx + 1) * 2 - 0xa000 + 6 * 0x2000
@@ -316,6 +344,7 @@ for idx, w in enumerate(world):
 		e += 2
 	# }}}
 	# Find items {{{
+	itemworldaddr = 0xb6fc + 2 * (idx + 1) - 0xa000 + 9 * 0x2000
 	itemptr = struct.unpack('<H', rom[itemworldaddr:itemworldaddr + 2])[0] - 0xa000 + 9 * 0x2000
 	while rom[itemptr] != 0:
 		# Data is: room(8-bit) x4,x3,item(6-bit) y7,y6,y5,y4,y3,x7,x6,x5
@@ -326,12 +355,12 @@ for idx, w in enumerate(world):
 		# Weapons are half height.
 		if item < 7:
 			y += 8
-		items[room - 1] = (item, x, y - 32)
+		items[room - 1] = (item, x, y - 0x20)
 		#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, idx, room, item, x, y))
 		itemptr += 3
 	# }}}
-	# Create all rooms in a world.
-	fullmap = numpy.zeros((rooms[idx], 20, 32), dtype = numpy.uint8)
+	# Create all rooms in a world. (14x20 characters per room)
+	fullmap = numpy.zeros((rooms[idx], 0x14, 0x20), dtype = numpy.uint8)
 	# Read tiles in a room (8x5, so 40 bytes total).
 	roomdata = numpy.array([[x for x in rom[w + 40 * room:w + 40 * (room + 1)]] for room in range(rooms[idx])], dtype = numpy.uint8).reshape((rooms[idx], 5, 8))
 	# Unpack characters from tiles. {{{
@@ -350,6 +379,7 @@ for idx, w in enumerate(world):
 			'boulder': boulders.get(r),
 			'ladder': ladders.get(r),
 			'traps': traps.get(r),
+			'elevator': elevator.get(r),
 		}
 		#print('world %d room %x' % (idx, r))
 		worldmap.append(makeimage(idx, r, fullmap[r], charset_id[r] if idx == 0 else 7, extra))
@@ -359,7 +389,7 @@ for idx, w in enumerate(world):
 # Link stuff together. {{{
 worldmap = []
 textmap = []
-invalid = Image.new('P', (256, 160), 13)
+invalid = Image.new('RGB', (256, 160), (0xc0, 0x20, 0xc0))
 # Prepare rom structure for storing all room exits.
 exits = [numpy.zeros((4, rooms[w]), dtype = numpy.uint8) for w in range(11)]
 # Compute bounding box.

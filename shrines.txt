@@ -129,6 +129,122 @@ Type reference:
 7: destructible wall
 
 
+Killall
+=======
+
+Candle room (4b)
+6c63 @1ef copies the candle (76) to screen at location *e744
+alleen als *e740 tussen 7 en 0x2d ligt? dat zijn allowed items...?
+	e740: current room item
+	76: "the" item (different pattern based on room)
+--> dead end... seems to be in a forced screen redraw.
+When e622 drops to 0, 1 is written in e61c. Seems to be a marker value.
+read watchpoint triggers in a016 @123
+9f87 @123: load world+room
+not castle: ret
+room 30: 9fa7 -> pij
+room 4b: 9fb4 -> candle
+room 28: 9fc1 -> vase
+room 18: a003 -> sabre
+room 2b: a01a -> dagger
+
+
+
+
+Elevators
+=========
+
+7680 @1ef: fill sprite name in memory attribute table
+ec17 is x
+767c: hl = ec10; *hl == 0: no elevator
+	*(hl+5)-1 = Y
+	*(hl+7) = X
+	*HL' = Y, X + 10 -> second elevator block.
+
+So ec10 is filled when the elevator appears
+-> it's copied from e4c0
+
+There is a table of all 6 multi-room elevators in e4a0, 10 bytes each.
+Byte 1 is room number:
+	58 52 1c 10 18 16. This probably changes when the elevator moves.
+It does, at 648f @129
+(vertical) elevator handling starts at 643c @129
+ix=e4a0, b'=6, de'=10
+For each elevator:
+	exx; call 647a; exx
+	ix += de
+	djnz
+	in castle:
+		check 6 rooms from e4a1, step 10 (elevator rooms)
+		if equal: jr 6470
+		if none equal: no elevator (*ec10=0; *ec15=e0)
+	6470: handle elevator in current room (copy all 10 bytes to ec10); not relevant for map.
+
+	647a: handle elevator position.
+
+call 64ee:
+	XY += dXdY
+	check limits and update dXdY and flags.updown
+flags.2 = 0
+if up:
+	return if Y > 0x28 or (ix[0] == *e52d and *e52c != 1)	bible?
+	else:
+		ix[3] -= 1
+		c = 0xb9
+if down:
+	return if Y < 0xc0
+	else:
+		ix[3] += 1
+		c = 0x28
+	# change room. 649b @129
+	pointer table at ba80 @129	******************** !!!
+	get pointer from table at index ix[0] - 1
+	Add ix[3] (room index)
+	store new room in ix[1]
+	store c (Y) in ix[5].
+	flags &= ~78
+	if this elevator didn't just enter current room, return.
+
+initial fill: 63ca @129
+ix = e4a0; record length 10 (see below)
+
+hl' = bb54; record length 1: starting rooms.
+A = *HL'++
+B = 0
+E = counter
+C = 80
+A' = counter (6 .. 1)
+B' = 6 counting down.
+
+hl = bb24; record length 8 (see below)
+0 38	initial Y
+1 70	initial X
+2 00	dX
+3 02	dY
+4 11	upper limit room
+5 38	upper limit value
+6 38	lower limit room
+7 78	lower limit value
+
+
+Elevator struct: (6 times 10 bytes each, first at e4a0)
+0 E	elevator id
+1 A	current room
+2 C=80	flags: bit 1: down(0) or up(1) bit 2: ?
+3 B=00	current room index
+4 0	
+5 *HL++	current position Y
+6 0
+7 *HL++ current position X
+8 *HL++	dX per frame (all 0)
+9 *HL++	dY per frame (all 2)
+a -
+b -
+c *HL++	top limit room
+d *HL++	top limit position
+e *HL++	bottom limit room
+f *HL++	bottom limit position
+
 ####### Code block 0
 if not(ix[2] & 0x80): return
 if ix[9] & 0x80:
