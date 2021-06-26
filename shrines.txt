@@ -230,6 +230,29 @@ Type reference:
 5: trap wall
 6: water stones (no coordinate) (only world 5 room 0b)
 7: destructible wall
+
+More details about type 6:
+- On room enter: eab0[] is filled:
+eab0	01	traptype 6 is active in this room 
+eab1	00	number of appeared blocks
+eab2	00	direction (0 == ltr; 1 == rtl)
+eab3	012c	timer to go to next stage; resets to 0080
+eab5	00	next item in table at a630 -> aeb8
+eab6	00	flag? bit 0 tested.
+eab7	0078	position of next tile (Y, X)
+eab9	0000	screen address of tile to draw
+012c is timer that counts down when standing at the edge.
+
+Next, a541 @789 is called for counting down.
+a59a is reached when timer expires.
+*e505 is tested against *eab7: screen position x?
+*e507 is tested against *eab8 (+/- 10): screen position y?
+*aeb7+*aeb8 are copied to eabb
+
+Next tile position (y,x) is stored in *eab7
+
+
+
 # }}}
 
 Killall {{{

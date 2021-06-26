@@ -134,6 +134,13 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 				trap_img = read_patterns.composite([0], [[0xf0]] * 3)
 				t = Image.new('L', trap_img.size, 128)
 				im.paste(trap_img, (x, y), t)
+			elif traptype == 6:
+				# Appearing stones on the water. Coordinate is not used.
+				# Y is hardcoded to 0x78. X are 4 values taken from *a630 @789.
+				stone = read_patterns.composite([0], [[0xc2, 0xc3]])
+				for i in range(4):
+					x = rom[0xa630 - 0x6000 + 0x2000 * 7 + i]
+					im.paste(stone, (x, 0x78 - 0x20), Image.new('L', stone.size, 128))
 			elif traptype == 7:	# destructible wall
 				trap_img = read_patterns.composite([0 if world_num == 0 else 1], [[0xf0] * 4] * 3)
 				im.paste(Image.new('L', trap_img.size, 0), (x, y))

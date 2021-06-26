@@ -48570,7 +48570,7 @@ TA5D8h	1801....  ....	JR	001h			; Jump to 0A5DBH
 TA5DAh	35......  5...	DEC	(HL)	
 TA5DBh	4E......  N...	LD	C,(HL)	
 TA5DCh	0600....  ....	LD	B,000h	
-TA5DEh	2130A6..  !0..	LD	HL,0A630h
+TA5DEh	2130A6..  !0..	LD	HL,stone_positions
 TA5E1h	09......  ....	ADD	HL,BC	
 TA5E2h	7E......  ~...	LD	A,(HL)	
 TA5E3h	32B8EA..  2...	LD	(TEAB8H),A
@@ -48615,9 +48615,9 @@ TA629h	32B1EA..  2...	LD	(TEAB1H),A
 TA62Ch	32B6EA..  2...	LD	(TEAB6H),A
 TA62Fh	C9......  ....	RET			
 
-TA630h	3860....  8`..	JR	C,060h			; Jump to 0A692H
-TA632h	90......  ....	SUB	B	
-TA633h	B8......  ....	CP	B	
+stone_positions:
+TA630h	defb 38, 60, 90, B8
+
 TA634h	2A0EE6..  *...	LD	HL,(TE60EH)
 TA637h	7E......  ~...	LD	A,(HL)	
 TA638h	1F......  ....	RRA		
