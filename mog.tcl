@@ -4,3 +4,8 @@ proc go {room} {
 	poke 0xe64a "$room"	;# left
 	poke 0xe64b "$room"	;# right
 }
+
+proc edit {} {
+	toggle_mog_overlay
+	toggle_mog_editor
+}

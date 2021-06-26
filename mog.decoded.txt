@@ -461,28 +461,28 @@ T428Bh	CD4041..  .@A.	CALL	switch
 defw 0x42B8	; 0: konami logo
 defw 0x430C	; 1: MoG logo
 defw 0x433c	; 2: demo (substate 1 = game; 2 = story)
-defw 0x43F0	; 3:
-defw 0x4422	; 4:
+defw 0x43F0	; 3: "game start" blinking
+defw 0x4422	; 4: initial world load
 defw 0x4462	; 5: normal steady state
-defw 0x44F2	; 6:
-defw 0x454F	; 7:
-defw 0x4599	; 8:
+defw 0x44F2	; 6: "[hero] out" screen wipe
+defw 0x454F	; 7: "game over" screen wipe
+defw 0x4599	; 8: entering world
 defw 0x473A	; 9: pauze
 defw 0x4769	; a: goto new room
 defw 0x47CF	; b: item screen
-defw 0x484F	; c:
-defw 0x46AD	; d:
+defw 0x484F	; c: use magnifier
+defw 0x46AD	; d: returning to castle
 defw 0x488E	; e: god in world
 defw 0x4959	; f: boss appearing
 defw 0x48C5	;10: god in castle
 defw 0x49BA	;11: end demo
-defw 0x4A69	;12:
-defw 0x4B5B	;13:
-defw 0x4BD8	;14:
+defw 0x4A69	;12: entering password
+defw 0x4B5B	;13: boss fight
+defw 0x4BD8	;14: boss victory after key pickup
 ; }}}
 
 ; {{{ state handlers
-state_0:
+state_0:	; Konami logo
 T42B8h	100D....  ....	DJNZ	00Dh		; Jump to 042C7H
 state_0_1:
 T42BAh	3A03E0..  :...	LD	A,(TE003H)
@@ -508,7 +508,7 @@ T42D2h	C33B44..  .;D.	JP	T443BH
 state_0_0:
 T42D5h	CD4A4C..  .JL.	CALL	T4C4AH		; setup vdp
 T42D8h	CDB55B..  ..[.	CALL	clear_screen	
-T42DBh	CD345E..  .4^.	CALL	set_some_patterns_2	
+T42DBh	CD345E..  .4^.	CALL	load_text_characters_title	
 T42DEh	CD2B42..  .+B.	CALL	SetMapper9	
 T42E1h	CD5769..  .Wi.	CALL	T6957H		; setup vram patterns and name table
 T42E4h	CD1542..  ..B.	CALL	SetMapper3	
@@ -518,8 +518,8 @@ T42EBh	CDC95C..  ..\.	CALL	T5CC9H
 T42EEh	C35E43..  .^C.	JP	inc_substate
 
 T42F1h	CDE654..  ..T.	CALL	T54E6H	
-T42F4h	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	
-T42F7h	CD345E..  .4^.	CALL	set_some_patterns_2	
+T42F4h	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	; this hides all sprites.
+T42F7h	CD345E..  .4^.	CALL	load_text_characters_title	
 T42FAh	CD0A42..  ..B.	CALL	SetMapperE	
 T42FDh	CD4142..  .AB.	CALL	SetMapperF	
 T4300h	CD7257..  .rW.	CALL	T5772H	
@@ -527,7 +527,7 @@ T4303h	CD1562..  ..b.	CALL	T6215H
 T4306h	CDFF41..  ..A.	CALL	SetMapper2	
 T4309h	C31542..  ..B.	JP	SetMapper3		
 
-state_1:
+state_1:	; MoG logo
 T430Ch	C5......  ....	PUSH	BC	
 T430Dh	CDE598..  ....	CALL	T98E5H	
 T4310h	C1......  ....	POP	BC	
@@ -552,7 +552,7 @@ T4335h	210100..  !...	LD	HL,00001h
 T4338h	2298E6..  "...	LD	(TE698H),HL
 T433Bh	C9......  ....	RET			
 
-state_2:
+state_2:	; demo
 T433Ch	78......  x...	LD	A,B	
 T433Dh	CD4041..  .@A.	CALL	switch	
 defw 0x4348
@@ -650,14 +650,14 @@ T43E9h	C3AF5C..  ..\.	JP	T5CAFH
 T43ECh	AF......  ....	XOR	A		; Clear A and F
 T43EDh	C31F4E..  ..N.	JP	T4E1FH		
 
-state_3:
+state_3:	; "Game Start" blinking and starting game
 T43F0h	1012....  ....	DJNZ	012h		; Jump to 04404H
 state_3_1:
 T43F2h	2104E0..  !...	LD	HL,delay
 T43F5h	35......  5...	DEC	(HL)	
 T43F6h	CA5E43..  .^C.	JP	Z,inc_substate
 T43F9h	CB56....  .V..	BIT	2,(HL)	
-T43FBh	11717D..  .q}.	LD	DE,07D71h
+T43FBh	11717D..  .q}.	LD	DE,07D71h	; PLAY START
 T43FEh	CA255C..  .%\.	JP	Z,WriteStringToVRAM	
 T4401h	C33C5C..  .<\.	JP	T5C3CH		
 
@@ -677,14 +677,14 @@ T441Bh	3E2D....  >-..	LD	A,02Dh
 T441Dh	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
 T4420h	1025....  .%..	DJNZ	025h		; Jump to 04447H
-state_4:	; why not 4420?
+state_4:	; initial game start
 T4422h	CD4D60..  .M`.	CALL	SetupStatusBar	
 T4425h	CD0B51..  ..Q.	CALL	T510BH	
 T4428h	AF......  ....	XOR	A		; Clear A and F
 T4429h	321AE0..  2...	LD	(TE01AH),A
 T442Ch	3C......  <...	INC	A		;
 T442Dh	3219E0..  2...	LD	(TE019H),A
-T4430h	3A90E6..  :...	LD	A,(TE690H)
+T4430h	3A90E6..  :...	LD	A,(current_god_screen)
 T4433h	B7......  ....	OR	A	
 T4434h	3E0E....  >...	LD	A,00Eh	
 T4436h	C2A943..  ..C.	JP	NZ,set_new_state
@@ -713,7 +713,7 @@ T4459h	CD1A5D..  ..].	CALL	T5D1AH
 T445Ch	CDAF5C..  ..\.	CALL	T5CAFH	
 T445Fh	C35E43..  .^C.	JP	inc_substate
 
-state_5:
+state_5:	; Normal game play
 T4462h	CDF552..  ..R.	CALL	T52F5H	
 T4465h	3A19E0..  :...	LD	A,(TE019H)
 T4468h	B7......  ....	OR	A	
@@ -788,7 +788,7 @@ T44EDh	D604....  ....	SUB	004h
 T44EFh	FE04....  ....	CP	004h	
 T44F1h	C9......  ....	RET			
 
-state_6:
+state_6:	; [hero] out screen wipe
 T44F2h	100E....  ....	DJNZ	00Eh		; Jump to 04502H
 state_6_1:
 T44F4h	2104E0..  !...	LD	HL,delay
@@ -835,16 +835,16 @@ T4536h	18E4....  ....	JR	0E4h		; Jump to 0451CH
 
 T4538h	3A01E5..  :...	LD	A,(am_I_Popolon)
 T453Bh	B7......  ....	OR	A	
-T453Ch	11F67C..  ..|.	LD	DE,07CF6h
+T453Ch	11F67C..  ..|.	LD	DE,07CF6h	; APHRODITE OUT
 T453Fh	2803....  (...	JR	Z,003h		; Jump to 04544H
-T4541h	11067D..  ..}.	LD	DE,07D06h
+T4541h	11067D..  ..}.	LD	DE,07D06h	; POPOLON OUT
 T4544h	C3255C..  .%\.	JP	WriteStringToVRAM		
 
 T4547h	3E95....  >...	LD	A,095h	
 T4549h	CD1F4E..  ..N.	CALL	T4E1FH	
 T454Ch	C33944..  .9D.	JP	T4439H		
 
-state_7:
+state_7:	; game over screen wipe
 T454Fh	1031....  .1..	DJNZ	031h		; Jump to 04582H
 state_7_1:
 T4551h	CD8C7E..  ..~.	CALL	T7E8CH	
@@ -878,15 +878,15 @@ state_7_0:
 T4582h	CD1E4D..  ..M.	CALL	T4D1EH	
 T4585h	F0......  ....	RET	P		
 
-T4586h	11447D..  .D}.	LD	DE,07D44h
+T4586h	11447D..  .D}.	LD	DE,07D44h	; GAME OVER
 T4589h	CD255C..  .%\.	CALL	WriteStringToVRAM	
 T458Ch	3A27E0..  :'..	LD	A,(ZeusCheat)
 T458Fh	A7......  ....	AND	A	
-T4590h	11CF7E..  ..~.	LD	DE,07ECFh
+T4590h	11CF7E..  ..~.	LD	DE,07ECFh	; F5 CONTINUE
 T4593h	C4255C..  .%\.	CALL	NZ,WriteStringToVRAM
 T4596h	C35E43..  .^C.	JP	inc_substate
 
-state_8:
+state_8:	; climbing ladder into world
 T4599h	104D....  .M..	DJNZ	04Dh		; Jump to 045E8H
 state_8_1:
 T459Bh	CD6F9E..  .o..	CALL	T9E6FH	
@@ -898,7 +898,7 @@ T45A3h	CD8052..  ..R.	CALL	clear_ec80
 T45A6h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T45A9h	11287D..  .(}.	LD	DE,07D28h
 T45ACh	CD3C5C..  .<\.	CALL	T5C3CH	
-T45AFh	11147D..  ..}.	LD	DE,07D14h
+T45AFh	11147D..  ..}.	LD	DE,07D14h	; WORLD (center screen)
 T45B2h	CD255C..  .%\.	CALL	WriteStringToVRAM	
 T45B5h	3A88E6..  :...	LD	A,(TE688H)
 T45B8h	3D......  ....	DEC	A	
@@ -1039,7 +1039,7 @@ T46A8h	3600....  6...	LD	(HL),000h
 T46AAh	EDB0....  ....	LDIR		
 T46ACh	C9......  ....	RET			
 
-state_d:
+state_d:	; returning to castle
 T46ADh	103D....  ....	DJNZ	03Dh			; Jump to 046ECH
 state_d_1:
 T46AFh	CDF550..  ..P.	CALL	T50F5H	
@@ -1104,7 +1104,7 @@ T4722h	3EFA....  >...	LD	A,0FAh
 T4724h	CD1F4E..  ..N.	CALL	T4E1FH	
 T4727h	C35E43..  .^C.	JP	inc_substate
 
-T472Ah	111D7D..  ..}.	LD	DE,07D1Dh
+T472Ah	111D7D..  ..}.	LD	DE,07D1Dh	; CASTLE!!
 T472Dh	C3255C..  .%\.	JP	WriteStringToVRAM		
 
 T4730h	210000..  !...	LD	HL,00000h
@@ -1112,7 +1112,7 @@ T4733h	2276E0..  "v..	LD	(TE076H),HL
 T4736h	2278E0..  "x..	LD	(TE078H),HL
 T4739h	C9......  ....	RET			
 
-state_9:
+state_9:	; Paused
 T473Ah	100E....  ....	DJNZ	00Eh			; Jump to 0474AH
 state_9_1:
 T473Ch	3E05....  >...	LD	A,005h		; state 5: normal gameplay
@@ -1146,7 +1146,7 @@ T477Ah	3242E0..  2B..	LD	(RoomNumber),A
 T477Dh	CDCD51..  ..Q.	CALL	PrepareNewRoom	
 T4780h	AF......  ....	XOR	A			; Clear A and F
 T4781h	321AE0..  2...	LD	(TE01AH),A
-T4784h	3A90E6..  :...	LD	A,(TE690H)
+T4784h	3A90E6..  :...	LD	A,(current_god_screen)
 T4787h	B7......  ....	OR	A	
 T4788h	3E0E....  >...	LD	A,00Eh	
 T478Ah	C2A943..  ..C.	JP	NZ,set_new_state
@@ -1265,7 +1265,7 @@ T4849h	CDA865..  ..e.	CALL	setup_itemscreen_variables
 T484Ch	C35E43..  .^C.	JP	inc_substate
 ; }}}
 
-state_c:
+state_c:	; magnifier view
 T484Fh	101D....  ....	DJNZ	01Dh			; Jump to 0486EH
 state_c_1:
 T4851h	CD684C..  .hL.	CALL	store_controls	
@@ -1295,7 +1295,7 @@ T4885h	CDB969..  ..i.	CALL	T69B9H
 T4888h	CD1542..  ..B.	CALL	SetMapper3	
 T488Bh	C35E43..  .^C.	JP	inc_substate
 
-state_e:
+state_e:	; god in world
 T488Eh	1027....  .'..	DJNZ	027h			; Jump to 048B7H
 state_e_1:
 T4890h	CD684C..  .hL.	CALL	store_controls	
@@ -1306,7 +1306,7 @@ T489Ch	E602....  ....	AND	002h
 T489Eh	C8......  ....	RET	Z		
 
 T489Fh	AF......  ....	XOR	A			; Clear A and F
-T48A0h	3290E6..  2...	LD	(TE690H),A
+T48A0h	3290E6..  2...	LD	(current_god_screen),A
 T48A3h	3E10....  >...	LD	A,010h	
 T48A5h	3202E5..  2...	LD	(TE502H),A
 T48A8h	3E02....  >...	LD	A,002h	
@@ -1319,11 +1319,11 @@ T48B4h	C3A943..  ..C.	JP	set_new_state
 state_e_0:
 T48B7h	3E8D....  >...	LD	A,08Dh	
 T48B9h	CD0A5D..  ..].	CALL	T5D0AH	
-T48BCh	CDE157..  ..W.	CALL	T57E1H	
+T48BCh	CDE157..  ..W.	CALL	setup_god_screen_characters
 T48BFh	CD1E8F..  ....	CALL	T8F1EH	
 T48C2h	C35E43..  .^C.	JP	inc_substate
 
-state_10:
+state_10:	; god in castle
 T48C5h	78......  x...	LD	A,B	
 T48C6h	CD4041..  .@A.	CALL	switch	
 defw 0x48d3
@@ -1344,15 +1344,16 @@ T48E7h	3A08E6..  :...	LD	A,(TE608H)
 T48EAh	B7......  ....	OR	A	
 T48EBh	C0......  ....	RET	NZ		
 
+; Drawing of god screen starts here.
 T48ECh	CD8052..  ..R.	CALL	clear_ec80
 T48EFh	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
-T48F2h	3A80E6..  :...	LD	A,(TE680H)
-T48F5h	3290E6..  2...	LD	(TE690H),A
+T48F2h	3A80E6..  :...	LD	A,(god_id_in_screen)
+T48F5h	3290E6..  2...	LD	(current_god_screen),A
 T48F8h	CD0149..  ..I.	CALL	T4901H	
 T48FBh	CD1E8F..  ....	CALL	T8F1EH	
 T48FEh	C35E43..  .^C.	JP	inc_substate
 
-T4901h	CDE157..  ..W.	CALL	T57E1H	
+T4901h	CDE157..  ..W.	CALL	setup_god_screen_characters
 T4904h	3E8D....  >...	LD	A,08Dh	
 T4906h	C3AF5C..  ..\.	JP	T5CAFH		
 
@@ -1374,7 +1375,7 @@ T4920h	1818....  ....	JR	018h			; Jump to 0493AH
 T4922h	CD8052..  ..R.	CALL	clear_ec80
 T4925h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4928h	AF......  ....	XOR	A			; Clear A and F
-T4929h	3290E6..  2...	LD	(TE690H),A
+T4929h	3290E6..  2...	LD	(current_god_screen),A
 T492Ch	CDDF51..  ..Q.	CALL	T51DFH	
 T492Fh	CD429F..  .B..	CALL	T9F42H	
 T4932h	CDB773..  ..s.	CALL	T73B7H	
@@ -1396,7 +1397,7 @@ T4951h	321CE0..  2...	LD	(TE01CH),A
 T4954h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T4956h	C3A943..  ..C.	JP	set_new_state		
 
-state_f:
+state_f:	; boss appearing
 T4959h	100E....  ....	DJNZ	00Eh			; Jump to 04969H
 state_f_1:
 T495Bh	CD689F..  .h..	CALL	T9F68H	
@@ -1448,7 +1449,7 @@ T49B3h	2248E6..  "H..	LD	(current_exits),HL
 T49B6h	224AE6..  "J..	LD	(current_exits + 2),HL
 T49B9h	C9......  ....	RET			
 
-state_11:
+state_11:	; end demo
 T49BAh	78......  x...	LD	A,B	
 T49BBh	CD4041..  .@A.	CALL	switch	
 defw 0x49d0, 0x49da, 0x49e5, 0x49f0, 0x49f9, 0x4a1e, 0x4a35, 0x4a51, 0x4a62
@@ -1511,7 +1512,7 @@ state_11_6:
 T4A35h	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T4A38h	CD8052..  ..R.	CALL	clear_ec80
 T4A3Bh	CD8E56..  ..V.	CALL	setup_for_new_screen	
-T4A3Eh	CD1E6A..  ..j.	CALL	T6A1EH	
+T4A3Eh	CD1E6A..  ..j.	CALL	setup_vram_end_demo
 T4A41h	CDCA6A..  ..j.	CALL	T6ACAH	
 T4A44h	3E01....  >...	LD	A,001h	
 T4A46h	322EE0..  2...	LD	(TE02EH),A
@@ -1535,7 +1536,7 @@ T4A65h	C8......  ....	RET	Z
 
 T4A66h	C35F45..  ._E.	JP	T455FH		
 
-state_12:
+state_12:	; entering password
 T4A69h	C5......  ....	PUSH	BC	
 T4A6Ah	CD684C..  .hL.	CALL	store_controls	
 T4A6Dh	C1......  ....	POP	BC	
@@ -1634,7 +1635,7 @@ T4B27h	CDE654..  ..T.	CALL	T54E6H
 T4B2Ah	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	
 T4B2Dh	CD8052..  ..R.	CALL	clear_ec80
 T4B30h	CD8E56..  ..V.	CALL	setup_for_new_screen	
-T4B33h	CD955E..  ..^.	CALL	set_some_patterns_5	
+T4B33h	CD955E..  ..^.	CALL	load_text_characters_kana	
 T4B36h	CDDD54..  ..T.	CALL	lock_e602
 T4B39h	210018..  !...	LD	HL,01800h
 T4B3Ch	114E4B..  .NK.	LD	DE,04B4Eh
@@ -1658,7 +1659,7 @@ T4B58h	07......  ....	RLCA
 T4B59h	00......  ....	NOP		
 T4B5Ah	00......  ....	NOP		
 
-state_13:
+state_13:	; boss fight
 T4B5Bh	1031....  .1..	DJNZ	031h			; Jump to 04B8EH
 state_13_1:
 T4B5Dh	CD4142..  .AB.	CALL	SetMapperF	
@@ -1730,7 +1731,7 @@ T4BD5h	B8......  ....	CP	B
 T4BD6h	78......  x...	LD	A,B	
 T4BD7h	B8......  ....	CP	B	
 
-state_14:
+state_14:	; boss victory after key pickup
 T4BD8h	1016....  ....	DJNZ	016h			; Jump to 04BF0H
 state_14_1:
 T4BDAh	CD81BE..  ....	CALL	TBE81H	
@@ -2094,6 +2095,7 @@ T4E1Eh	C9......  ....	RET
 # }}}
 
 ;; This function is sometimes called and sometimes jumped to.
+; It seems to do some basic housekeeping on the screen. It is called all the time.
 T4E1Fh	B7......  ....	OR	A			; Test A
 T4E20h	F2344E..  .4N.	JP	P,T4E34H		; if (A >= 0) goto 0x4e34
 T4E23h	E5......  ....	PUSH	HL			; Save current HL
@@ -2138,10 +2140,13 @@ T4E6Ah	C9......  ....	RET
 
 
 ; This is called with extreme protection: interrupts disabled, all registers and mappers saved and restored.
+; Mappers are forced to @de. for this call.
+; It looks like this function's goal is to fill the information about a god screen.
+; e1c8, e1c4, e1c0: items for sale(?)
 T4E6Bh	B7......  ....	OR	A	
-T4E6Ch	CA024E..  ..N.	JP	Z,T4E02H	
+T4E6Ch	CA024E..  ..N.	JP	Z,T4E02H	; reset bytes e1c7, e1b0, e1b2, e1c3 to 0, words e100, e102, e104, e106 to 6075 and return.
 T4E6Fh	FEFA....  ....	CP	0FAh	
-T4E71h	D2524F..  .RO.	JP	NC,T4F52H
+T4E71h	D2524F..  .RO.	JP	NC,T4F52H	; set items for sale(?) to 01 fa 0a
 T4E74h	B7......  ....	OR	A	
 T4E75h	F2124F..  ..O.	JP	P,T4F12H	
 T4E78h	32C7E1..  2...	LD	(TE1C7H),A
@@ -2481,9 +2486,9 @@ T5141h	CDE59A..  ....	CALL	T9AE5H
 T5144h	CD0B52..  ..R.	CALL	T520BH	
 T5147h	CDEF8E..  ....	CALL	T8EEFH	
 T514Ah	CD6155..  .aU.	CALL	T5561H			; Draw background and walls, and handle special world actions.
-T514Dh	3A90E6..  :...	LD	A,(TE690H)
+T514Dh	3A90E6..  :...	LD	A,(current_god_screen)
 T5150h	B7......  ....	OR	A	
-T5151h	2053....  .S..	JR	NZ,053h			; Jump to 051A6H
+T5151h	2053....  .S..	JR	NZ,053h			; Jump to 051A6H: draw god screen.
 T5153h	CD2B42..  .+B.	CALL	SetMapper9	
 T5156h	CD685D..  .h].	CALL	T5D68H			; Add item to room
 T5159h	CD1A69..  ..i.	CALL	T691AH	
@@ -2513,11 +2518,13 @@ T519Ah	CDEA63..  ..c.	CALL	T63EAH
 T519Dh	CD1542..  ..B.	CALL	SetMapper3	
 T51A0h	CDD05C..  ..\.	CALL	T5CD0H	
 T51A3h	CD245D..  .$].	CALL	T5D24H	
+
+draw_world_title:
 T51A6h	3A41E0..  :A..	LD	A,(WorldNumber)
 T51A9h	3D......  ....	DEC	A	
 T51AAh	11287D..  .(}.	LD	DE,07D28h
 T51ADh	2803....  (...	JR	Z,003h			; Jump to 051B2H
-T51AFh	11337D..  .3}.	LD	DE,07D33h
+T51AFh	11337D..  .3}.	LD	E,07D33h	; "WORLD " (top left)
 T51B2h	CD255C..  .%\.	CALL	WriteStringToVRAM	
 T51B5h	3A41E0..  :A..	LD	A,(WorldNumber)
 T51B8h	D601....  ....	SUB	001h	
@@ -2991,12 +2998,12 @@ T555Eh	77......  w...	LD	(HL),A
 T555Fh	D9......  ....	EXX		
 T5560h	C9......  ....	RET			
 
-T5561h	3A90E6..  :...	LD	A,(TE690H)
+T5561h	3A90E6..  :...	LD	A,(current_god_screen)
 T5564h	B7......  ....	OR	A	
 T5565h	C0......  ....	RET	NZ		
 
 T5566h	CD9E41..  ..A.	CALL	SetMapper789	
-T5569h	CDC655..  ..U.	CALL	T55C6H			; Draw background times (incl. walls)
+T5569h	CDC655..  ..U.	CALL	T55C6H			; Draw background tiles (incl. walls)
 T556Ch	CD7555..  .uU.	CALL	T5575H			; Handle carpet special actions. (turn lava to stone in world 8)
 T556Fh	CD9055..  ..U.	CALL	T5590H			; Handle world 3 special actions. (loop in screen 04)
 T5572h	C36C41..  .lA.	JP	SetMapper123		
@@ -3196,7 +3203,7 @@ T568Dh	C9......  ....	RET
 ;; This happens on screen change.
 setup_for_new_screen:
 T568Eh	CDDD54..  ..T.	CALL	lock_e602
-T5691h	CD115E..  ..^.	CALL	set_some_patterns_1
+T5691h	CD115E..  ..^.	CALL	load_text_characters_default
 T5694h	CDB741..  ..A.	CALL	SetMapperABC	
 T5697h	CDE959..  ..Y.	CALL	setup_per_screen_characters
 T569Ah	CD2B42..  .+B.	CALL	SetMapper9	
@@ -3211,6 +3218,7 @@ T56AEh	3AD2E0..  :...	LD	A,(TE0D2H)
 T56B1h	B7......  ....	OR	A	
 T56B2h	C45658..  .VX.	CALL	NZ,LoadMoreBossPatterns
 T56B5h	CD2F59..  ./Y.	CALL	setup_sprites_1	
+finish_new_screen_setup:
 T56B8h	CDC756..  ..V.	CALL	clear_variables	
 T56BBh	CDE154..  ..T.	CALL	unlock_e602
 T56BEh	C36C41..  .lA.	JP	SetMapper123		
@@ -3305,7 +3313,7 @@ T5761h	DD213961  .!9a	LD	IX,06139h
 T5765h	CDB35A..  ..Z.	CALL	setup_vram_patterns	
 T5768h	DD214061  .!@a	LD	IX,06140h
 T576Ch	CD8D5A..  ..Z.	CALL	mirror_chars_multiple	
-T576Fh	C3B856..  ..V.	JP	T56B8H		
+T576Fh	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 T5772h	CDDD54..  ..T.	CALL	lock_e602
 T5775h	06E0....  ....	LD	B,0E0h	
@@ -3333,7 +3341,7 @@ T57B5h	CD8D5A..  ..Z.	CALL	mirror_chars_multiple
 T57B8h	210018..  !...	LD	HL,01800h
 T57BBh	11AFBE..  ....	LD	DE,0BEAFh
 T57BEh	CD465C..  .F\.	CALL	send_vram		; sprite patterns = 1800-2000
-T57C1h	C3B856..  ..V.	JP	T56B8H		
+T57C1h	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 T57C4h	211025..  !.%.	LD	HL,02510h
 T57C7h	CDCD57..  ..W.	CALL	T57CDH	
@@ -3345,56 +3353,57 @@ T57D4h	CD5900..  .Y..	CALL	ldirmv
 T57D7h	E1......  ....	POP	HL	
 T57D8h	1100E8..  ....	LD	DE,0E800h
 T57DBh	01A000..  ....	LD	BC,000A0h
-T57DEh	C3D85B..  ..[.	JP	T5BD8H		
+T57DEh	C3D85B..  ..[.	JP	send_vram_3_times		
 
+setup_god_screen_characters:
 T57E1h	CDDD54..  ..T.	CALL	lock_e602
-T57E4h	CD955E..  ..^.	CALL	set_some_patterns_5	
+T57E4h	CD955E..  ..^.	CALL	load_text_characters_kana	
 T57E7h	CDB741..  ..A.	CALL	SetMapperABC	
 T57EAh	DD219063  .!.c	LD	IX,06390h
-T57EEh	CD8D5A..  ..Z.	CALL	mirror_chars_multiple	
+T57EEh	CD8D5A..  ..Z.	CALL	mirror_chars_multiple	; copy 68 to 64. (4 characters)
 T57F1h	DD215E63  .!^c	LD	IX,0635Eh
-T57F5h	CDB35A..  ..Z.	CALL	setup_vram_patterns	
+T57F5h	CDB35A..  ..Z.	CALL	setup_vram_patterns	; build gods characters.
 T57F8h	218007..  !...	LD	HL,00780h
-T57FBh	111D58..  ..X.	LD	DE,0581Dh
+T57FBh	111D58..  ..X.	LD	DE,god_wall_colors
 T57FEh	010800..  ....	LD	BC,00008h
-T5801h	CDD85B..  ..[.	CALL	T5BD8H	
-T5804h	3A90E6..  :...	LD	A,(TE690H)
+T5801h	CDD85B..  ..[.	CALL	send_vram_3_times	; set up f0 colors from 581d: god wall complete.
+T5804h	3A90E6..  :...	LD	A,(current_god_screen)
 T5807h	FE0E....  ....	CP	00Eh	
-T5809h	300F....  0...	JR	NC,00Fh			; Jump to 0581AH
-T580Bh	212458..  !$X.	LD	HL,05824h
+T5809h	300F....  0...	JR	NC,00Fh			; Jump to 0581AH if this god is in a world and not selling things.
+T580Bh	212458..  !$X.	LD	HL,god_items - 1
 T580Eh	CD5541..  .UA.	CALL	A=HL[A]	
 T5811h	B7......  ....	OR	A	
-T5812h	2806....  (...	JR	Z,006h			; Jump to 0581AH
+T5812h	2806....  (...	JR	Z,006h			; Jump to 0581AH	skip item loading if first item is 0.
 T5814h	217024..  !p$.	LD	HL,02470h
 T5817h	CDE158..  ..X.	CALL	load_item_patterns	
-T581Ah	C3B856..  ..V.	JP	T56B8H		
+T581Ah	C3B856..  ..V.	JP	finish_new_screen_setup		
 
-T581Dh	F0......  ....	RET	P		
+god_wall_colors:
+T581Dh		defb	0xf0, 0xa0, 0xa0, 0x00, 0xf0, 0xa0, 0xa0, 0x00
 
-T581Eh	A0......  ....	AND	B	
-T581Fh	A0......  ....	AND	B	
-T5820h	00......  ....	NOP		
-T5821h	F0......  ....	RET	P		
+;which item is for sale here? 1 per god.
+god_items:
+T5825h	00	god 1: Demeter save
+T5826h	00	god 2: Hephaestus mine (not a loadable item)
+T5827h	00	god 3: Death
+T5828h	28	god 4: Ares bronze shield
+	2B	god 5: Ares silver shield
+T582Ah	21	god 6: Hephaestus harp
+	23	god 7: Hephaestus sea shell
+	29	god 8: Asclepios See a fairy to restore your vitality; water and bread?
+T582Dh	2C	god 9: Ares gold shield
+T582Eh	19	god a: Ares helmet
+T582Fh	0D	god b: Demeter necklace
+T5830h	10	god c: ? rowing thing
+	18	god d: ? carpet
 
-T5822h	A0......  ....	AND	B	
-T5823h	A0......  ....	AND	B	
-T5824h	00......  ....	NOP		
-T5825h	00......  ....	NOP		
-T5826h	00......  ....	NOP		
-T5827h	00......  ....	NOP		
-T5828h	282B....  (+..	JR	Z,02Bh			; Jump to 05855H
-T582Ah	212329..  !#).	LD	HL,02923h
-T582Dh	2C......  ,...	INC	L			;
-T582Eh	19......  ....	ADD	HL,DE	
-T582Fh	0D......  ....	DEC	C	
-T5830h	1018....  ....	DJNZ	018h			; Jump to 0584AH
 T5832h	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T5835h	210019..  !...	LD	HL,01900h
 T5838h	11347B..  .4{.	LD	DE,07B34h
 T583Bh	CD465C..  .F\.	CALL	send_vram		; sprite patterns = 1800-2000
 T583Eh	DD21307B  .!0{	LD	IX,07B30h
 T5842h	CDBF59..  ..Y.	CALL	mirror_sprite_chars_2	
-T5845h	C3B856..  ..V.	JP	T56B8H		
+T5845h	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 T5848h	3AD2E0..  :...	LD	A,(TE0D2H)
 T584Bh	B7......  ....	OR	A	
@@ -3402,7 +3411,7 @@ T584Ch	C8......  ....	RET	Z
 
 T584Dh	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T5850h	CD5658..  .VX.	CALL	T5856H	
-T5853h	C3B856..  ..V.	JP	T56B8H		
+T5853h	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 LoadMoreBossPatterns:
 T5856h	3AD3E0..  :...	LD	A,(TE0D3H)
@@ -3424,7 +3433,7 @@ T587Ah	C9......  ....	RET
 
 T587Bh	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T587Eh	CD8458..  ..X.	CALL	LoadBossPatterns	
-T5881h	C3B856..  ..V.	JP	T56B8H		
+T5881h	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 LoadBossPatterns:
 T5884h	3A1BE6..  :...	LD	A,(TE61BH)
@@ -3475,7 +3484,7 @@ T58D2h	C9......  ....	RET
 T58D3h	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T58D6h	3E0C....  >...	LD	A,00Ch	
 T58D8h	CDDE58..  ..X.	CALL	load_first_item_patterns	
-T58DBh	C3B856..  ..V.	JP	T56B8H		
+T58DBh	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 load_first_item_patterns:	; mapper = ABC
 T58DEh	21B023..  !.#.	LD	HL,023B0h
@@ -3511,7 +3520,7 @@ T590Bh	C3FC5B..  ..[.	JP	send_vram_1800
 
 T590Eh	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T5911h	CD3759..  .7Y.	CALL	T5937H	
-T5914h	C3B856..  ..V.	JP	T56B8H		
+T5914h	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 setup_sprite_patterns:
 T5917h	CD4142..  .AB.	CALL	SetMapperF	
@@ -3544,7 +3553,7 @@ T5953h	C3465C..  .F\.	JP	send_vram		; sprite patterns = 1800-2000
 
 T5956h	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T5959h	CD4D59..  .MY.	CALL	T594DH	
-T595Ch	C3B856..  ..V.	JP	T56B8H		
+T595Ch	C3B856..  ..V.	JP	finish_new_screen_setup		
 
 T595Fh	3A41E0..  :A..	LD	A,(WorldNumber)
 T5962h	B7......  ....	OR	A	
@@ -3886,6 +3895,7 @@ ex_ldirvm:
 T5BD4h	EB......  ....	EX	DE,HL	
 T5BD5h	C35C00..  .\..	JP	T005CH		
 
+send_vram_3_times:	; with 0x800 intervals.
 T5BD8h	D9......  ....	EXX		
 T5BD9h	0603....  ....	LD	B,003h	
 T5BDBh	D9......  ....	EXX		
@@ -3949,13 +3959,17 @@ T5C24h	C9......  ....	RET
 
 WriteStringToVRAM:
 ; write a string to VRAM. Start with address; stop at 0xff. New address after 0xfe.
+; initial: HL = pointer to src.
+; src contains:
+; 2B: initial vram address
+; Then follow bytes to send. 0xff means end of data. 0xfe means read new vram address and start over.
 T5C25h	0EFF....  ....	LD	C,0FFh	
 T5C27h	EB......  ....	EX	DE,HL	
 T5C28h	5E......  ^...	LD	E,(HL)	
 T5C29h	23......  #...	INC	HL			;
 T5C2Ah	56......  V...	LD	D,(HL)	
-T5C2Bh	EB......  ....	EX	DE,HL	
-T5C2Ch	13......  ....	INC	DE			;
+T5C2Bh	EB......  ....	EX	DE,HL		
+T5C2Ch	13......  ....	INC	DE			; HL = *HL; DE is old HL (+2)
 T5C2Dh	1A......  ....	LD	A,(DE)	
 T5C2Eh	13......  ....	INC	DE			;
 T5C2Fh	47......  G...	LD	B,A	
@@ -4315,7 +4329,7 @@ T5E0Dh	07......  ....	RLCA
 T5E0Eh	08......  ....	EX	AF,AF'	
 T5E0Fh	0609....  ....	LD	B,009h	
 
-set_some_patterns_1:		; 0-9 and A-Z
+load_text_characters_default:		; 0-9 and A-Z
 T5E11h	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E14h	11D39A..  ....	LD	DE,09AD3h
 T5E17h	210820..  !...	LD	HL,02008h
@@ -4329,7 +4343,7 @@ T5E2Bh	012001..  ....	LD	BC,00120h
 T5E2Eh	CDEB5B..  ..[.	CALL	fill_vram_3	
 T5E31h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_2:		; 0-9, copyright, hand, punctuation, minus, A-Z
+load_text_characters_title:		; 0-9, copyright, hand, punctuation, minus, A-Z
 T5E34h	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E37h	CDAF5E..  ..^.	CALL	T5EAFH	
 T5E3Ah	11D39A..  ....	LD	DE,09AD3h
@@ -4350,14 +4364,14 @@ T5E63h	015801..  .X..	LD	BC,00158h
 T5E66h	CDEB5B..  ..[.	CALL	fill_vram_3	
 T5E69h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_3:		; Copyright and hand
+load_text_characters_end_demo1:		; Copyright and hand
 T5E6Ch	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E6Fh	11A29A..  ....	LD	DE,09AA2h
 T5E72h	216021..  !`!.	LD	HL,02160h
 T5E75h	CDFC5B..  ..[.	CALL	send_vram_1800	
 T5E78h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_4:		; punctuation
+load_text_characters_end_demo2:		; punctuation
 T5E7Bh	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E7Eh	11BD9A..  ....	LD	DE,09ABDh
 T5E81h	216821..  !h!.	LD	HL,02168h
@@ -4368,7 +4382,7 @@ T5E8Ch	011000..  ....	LD	BC,00010h
 T5E8Fh	CDEB5B..  ..[.	CALL	fill_vram_3	
 T5E92h	C36C41..  .lA.	JP	SetMapper123		
 
-set_some_patterns_5:		; Japanese
+load_text_characters_kana:		; Japanese
 T5E95h	CDD041..  ..A.	CALL	SetMapperDEF	
 T5E98h	11EC9B..  ....	LD	DE,09BECh
 T5E9Bh	21D025..  !.%.	LD	HL,025D0h
@@ -4636,7 +4650,7 @@ T602Bh	3820....  8...	JR	C,020h			; Jump to SetupStatusBar
 T602Dh	3818....  8...	JR	C,018h			; Jump to 06047H
 
 T602Fh	AF......  ....	XOR	A			; Clear A and F
-T6030h	3290E6..  2...	LD	(TE690H),A
+T6030h	3290E6..  2...	LD	(current_god_screen),A
 T6033h	3203E6..  2...	LD	(TE603H),A
 T6036h	3236E5..  26..	LD	(VaseState),A
 T6039h	3239E5..  29..	LD	(TE539H),A
@@ -4649,7 +4663,7 @@ T604Ah	EDB0....  ....	LDIR
 T604Ch	C9......  ....	RET			
 
 SetupStatusBar:
-T604Dh	11AE7C..  ..|.	LD	DE,07CAEh
+T604Dh	11AE7C..  ..|.	LD	DE,07CAEh	; Screen header (vit, exp, etc)
 T6050h	CD255C..  .%\.	CALL	WriteStringToVRAM	; Top of screen.
 T6053h	CD795F..  .y_.	CALL	WriteArrows	
 T6056h	CD845F..  .._.	CALL	WriteCoins	
@@ -4954,7 +4968,7 @@ T6223h	1129ED..  .)..	LD	DE,0ED29h
 T6226h	213F93..  !?..	LD	HL,0933Fh
 T6229h	010E0C..  ....	LD	BC,00C0Eh
 T622Ch	CD496D..  .Im.	CALL	T6D49H	
-T622Fh	11517D..  .Q}.	LD	DE,07D51h
+T622Fh	11517D..  .Q}.	LD	DE,07D51h	; ©KONAMI 1987 PUSH SPACE KEY
 T6232h	CD255C..  .%\.	CALL	WriteStringToVRAM	
 T6235h	AF......  ....	XOR	A			; Clear A and F
 T6236h	321FF0..  2...	LD	(TF01FH),A
@@ -6130,7 +6144,7 @@ T69D5h	3A78E6..  :x..	LD	A,(TE678H)
 T69D8h	B7......  ....	OR	A	
 T69D9h	F8......  ....	RET	M		
 
-T69DAh	2158BB..  !X..	LD	HL,0BB58h
+T69DAh	2158BB..  !X..	LD	HL,0BB58h	; Boss passwords
 T69DDh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T69E0h	C3255C..  .%\.	JP	WriteStringToVRAM		
 
@@ -6179,9 +6193,10 @@ T6A1Bh	2C......  ,...	INC	L			;
 T6A1Ch	73......  s...	LD	(HL),E	
 T6A1Dh	C9......  ....	RET			
 
+setup_vram_end_demo:
 T6A1Eh	CDE654..  ..T.	CALL	T54E6H	
-T6A21h	CD6C5E..  .l^.	CALL	set_some_patterns_3	
-T6A24h	CD7B5E..  .{^.	CALL	set_some_patterns_4	
+T6A21h	CD6C5E..  .l^.	CALL	load_text_characters_end_demo1
+T6A24h	CD7B5E..  .{^.	CALL	load_text_characters_end_demo2
 T6A27h	210820..  !...	LD	HL,02008h
 T6A2Ah	CDB56A..  ..j.	CALL	T6AB5H	
 T6A2Dh	2148E9..  !H..	LD	HL,0E948h
@@ -6227,7 +6242,7 @@ T6A81h	D1......  ....	POP	DE
 T6A82h	2100F0..  !...	LD	HL,0F000h
 T6A85h	EB......  ....	EX	DE,HL	
 T6A86h	010800..  ....	LD	BC,00008h
-T6A89h	CDD85B..  ..[.	CALL	T5BD8H	
+T6A89h	CDD85B..  ..[.	CALL	send_vram_3_times	
 T6A8Ch	C1......  ....	POP	BC	
 T6A8Dh	05......  ....	DEC	B	
 T6A8Eh	F25F6A..  ._j.	JP	P,T6A5FH	
@@ -6379,7 +6394,7 @@ T6B9Dh	10F3....  ....	DJNZ	0F3h			; Jump to 06B92H
 T6B9Fh	013002..  .0..	LD	BC,00230h
 T6BA2h	211020..  !...	LD	HL,02010h
 T6BA5h	1100E8..  ....	LD	DE,0E800h
-T6BA8h	C3D85B..  ..[.	JP	T5BD8H		
+T6BA8h	C3D85B..  ..[.	JP	send_vram_3_times		
 
 T6BABh	AF......  ....	XOR	A			; Clear A and F
 T6BACh	322EE0..  2...	LD	(TE02EH),A
@@ -7737,11 +7752,11 @@ T73B3h	5C......  \...	LD	E,H
 T73B4h	5D......  ]...	LD	E,L	
 T73B5h	5E......  ^...	LD	E,(HL)	
 T73B6h	5F......  _...	LD	E,A	
-T73B7h	3A80E6..  :...	LD	A,(TE680H)
+T73B7h	3A80E6..  :...	LD	A,(god_id_in_screen)
 T73BAh	B7......  ....	OR	A	
 T73BBh	C8......  ....	RET	Z		
 
-T73BCh	ED5B84E6  .[..	LD	DE,(TE684H)
+T73BCh	ED5B84E6  .[..	LD	DE,(shrine_screen_pointer)
 T73C0h	21D273..  !.s.	LD	HL,073D2h
 T73C3h	EDA0....  ....	LDI		
 T73C5h	EDA0....  ....	LDI		
@@ -11589,26 +11604,15 @@ T8F00h	C0......  ....	RET	NZ
 T8F01h	21148F..  !...	LD	HL,08F14h
 T8F04h	09......  ....	ADD	HL,BC	
 T8F05h	7E......  ~...	LD	A,(HL)	
-T8F06h	3290E6..  2...	LD	(TE690H),A
+T8F06h	3290E6..  2...	LD	(current_god_screen),A
 T8F09h	C9......  ....	RET			
 
-T8F0Ah	0F......  ....	RRCA		
-T8F0Bh	0F......  ....	RRCA		
-T8F0Ch	1011....  ....	DJNZ	011h			; Jump to 08F1FH
-T8F0Eh	12......  ....	LD	(DE),A	
-T8F0Fh	13......  ....	INC	DE			;
-T8F10h	14......  ....	INC	D			;
-T8F11h	15......  ....	DEC	D	
-T8F12h	1B......  ....	DEC	DE	
-T8F13h	00......  ....	NOP		
-T8F14h	0E0F....  ....	LD	C,00Fh	
-T8F16h	1011....  ....	DJNZ	011h			; Jump to 08F29H
-T8F18h	0C......  ....	INC	C			;
-T8F19h	12......  ....	LD	(DE),A	
-T8F1Ah	13......  ....	INC	DE			;
-T8F1Bh	0D......  ....	DEC	C	
-T8F1Ch	14......  ....	INC	D			;
-T8F1Dh	00......  ....	NOP		
+god_rooms: ; This list defines which room in the world contains the god.
+T8F0Ah		defb 0F, 0F, 10, 11, 12, 13, 14, 15, 1B, 00
+
+world_to_shrine_id:	; This list defines which shrine is present in the world.
+T8F14h		defb 0E, 0F, 10, 11, 0C, 12, 13, 0D, 14, 00
+
 T8F1Eh	AF......  ....	XOR	A			; Clear A and F
 T8F1Fh	67......  g...	LD	H,A	
 T8F20h	6F......  o...	LD	L,A	
@@ -11625,29 +11629,29 @@ T8F3Ah	CDAE93..  ....	CALL	draw_boxes	; for gods
 T8F3Dh	CD2B95..  .+..	CALL	T952BH	
 T8F40h	C35C94..  .\..	JP	T945CH		
 
-T8F43h	3A90E6..  :...	LD	A,(TE690H)
+T8F43h	3A90E6..  :...	LD	A,(current_god_screen)
 T8F46h	3D......  ....	DEC	A	
 T8F47h	CD4041..  .@A.	CALL	switch	
-defw 0x90c0
-defw 0x9126
-defw 0x8f72
-defw 0x9126
-defw 0x9126
-defw 0x9126
-defw 0x9126
-defw 0x92e8
-defw 0x9126
-defw 0x9126
-defw 0x9126
-defw 0x9126
-defw 0x9126
-defw 0x92e8
-defw 0x92e8
-defw 0x92e8
-defw 0x92e8
-defw 0x92e8
-defw 0x92e8
-defw 0x92e8
+defw 0x90c0	Demeter Password
+defw 0x9126		Hephaestus Mine
+defw 0x8f72	Death
+defw 0x9126		Ares Bronze Shield and Magnifying Glass
+defw 0x9126		Ares Silver Shield
+defw 0x9126		Hephaestus Harp
+defw 0x9126		Hephaestus Sea Shell
+defw 0x92e8	Asclepius See a fairy
+defw 0x9126		Ares Gold Shield
+defw 0x9126		Ares Helmet
+defw 0x9126		Demeter Necklace
+defw 0x9126		World 5: Demeter Row Thing
+defw 0x9126		World 8: Demeter Carpet
+defw 0x92e8	World 1: Demeter
+defw 0x92e8	World 2: Demeter
+defw 0x92e8	World 3: Athena
+defw 0x92e8	World 4: Demeter
+defw 0x92e8	World 6: Athena
+defw 0x92e8	World 7: Demeter
+defw 0x92e8	World 9: Demeter
 
 T8F72h	3A91E6..  :...	LD	A,(TE691H)
 T8F75h	CD4041..  .@A.	CALL	switch	
@@ -11674,31 +11678,31 @@ T8F97h	200C....  ....	JR	NZ,00Ch			; Jump to 08FA5H
 T8F99h	78......  x...	LD	A,B	
 T8F9Ah	B7......  ....	OR	A	
 T8F9Bh	2800....  (...	JR	Z,000h			; Jump to 08F9DH
-T8F9Dh	AF......  ....	XOR	A			; Clear A and F
-T8F9Eh	CDEF94..  ....	CALL	T94EFH	
+T8F9Dh	AF......  ....	XOR	A			; if your lover is killed...
+T8F9Eh	CDEF94..  ....	CALL	show_god_message	
 T8FA1h	3E01....  >...	LD	A,001h	
 T8FA3h	1817....  ....	JR	017h			; Jump to 08FBCH
 
 T8FA5h	78......  x...	LD	A,B	
 T8FA6h	B7......  ....	OR	A	
 T8FA7h	2808....  (...	JR	Z,008h			; Jump to 08FB1H
-T8FA9h	AF......  ....	XOR	A			; Clear A and F
-T8FAAh	CDEF94..  ....	CALL	T94EFH	
+T8FA9h	AF......  ....	XOR	A			; if your lover is killed...
+T8FAAh	CDEF94..  ....	CALL	show_god_message	
 T8FADh	3E02....  >...	LD	A,002h	
 T8FAFh	180B....  ....	JR	00Bh			; Jump to 08FBCH
 
 T8FB1h	CDCE8F..  ....	CALL	T8FCEH	
 T8FB4h	300A....  0...	JR	NC,00Ah			; Jump to 08FC0H
-T8FB6h	AF......  ....	XOR	A			; Clear A and F
-T8FB7h	CDEF94..  ....	CALL	T94EFH	
+T8FB6h	AF......  ....	XOR	A			; if your lover is killed...
+T8FB7h	CDEF94..  ....	CALL	show_god_message	
 T8FBAh	3E02....  >...	LD	A,002h	
 T8FBCh	3291E6..  2...	LD	(TE691H),A
 T8FBFh	C9......  ....	RET			
 
-T8FC0h	3E02....  >...	LD	A,002h	
-T8FC2h	CDEF94..  ....	CALL	T94EFH	
-T8FC5h	3E0D....  >...	LD	A,00Dh	
-T8FC7h	CDEF94..  ....	CALL	T94EFH	
+T8FC0h	3E02....  >...	LD	A,002h			; give me ...
+T8FC2h	CDEF94..  ....	CALL	show_god_message	
+T8FC5h	3E0D....  >...	LD	A,00Dh			; yes no
+T8FC7h	CDEF94..  ....	CALL	show_god_message	
 T8FCAh	3E03....  >...	LD	A,003h	
 T8FCCh	18EE....  ....	JR	0EEh			; Jump to 08FBCH
 
@@ -11731,8 +11735,8 @@ T8FFBh	2801....  (...	JR	Z,001h			; Jump to 08FFEH
 T8FFDh	C8......  ....	RET	Z		
 
 T8FFEh	CD7A93..  .z..	CALL	T937AH	
-T9001h	3E04....  >...	LD	A,004h	
-T9003h	CDEF94..  ....	CALL	T94EFH	
+T9001h	3E04....  >...	LD	A,004h			; fight by yourself
+T9003h	CDEF94..  ....	CALL	show_god_message	
 T9006h	3EB4....  >...	LD	A,0B4h	
 T9008h	3294E6..  2...	LD	(TE694H),A
 T900Bh	3E05....  >...	LD	A,005h	
@@ -11769,8 +11773,8 @@ T9052h	2805....  (...	JR	Z,005h			; Jump to 09059H
 T9054h	3E09....  >...	LD	A,009h	
 T9056h	32C3EC..  2...	LD	(TECC3H),A
 T9059h	CD7A93..  .z..	CALL	T937AH	
-T905Ch	3E03....  >...	LD	A,003h	
-T905Eh	CDEF94..  ....	CALL	T94EFH	
+T905Ch	3E03....  >...	LD	A,003h			; lover has been revived
+T905Eh	CDEF94..  ....	CALL	show_god_message	
 T9061h	3E04....  >...	LD	A,004h	
 T9063h	C3BC8F..  ....	JP	T8FBCH		
 
@@ -11840,10 +11844,10 @@ defw 0x90de
 defw 0x910d
 defw 0x90bf
 
-T90CEh	3E0C....  >...	LD	A,00Ch	
-T90D0h	CDEF94..  ....	CALL	T94EFH	
-T90D3h	3E0D....  >...	LD	A,00Dh	
-T90D5h	CDEF94..  ....	CALL	T94EFH	
+T90CEh	3E0C....  >...	LD	A,00Ch			; want secret code?
+T90D0h	CDEF94..  ....	CALL	show_god_message	
+T90D3h	3E0D....  >...	LD	A,00Dh			; yes no
+T90D5h	CDEF94..  ....	CALL	show_god_message	
 T90D8h	CD6F91..  .o..	CALL	T916FH	
 T90DBh	C3E591..  ....	JP	T91E5H		
 
@@ -11860,14 +11864,14 @@ T90EFh	280F....  (...	JR	Z,00Fh			; Jump to 09100H
 T90F1h	C8......  ....	RET	Z		
 
 T90F2h	CD7A93..  .z..	CALL	T937AH	
-T90F5h	3E0F....  >...	LD	A,00Fh	
-T90F7h	CDEF94..  ....	CALL	T94EFH	
+T90F5h	3E0F....  >...	LD	A,00Fh			; did you get them?
+T90F7h	CDEF94..  ....	CALL	show_god_message	
 T90FAh	CDA095..  ....	CALL	T95A0H	
 T90FDh	C3E591..  ....	JP	T91E5H		
 
 T9100h	CD7A93..  .z..	CALL	T937AH	
 T9103h	3E0E....  >...	LD	A,00Eh	
-T9105h	CDEF94..  ....	CALL	T94EFH	
+T9105h	CDEF94..  ....	CALL	show_god_message	; rescue quickly
 T9108h	3E03....  >...	LD	A,003h	
 T910Ah	C3BC8F..  ....	JP	T8FBCH		
 
@@ -11879,8 +11883,8 @@ T9113h	210000..  !...	LD	HL,00000h
 T9116h	3E80....  >...	LD	A,080h	
 T9118h	3294E6..  2...	LD	(TE694H),A
 T911Bh	CD7A93..  .z..	CALL	T937AH	
-T911Eh	3E10....  >...	LD	A,010h	
-T9120h	CDEF94..  ....	CALL	T94EFH	
+T911Eh	3E10....  >...	LD	A,010h			; see you again
+T9120h	CDEF94..  ....	CALL	show_god_message	
 T9123h	C3E591..  ....	JP	T91E5H		
 
 T9126h	3A91E6..  :...	LD	A,(TE691H)
@@ -11890,14 +11894,15 @@ defw 0x917c
 defw 0x918c
 defw 0x922a
 
-T9134h	CD4191..  *...	CALL	T9142H
-T9137h	3E05....  >...	LD	A,005h	
-T9139h	CDEF94..  ....	CALL	T94EFH	
+T9134h	CD4191..  *...	CALL	draw_offered_items
+T9137h	3E05....  >...	LD	A,005h			; you can buy some of my treasure
+T9139h	CDEF94..  ....	CALL	show_god_message	
 T913Ch	CD6F91..  .o..	CALL	T916FH	
 T913Fh	C3E591..  ....	JP	T91E5H		
 
-T9142h	3A90E6..  :...	LD	A,(TE690H)
-T9145h	215392..  !S..	LD	HL,09253h
+draw_offered_items:
+T9142h	3A90E6..  :...	LD	A,(current_god_screen)
+T9145h	215392..  !S..	LD	HL,shop_items
 T9148h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T914Bh	21A9EE..  !...	LD	HL,0EEA9h
 T914Eh	CD5A91..  .Z..	CALL	T915AH	
@@ -11931,8 +11936,8 @@ T9178h	3295E6..  2...	LD	(TE695H),A
 T917Bh	C9......  ....	RET			
 
 T917Ch	CD0F93..  ....	CALL	T930FH	
-T917Fh	3E05....  >...	LD	A,005h	
-T9181h	DCEF94..  ....	CALL	C,T94EFH
+T917Fh	3E05....  >...	LD	A,005h			; you can buy some of my treasure
+T9181h	DCEF94..  ....	CALL	C,show_god_message
 T9184h	3A08E0..  :...	LD	A,(pressed_controls)
 T9187h	E610....  ....	AND	010h	
 T9189h	C8......  ....	RET	Z		
@@ -12013,8 +12018,8 @@ T9214h	18B9....  ....	JR	0B9h			; Jump to 091CFH
 
 T9216h	0E02....  ....	LD	C,002h	
 T9218h	CD7C93..  .|..	CALL	T937CH	
-T921Bh	3E12....  >...	LD	A,012h	
-T921Dh	CDEF94..  ....	CALL	T94EFH	
+T921Bh	3E12....  >...	LD	A,012h			; coins are not enough
+T921Dh	CDEF94..  ....	CALL	show_god_message	
 T9220h	3E2F....  >/..	LD	A,02Fh	
 T9222h	CD1F4E..  ..N.	CALL	T4E1FH	
 T9225h	2191E6..  !...	LD	HL,0E691h
@@ -12038,8 +12043,8 @@ T923Bh	27......  '...	DAA
 T923Ch	77......  w...	LD	(HL),A	
 T923Dh	C9......  ....	RET			
 
-T923Eh	3A90E6..  :...	LD	A,(TE690H)
-T9241h	215392..  !S..	LD	HL,09253h
+T923Eh	3A90E6..  :...	LD	A,(current_god_screen)
+T9241h	215392..  !S..	LD	HL,shop_items
 T9244h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T9247h	EB......  ....	EX	DE,HL	
 T9248h	3A92E6..  :...	LD	A,(TE692H)
@@ -12051,96 +12056,95 @@ T9252h	23......  #...	INC	HL			;
 T9253h	56......  V...	LD	D,(HL)	
 T9254h	C9......  ....	RET			
 
-T9255h	6F......  o...	LD	L,A	
-T9256h	92......  ....	SUB	D	
-T9257h	75......  u...	LD	(HL),L	
-T9258h	92......  ....	SUB	D	
-T9259h	7B......  {...	LD	A,E	
-T925Ah	92......  ....	SUB	D	
-T925Bh	81......  ....	ADD	A,C	
-T925Ch	92......  ....	SUB	D	
-T925Dh	87......  ....	ADD	A,A	
-T925Eh	92......  ....	SUB	D	
-T925Fh	8D......  ....	ADC	A,L	
-T9260h	92......  ....	SUB	D	
-T9261h	93......  ....	SUB	E	
-T9262h	92......  ....	SUB	D	
-T9263h	99......  ....	SBC	A,C	
-T9264h	92......  ....	SUB	D	
-T9265h	9F......  ....	SBC	A,A	
-T9266h	92......  ....	SUB	D	
-T9267h	A5......  ....	AND	L	
-T9268h	92......  ....	SUB	D	
-T9269h	AB......  ....	XOR	E	
-T926Ah	92......  ....	SUB	D	
-T926Bh	B1......  ....	OR	C	
-T926Ch	92......  ....	SUB	D	
-T926Dh	B7......  ....	OR	A	
-T926Eh	92......  ....	SUB	D	
-T926Fh	00......  ....	NOP		
-T9270h	FF......  ....	RST	38h	
-T9271h	00......  ....	NOP		
-T9272h	00......  ....	NOP		
-T9273h	00......  ....	NOP		
-T9274h	FF......  ....	RST	38h	
-T9275h	3005....  0...	JR	NC,005h			; Jump to 0927CH
-T9277h	05......  ....	DEC	B	
-T9278h	2F......  /...	CPL		
-T9279h	202D....  .-..	JR	NZ,02Dh			; Jump to 092A8H
-T927Bh	00......  ....	NOP		
-T927Ch	FF......  ....	RST	38h	
-T927Dh	00......  ....	NOP		
-T927Eh	00......  ....	NOP		
-T927Fh	00......  ....	NOP		
-T9280h	FF......  ....	RST	38h	
-T9281h	202D....  .-..	JR	NZ,02Dh			; Jump to 092B0H
-T9283h	3028....  0(..	JR	NC,028h			; Jump to 092ADH
-T9285h	2006....  ....	JR	NZ,006h			; Jump to 0928DH
+shop_items: equ 0x9253	; Table starts here, but it's 1-based.
+	defw 0x926f	; 1
+	defw 0x9275	; 2
+	defw 0x927b	; 3
+	defw 0x9281	; 4
+	defw 0x9287	; 5
+	defw 0x928d	; 6
+	defw 0x9293	; 7
+	defw 0x9299	; 8
+	defw 0x929f	; 9
+	defw 0x92a5	; a
+	defw 0x92ab	; b
+	defw 0x92b1	; c
+	defw 0x92b7	; d
+
+	; Password: nothing to buy.
+	defb 0x00, 0xff
+	defb 0x00, 0x00
+	defb 0x00, 0xff
+
+	; Mine
+	defb 0x30, 0x05
+	defb 0x05, 0x2f
+	defb 0x20, 0x2d
+
+	; Death: nothing to buy.
+	defb 0x00, 0xff
+	defb 0x00, 0x00
+	defb 0x00, 0xff
+
+	; Ares: bronze shield and magnifying glass
+	defb 0x20, 0x2d
+	defb 0x30, 0x28
+	defb 0x20, 0x06
+
 T9287h	202D....  .-..	JR	NZ,02Dh			; Jump to 092B6H
 T9289h	40......  @...	LD	B,B	
 T928Ah	2B......  +...	DEC	HL	
 T928Bh	05......  ....	DEC	B	
 T928Ch	2F......  /...	CPL		
+
 T928Dh	3021....  0!..	JR	NC,021h			; Jump to 092B0H
 T928Fh	202D....  .-..	JR	NZ,02Dh			; Jump to 092BEH
 T9291h	05......  ....	DEC	B	
 T9292h	2F......  /...	CPL		
+
 T9293h	202D....  .-..	JR	NZ,02Dh			; Jump to 092C2H
 T9295h	25......  %...	DEC	H	
 T9296h	23......  #...	INC	HL			;
 T9297h	05......  ....	DEC	B	
 T9298h	2F......  /...	CPL		
+
 T9299h	00......  ....	NOP		
 T929Ah	00......  ....	NOP		
 T929Bh	00......  ....	NOP		
 T929Ch	00......  ....	NOP		
 T929Dh	00......  ....	NOP		
 T929Eh	00......  ....	NOP		
+
 T929Fh	202D....  .-..	JR	NZ,02Dh			; Jump to 092CEH
 T92A1h	50......  P...	LD	D,B	
 T92A2h	2C......  ,...	INC	L			;
 T92A3h	05......  ....	DEC	B	
 T92A4h	2F......  /...	CPL		
+
 T92A5h	202D....  .-..	JR	NZ,02Dh			; Jump to 092D4H
 T92A7h	50......  P...	LD	D,B	
 T92A8h	19......  ....	ADD	HL,DE	
 T92A9h	05......  ....	DEC	B	
 T92AAh	2F......  /...	CPL		
+
 T92ABh	202D....  .-..	JR	NZ,02Dh			; Jump to 092DAH
 T92ADh	25......  %...	DEC	H	
 T92AEh	0D......  ....	DEC	C	
 T92AFh	05......  ....	DEC	B	
 T92B0h	2F......  /...	CPL		
+
 T92B1h	00......  ....	NOP		
 T92B2h	00......  ....	NOP		
 T92B3h	3010....  0...	JR	NC,010h			; Jump to 092C5H
 T92B5h	00......  ....	NOP		
 T92B6h	00......  ....	NOP		
+
 T92B7h	00......  ....	NOP		
 T92B8h	00......  ....	NOP		
 T92B9h	3018....  0...	JR	NC,018h			; Jump to 092D3H
 T92BBh	00......  ....	NOP		
 T92BCh	00......  ....	NOP		
+
 T92BDh	21CCE6..  !...	LD	HL,0E6CCh
 T92C0h	3A92E6..  :...	LD	A,(TE692H)
 T92C3h	CD3641..  .6A.	CALL	HL+=A	
@@ -12167,24 +12171,21 @@ T92E8h	3A91E6..  :...	LD	A,(TE691H)
 T92EBh	B7......  ....	OR	A	
 T92ECh	C0......  ....	RET	NZ		
 
-T92EDh	3A90E6..  :...	LD	A,(TE690H)
+T92EDh	3A90E6..  :...	LD	A,(current_god_screen)
 T92F0h	FE08....  ....	CP	008h	
 T92F2h	3E01....  >...	LD	A,001h	
 T92F4h	280C....  (...	JR	Z,00Ch			; Jump to 09302H
-T92F6h	3A90E6..  :...	LD	A,(TE690H)
+T92F6h	3A90E6..  :...	LD	A,(current_god_screen)
 T92F9h	D60E....  ....	SUB	00Eh	
-T92FBh	210893..  !...	LD	HL,09308h
+T92FBh	210893..  !...	LD	HL,shrine_to_message
 T92FEh	CD3641..  .6A.	CALL	HL+=A	
 T9301h	7E......  ~...	LD	A,(HL)	
-T9302h	CDEF94..  ....	CALL	T94EFH	
+T9302h	CDEF94..  ....	CALL	show_god_message	
 T9305h	C3E591..  ....	JP	T91E5H		
 
-T9308h	0607....  ....	LD	B,007h	
-T930Ah	08......  ....	EX	AF,AF'	
-T930Bh	09......  ....	ADD	HL,BC	
-T930Ch	0A......  ....	LD	A,(BC)	
-T930Dh	13......  ....	INC	DE			;
-T930Eh	0B......  ....	DEC	BC	
+shrine_to_message:	; first item in list is for shrine 0e
+T9308h	defb	06, 07, 08, 09, 0a, 13, 0b
+
 T930Fh	3A08E0..  :...	LD	A,(pressed_controls)
 T9312h	CB57....  .W..	BIT	2,A	
 T9314h	2005....  ....	JR	NZ,005h			; Jump to 0931BH
@@ -12366,7 +12367,7 @@ T9458h	19......  ....	ADD	HL,DE
 T9459h	10FC....  ....	DJNZ	0FCh			; Jump to 09457H
 T945Bh	C9......  ....	RET			
 
-T945Ch	3A90E6..  :...	LD	A,(TE690H)
+T945Ch	3A90E6..  :...	LD	A,(current_god_screen)
 T945Fh	FE0E....  ....	CP	00Eh	
 T9461h	D0......  ....	RET	NC		
 
@@ -12383,7 +12384,7 @@ T9479h	3E8E....  >...	LD	A,08Eh
 T947Bh	0E04....  ....	LD	C,004h	
 T947Dh	E5......  ....	PUSH	HL	
 T947Eh	47......  G...	LD	B,A	
-T947Fh	3A90E6..  :...	LD	A,(TE690H)
+T947Fh	3A90E6..  :...	LD	A,(current_god_screen)
 T9482h	3D......  ....	DEC	A	
 T9483h	215592..  !U..	LD	HL,09255h
 T9486h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
@@ -12473,6 +12474,7 @@ T94ECh	3C......  <...	INC	A			;
 T94EDh	77......  w...	LD	(HL),A	
 T94EEh	C9......  ....	RET			
 
+show_god_message:
 T94EFh	47......  G...	LD	B,A	
 T94F0h	3A2B00..  :+..	LD	A,(T002BH)
 T94F3h	E60F....  ....	AND	00Fh	
@@ -12518,13 +12520,13 @@ T9527h	4D......  M...	LD	C,L		; BC = copy of new DE
 T9528h	EB......  ....	EX	DE,HL	
 T9529h	18E7....  ....	JR	0E7h			; Jump to 09512H
 
-T952Bh	3A90E6..  :...	LD	A,(TE690H)
+T952Bh	3A90E6..  :...	LD	A,(current_god_screen)
 T952Eh	214C95..  !L..	LD	HL,0954Ch
 T9531h	CD3641..  .6A.	CALL	HL+=A	
 T9534h	7E......  ~...	LD	A,(HL)	
 T9535h	C618....  ....	ADD	A,018h	
 T9537h	CDFA94..  ....	CALL	T94FAH	
-T953Ah	3A90E6..  :...	LD	A,(TE690H)
+T953Ah	3A90E6..  :...	LD	A,(current_god_screen)
 T953Dh	214C95..  !L..	LD	HL,0954Ch
 T9540h	CD3641..  .6A.	CALL	HL+=A	
 T9543h	7E......  ~...	LD	A,(HL)	
@@ -13389,7 +13391,7 @@ T9A75h	C9......  ....	RET
 T9A76h	CDEA44..  ..D.	CALL	T44EAH	
 T9A79h	D8......  ....	RET	C		
 
-T9A7Ah	2180E6..  !...	LD	HL,0E680h
+T9A7Ah	2180E6..  !...	LD	HL,god_id_in_screen
 T9A7Dh	7E......  ~...	LD	A,(HL)	
 T9A7Eh	B7......  ....	OR	A	
 T9A7Fh	C8......  ....	RET	Z		
@@ -14040,14 +14042,14 @@ T9DC1h	19......  ....	ADD	HL,DE
 T9DC2h	C3BB9D..  ....	JP	T9DBBH		
 
 T9DC5h	23......  #...	INC	HL			;
-T9DC6h	1180E6..  ....	LD	DE,0E680h
+T9DC6h	1180E6..  ....	LD	DE,god_id_in_screen
 T9DC9h	EDA0....  ....	LDI		
 T9DCBh	1C......  ....	INC	E			;
 T9DCCh	EDA0....  ....	LDI		
 T9DCEh	EDA0....  ....	LDI		
-T9DD0h	2A82E6..  *...	LD	HL,(TE682H)
+T9DD0h	2A82E6..  *...	LD	HL,(shrine_Y_X)
 T9DD3h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
-T9DD6h	2284E6..  "...	LD	(TE684H),HL
+T9DD6h	2284E6..  "...	LD	(shrine_screen_pointer),HL
 T9DD9h	C9......  ....	RET			
 
 T9DDAh	04......  ....	INC	B			;
@@ -14203,7 +14205,7 @@ T9EC4h	D9......  ....	EXX
 T9EC5h	180E....  ....	JR	00Eh			; Jump to 09ED5H
 
 T9EC7h	D9......  ....	EXX		
-T9EC8h	3A82E6..  :...	LD	A,(TE682H)
+T9EC8h	3A82E6..  :...	LD	A,(shrine_Y_X)
 T9ECBh	C628....  .(..	ADD	A,028h	
 T9ECDh	6F......  o...	LD	L,A	
 T9ECEh	3A83E6..  :...	LD	A,(TE683H)

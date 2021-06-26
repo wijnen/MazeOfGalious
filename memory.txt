@@ -1,0 +1,43 @@
+;Full memory map of MoG.
+
+;c000
+;d000
+;e000
+state:	equ	$e000
+substate: equ	$e001
+;	e041-e042: current world (1=castle) and current room
+World:	equ	$e041
+Room:	equ	$e042
+;	e0c0: is ladder disappeared(?)
+;	e4a0-e4ff: vertical elevator info; 06 records:
+;		0 elevator id
+;		1 current room
+;		2 flags: bit 1: down(0) or up(1) bit 2: ?
+;		3 current room index
+;		4 0
+;		5 current position Y
+;		6 0
+;		7 current position X
+;		8 dX per frame (all 0)
+;		9 dY per frame (all 2)
+;		a -
+;		b -
+;		c top limit room
+;		d top limit position
+;		e bottom limit room
+;		f bottom limit position
+;	e622: number of enemies to kill before special happens, or 0.
+;	e635: something about character enemies.
+;	e648-e64b: exits from this room: down, up. left, right
+;	e680: god id of shrine in this room
+;	e688: marker(?) for world door
+;	e690: god id of shrine you're standing in
+;	e691: shopping substate?
+;	e692: position of selector in shop
+;	e740: item id that is in current room
+;	e744-e745: appear location
+;	e800-?: enemy info; 20 byte each
+;	eaa3: X coordinate of trap wall
+;	ec80-ecff: sprite attribute buffer.
+;	ed00-eeff: screen buffer.
+;f000

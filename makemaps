@@ -235,6 +235,9 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 # Make images of all rooms. {{{
 out = []
 
+# Keep some data about shrines to add their images to the map later.
+shrineroom = {}
+
 for idx, w in enumerate(world):
 	# Create all lists so they exist even without contents.
 	items = {}	# key is room, value is id, x, y
@@ -250,6 +253,7 @@ for idx, w in enumerate(world):
 		target = 0x5dda
 		while rom[target] != 0:
 			room, shrine_id, shrine_y, shrine_x = rom[target:target + 4]
+			shrineroom[shrine_id] = room
 			# Room-1, because this rom starts counting at 1. y-32, because the coordinate includes the screen header.
 			shrines[room - 1] = [shrine_id, shrine_x, shrine_y - 32]
 			target += 4
@@ -486,6 +490,14 @@ for w in range(11):
 		# Add 1 pixel to separate screens in the image.
 		x = tx * 257
 		y = ty * 161
+		if w > 0:
+			god_room = rom[0x8f0a - 0x6000 + 0x2000 * 1 + (w - 1)]
+			god_id = rom[0x8f14 - 0x6000 + 0x2000 * 1 + (w - 1)]
+			if sp == god_room:
+				# This is the god room of this world.
+				worldmap[w].paste(read_patterns.gods[god_id], (x, y))
+				textmap[w][ty][tx] = '[]'
+				continue
 		if 0 < sp <= rooms[w]: 
 			debug_charset = False	# w == 0	# Use this to debug charsets castle.
 			worldmap[w].paste(out[w][sp - 1], (x, y, x + 256, y + 160))
@@ -496,12 +508,46 @@ for w in range(11):
 			else:
 				worldmapt.text((x + 2, y), "%02x" % sp, fill = (255, 255, 255))
 		else:
+			print('invalid room %x %02x' % (w, sp))
 			worldmap[w].paste(invalid, (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '++'
+	if w == 0:
+		# Place gods rooms in empty places next to their entrance.
+		up, down, left, right = (0, -1), (0, 1), (-1, 0), (1, 0)
+		godpos = [up, (0, -2), left, right, up, up, down, down, up, up, up]
+		for s, shrinepos in enumerate(godpos):
+			shrine_id = s + 1
+			tx = screenpos[shrineroom[shrine_id]][0] - l[w][0] + shrinepos[0]
+			ty = screenpos[shrineroom[shrine_id]][1] - l[w][1] + shrinepos[1]
+			worldmap[w].paste(read_patterns.gods[shrine_id], (tx * 0x101, ty * 0xa1))
+# }}}
+
+# Create images of all room tiles. {{{
+offset = 0x10
+tile_img = []
+all_tiles_img = Image.new('RGB', (offset + 0x21 * len(read_patterns.sets) - 1, len(tiles) * 0x21 - 1), (0, 0, 0xb0))
+all_tiles_draw = ImageDraw.Draw(all_tiles_img)
+for tile_num, tile_data in enumerate(tiles):
+	tile_img.append(Image.new('RGB', (0x21 * len(read_patterns.sets) - 1, 0x20), (0, 0, 0xb0)))
+	for charset_num, charset in enumerate(read_patterns.sets):
+		good = True
+		for y in range(4):
+			for x in range(4):
+				#:print(tile_data, tile_data[y, x], charset)
+				char = read_patterns.get_char(charset, tile_data[y, x])
+				if char is not None:
+					tile_img[-1].paste(char, (0x21 * charset_num + x * 8, y * 8))
+				else:
+					good = False
+		if not good:
+			tile_img[-1].paste(Image.new('RGB', (0x20, 0x20), (0xb0, 0, 0)), (0x21 * charset_num, 0))
+	all_tiles_img.paste(tile_img[-1], (offset, tile_num * 0x21))
+	all_tiles_draw.text((2, tile_num * 0x21 + 0x8), '%02x' % tile_num)
+all_tiles_img.save('/tmp/mogtiles.png')
 # }}}
 
 # Finally, output everything to image files and screen.
 for w, im in enumerate(worldmap):
 	im.save('/tmp/mog-world-%02d.png' % w)
-	print('\nRooms in world %d' % w)
-	print('\n'.join([' '.join(y) for y in textmap[w]]))
+	#print('\nRooms in world %d' % w)
+	#print('\n'.join([' '.join(y) for y in textmap[w]]))

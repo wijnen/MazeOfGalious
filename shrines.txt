@@ -18,15 +18,121 @@ Third is Y coordinate, fourth is X coordinate (both are truncated to k*8)
 20 0b 48 70	Demeter Necklace
 00
 
+sorted by shrine ID:
+48 01 68 70	*Demeter Secret Code
+73 02 68 b0		Hephaestus Mine
+57 03 88 28	*Death
+8f 04 48 48		Ares Bronze Shield and Magnifying Glass
+41 05 28 48		Ares Silver Shield
+05 06 28 e0		Hephaestus Harp
+37 07 a8 48		Hephaestus Sea shell
+36 08 a8 d0	Asclepius See a fairy to restore your vitality
+04 09 68 88		Ares Gold Shield
+0a 0a 28 48		Ares Helmet
+20 0b 48 70		Demeter Necklace
+Shrines in worlds: (codes placed in e690)
+0c: world 5		Demeter
+0d: world 8		Demeter
+0e: world 1	Demeter
+0f: world 2	Demeter
+10: world 3	Athena
+11: world 4	Demeter
+12: world 6	Athena
+13: world 7	Demeter
+14: world 9	Demeter
 
-World doors
+shrine owners are listed in a table from 954c (1-based; filled in above). Codes:
+0 Death
+1 Hephaestus
+2 Asclepius
+3 Demeter
+4 Ares
+5 Athena
+
+A list of items offered in shops (list goes from 01 up to 1d) is at 9253 @123
+
+Contents of god screens.
+watchpoint on map buffer: 944e @123 fills screen with 6c (blue wall, even in worlds) why? it's not shown...
+vpeek shows that the vram actually contains f0, normal wall. But that's not in the charset with these colors!
+I must have missed an update to the color table.
+
+Let's check what happens there anyway:
+9446 @123 is called repeatedly: write a block of 16 times 0x6c to *hl
+This is done for:
+	ee05
+	eec5
+	eee5
+	ef65
+
+Step back: god screen code seems to starts at 93ae
+Step back: no actually, 8f0a? No. 8f1e, called from 48fb. Still no conditional jump.
+48eb is ret nz based on contents of e608. ramwatch it.
+	-> It's the animation timer for entering. When 0, the timer expired.
+4901 calls 57e1, which seems to set up the characters! Find new color table.
+	set_some_patterns_5 -> kana characters
+	mirror multiple ix=6390
+		68 64 09 04	4*, 68->64	00001001 -> src 0, target 0
+		64 64 39 04 00	4*, 64->64 (?)	00111001 -> src 0, target 012
+		iow: copy 68 to 64.
+	chars setup ix=635e	07 8a 76 6a 9c 77 00
+	send 1 character from 581d to 780 (*3 for screen regions) -> that's color table for f0!
+
+Restart. Entering god room in world 1. Code triggers write to e690 (god in this room) at 8f06 @123
+Function starts at 8eef @123
+Skipped for castle.
+Check 8f0a + (world-2): list of rooms where the god is in this world.
+Table at 8f14+(world-2): god id.
+
+Starting at 51a6 @123: draw god room.
+
+3 steps:
+	- god name	-> based on god id
+	- god image	-> based on god id
+	- god speech	-> based on shrine id
+
+952e @123: write god name to buffer.
+9535	A=*(954c+A) + 18	HL=955a @123	A=0e (shrine code from e690)
+
+8f47	jump table for shrines
+
+9302	Message id is *(9308 + (shrine id - 0e)) = 6
+9505	Message id += 20 for English
+
+9505	src = *b09e+2A; A=18 (demeter world 1)	@12f
+951a	write god name src=b3c5 @12f (demeter)
+951e @12f: done writing god name; next line.
+
+god message:
+	msg_id = *(9308 + shrine_id - 0xe)	# special handling for shrine_id == 8 (See a fairy; text in castle -> id=1)
+	engels: +20
+
+
+Message list:
+	01-17?: japanese
+	18-21: god names
+	21-..: english
+
+
+Initial (950c): hl = src, starting with 2B memory buffer address
+	de = bc = buffer address; hl+=2
+	write line until fe; return at ff
+	bc+=20
+	de = bc
+	repeat.
+
+During writing: hl = src, de = target buffer, bc = ?
+
+
+
+
+World doors {{{
 
 Marker: e688
 Rooms: 9990-9998 (for doors 1-9)
 Data: *(9997+2*targetworld)
+}}}
 
-
-Moais
+Moais {{{
 
 Code starts at call to 6df7 @def (from 5318)
 de = ecbc
@@ -47,9 +153,9 @@ first byte is enemy type, called e here (value of 0e means bat) e6 and e7 are sp
 byte 2:
 	d = b7,b6,b5,b4,b3,0,0,0
 	e = b2,b1,b0,e7,0,0,0,0
+}}}
 
-
-Boulders
+Boulders {{{
 
 at 6342 @123, position is retrieved from f002
 map for room 4 world 0 is at b8aa-b8ac. Bytes contain position.
@@ -58,9 +164,9 @@ map for room 4 world 0 is at b8aa-b8ac. Bytes contain position.
 
 Only in world 0!
 Boulder map starts at b8a2 @789
+}}}
 
-
-disappearing ladders
+disappearing ladders {{{
 watchpoint for screen coordinate: drawn from 733c @1ef, based on *ec05(pos)+*ec03(height)
 watchpoint for those: written in a78a @789, copied from a730
 Table at a6eb: 16* 2 bytes, which are world+room where the ladder is.
@@ -84,12 +190,9 @@ Summary:
 	table at a6eb contains world+room words with ladders -> get index from this table (note: 1-based)
 	use index on table at a700: record size 5
 	table contains Y, X, height, ?, ? of ladder (note: Y is screen pixels, so offset by 20)
+}}}
 
-
-
-
-
-##### trap walls
+##### trap walls {{{
 
 X coordinate: eaa3
 a896 @789 rom source of wall location in this screen
@@ -127,9 +230,9 @@ Type reference:
 5: trap wall
 6: water stones (no coordinate) (only world 5 room 0b)
 7: destructible wall
+# }}}
 
-
-Killall
+Killall {{{
 =======
 
 Candle room (4b)
@@ -148,10 +251,9 @@ room 28: 9fc1 -> vase
 room 18: a003 -> sabre
 room 2b: a01a -> dagger
 
+}}}
 
-
-
-Elevators
+Elevators {{{
 =========
 
 7680 @1ef: fill sprite name in memory attribute table
@@ -244,8 +346,9 @@ c *HL++	top limit room
 d *HL++	top limit position
 e *HL++	bottom limit room
 f *HL++	bottom limit position
+}}}
 
-####### Code block 0
+####### Code block 0 {{{
 if not(ix[2] & 0x80): return
 if ix[9] & 0x80:
 	#6eb3
@@ -314,8 +417,5 @@ else:
 		*(ix[12:13] + 20) = character + 2
 		*(ix[12:13] + 21) = character + 3
 		ret
-	
-##### Code block 1
-#6636
-*f020 is current enemy memory (under e800)
-*f019 is current enemy type
+# }}}
+vim: set foldmethod=marker :
