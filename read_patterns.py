@@ -7,10 +7,11 @@ import numpy
 from PIL import Image, ImageOps, ImageDraw
 
 # Interface to makemaps:
-# Generating characters:
+# Generating images:
 #	sets[room_type]	-> This is a list of opaque objects which should only be passed into get_char and composite.
 #	get_char(character_sets, charcode)
 #	composite(character_sets, charcode_matrix)
+# 	world_screen(num)
 # Pre-made images:
 #	items[item_id]
 #	shrine_img
@@ -373,9 +374,26 @@ boulder_img = block([0], 0xba)
 # }}}
 
 # God screens and other text. {{{
-# Text handling: implement write_vram_to_screen.
-def write_string_to_vram(address, charsets, image = None): # {{{
-	'Write characters to screen like the code does. return screen image. Address is to rom rom.'
+# Rom addresses of string literals. {{{
+write_strings = [ # These strings are all as literals in the code.
+		(0x3d71, title_text_sets), # PLAY START
+		(0x3cf6, base_sets), # APHRODITE OUT
+		(0x3d06, base_sets), # POPOLON OUT
+		(0x3d44, base_sets), # GAME  OVER
+		(0x3ecf, base_sets), # F5 CONTINUE
+		(0x3d14, base_sets), # WORLD (center screen, entering)
+		(0x3d1d, base_sets), # CASTLE !!
+		(0x3d28, base_sets), # "CASTLE  " (top left, title)
+		(0x3d33, base_sets), # "WORLD " (top left, title)
+		(0x3cae, base_sets), # Header
+		(0x3d51, title_text_sets), # ©KONAMI 1978 PUSH SPACE KEY
+		]
+# Boss passwords.
+write_strings += [(struct.unpack('<H', rom[0x13b5a + 2 * x:0x13b5a + 2 * (x + 1)])[0] - 0xb000 + 0x13000, base_sets) for x in range(10)]
+# }}}
+
+def write_string_to_screen(address, charsets, image = None, offset = (0, 0)): # {{{
+	'Write characters to screen like the code does. return screen image. Address is to rom rom. Returns image, new buffer address.'
 	if image is None:
 		image = Image.new('RGBA', (0x100, 0xa0), (0, 0, 0, 0))
 	vram_ptr = struct.unpack('<H', rom[address:address + 2])[0]
@@ -392,16 +410,17 @@ def write_string_to_vram(address, charsets, image = None): # {{{
 			vram_ptr += 1
 			continue
 		y, x = divmod(vram_ptr - 0x3800, 0x20)
+		y -= 4
 		if char is not None:
-			image.paste(char, (x * 8, y * 8))
+			image.paste(char, (offset[0] + x * 8, offset[1] + y * 8))
 		elif rom[address] == 0:
 			# character 0 is never filled, so it's always a black square.
-			image.paste(Image.new('RGB', (8, 8), (0, 0, 0)), (x * 8, y * 8))
+			image.paste(Image.new('RGB', (8, 8), (0, 0, 0)), (offset[0] + x * 8, offset[1] + y * 8))
 		else:
-			image.paste(Image.new('RGB', (8, 8), (0xff, 0xff, 0)), (x * 8, y * 8))
+			image.paste(Image.new('RGB', (8, 8), (0xff, 0xff, 0)), (offset[0] + x * 8, offset[1] + y * 8))
 		address += 1
 		vram_ptr += 1
-	return image
+	return image, vram_ptr
 # }}}
 
 def write_god_message(msg_id, image = None, pos = (0, 0)): # {{{
@@ -437,35 +456,38 @@ def write_god_message(msg_id, image = None, pos = (0, 0)): # {{{
 	return image
 # }}}
 
-def make_god_screen(shrine_id, english, image = None, sub = 0): # {{{
-	'Create a god screen as it looks in game.'
-	# sub is used to choose different options for death and demeter.
+def make_god_bg(image = None, offset = (0, 0)): # {{{
 	if image is None:
 		image = Image.new('RGB', (0x100, 0xa0), (0, 0, 0))
+	image.paste(Image.new('RGB', (0x100, 0xa0), (0, 0, 0)), offset)
 	# Based on draw_boxes, at 93ae
-	# Walls around it. {{{
-	image.paste(composite(god_sets, [[0xf0, 0xf0]] * 0x13), (0, 0))
-	image.paste(composite(god_sets, [[0xf0, 0xf0]] * 0x13), (0x1e * 8, 0))
-	image.paste(composite(god_sets, [[0xf0] * 0x20]), (0, 0))
-	image.paste(composite(god_sets, [[0xf0] * 0x20]), (0, 0x12 * 8))
-	image.paste(composite(god_sets, [[0x9a, 0x9b]]), (0x0f * 8, 0x13 * 8))	# Ladder.
-	# }}}
-	# Text boxes. {{{
+	image.paste(composite(god_sets, [[0xf0, 0xf0]] * 0x13), (offset[0], offset[1]))
+	image.paste(composite(god_sets, [[0xf0, 0xf0]] * 0x13), (offset[0] + 0x1e * 8, offset[1]))
+	image.paste(composite(god_sets, [[0xf0] * 0x20]), (offset[0], offset[1]))
+	image.paste(composite(god_sets, [[0xf0] * 0x20]), (offset[0], offset[1] + 0x12 * 8))
+	image.paste(composite(god_sets, [[0x9a, 0x9b]]), (offset[0] + 0x0f * 8, offset[1] + 0x13 * 8))	# Ladder.
+	# Text boxes.
 	for addr in (0xee05, 0xeec5, 0xeee5, 0xef65):
 		y, x = divmod(addr - 0xed00, 0x20)
 		y -= 4
-		image.paste(composite(god_sets, [[0x6c] * 0x16]), (x * 8, y * 8))
+		image.paste(composite(god_sets, [[0x6c] * 0x16]), (offset[0] + x * 8, offset[1] + y * 8))
 	for addr in (0xee24, 0xee3b):
 		y, x = divmod(addr - 0xed00, 0x20)
 		y -= 4
-		image.paste(composite(god_sets, [[0x6d]] * 0xa), (x * 8, y * 8))
+		image.paste(composite(god_sets, [[0x6d]] * 0xa), (offset[0] + x * 8, offset[1] + y * 8))
 	for (addr, char) in ((0xee04, 0x72), (0xeee4, 0x72), (0xeec4, 0x73), (0xef64, 0x73), (0xee1b, 0x74), (0xeefb, 0x74), (0xeedb, 0x75), (0xef7b, 0x75), (0xee0b, 0x6a), (0xef74, 0)):
 		y, x = divmod(addr - 0xed00, 0x20)
 		y -= 4
 		c = get_char(god_sets, char)
 		if c is not None:
-			image.paste(get_char(god_sets, char), (x * 8, y * 8))
-	# }}}
+			image.paste(get_char(god_sets, char), (offset[0] + x * 8, offset[1] + y * 8))
+	return image
+# }}}
+
+def make_god_screen(shrine_id, english, image = None, sub = 0): # {{{
+	'Create a god screen as it looks in game.'
+	# sub is used to choose different options for death and demeter.
+	image = make_god_bg(image)
 	# Contents. {{{
 	god_id = rom[0x954c - 0x8000 + 0x2000 * 2 + shrine_id]
 	# God name.
@@ -513,6 +535,20 @@ def make_god_screen(shrine_id, english, image = None, sub = 0): # {{{
 	return image
 # }}}
 
+def world_screen(num): # {{{
+	'Generate the screen for entering a world.'
+	image = Image.new('RGB', (0x100, 0xa0), (0, 0, 0))
+	pos = write_string_to_screen(*write_strings[5], image = image)[1]
+	y, x = divmod(pos - 0x3800, 0x20)
+	y -= 4
+	if num > 9:
+		num = num - 10 + 0x10
+		image.paste(get_char(base_sets, ((num >> 4) & 0xf) + 1), (x * 8, y * 8))
+		x += 1
+	image.paste(get_char(base_sets, (num & 0xf) + 1), (x * 8, y * 8))
+	return image
+# }}}
+
 # Generate images. {{{
 godsimgs = []
 gods = {}
@@ -540,27 +576,11 @@ for d in range(1, 3):
 
 # Only create files if we're not imported as a module.
 if __name__ == '__main__':
-	# Text. {{{
-	write_strings = [ # These strings are all as literals in the code. {{{
-			(0x3d71, title_text_sets), # PLAY START
-			(0x3cf6, base_sets), # APHRODITE OUT
-			(0x3d06, base_sets), # POPOLON OUT
-			(0x3d44, base_sets), # GAME  OVER
-			(0x3ecf, base_sets), # F5 CONTINUE
-			(0x3d14, base_sets), # WORLD (center screen, entering)
-			(0x3d1d, base_sets), # CASTLE!!
-			(0x3d33, base_sets), # WORLD (top left, title)
-			(0x3cae, base_sets), # Header
-			(0x3d51, title_text_sets), # ©KONAMI 1978 PUSH SPACE KEY
-			]
-	# }}}
-	# Boss passwords.
-	write_strings += [(struct.unpack('<H', rom[0x13b5a + 2 * x:0x13b5a + 2 * (x + 1)])[0] - 0xb000 + 0x13000, base_sets) for x in range(10)]
-	# Create files.
-	im = Image.new('RGBA', (0x100, len(write_strings) * 0xa1 - 1), (0, 0xff, 0, 0xff))
+	# Create images of string literals. {{{
+	im = Image.new('RGBA', (0x100, len(write_strings) * 0xc1 - 1), (0, 0xff, 0, 0xff))
 	for i, s in enumerate(write_strings):
-		screen = write_string_to_vram(*s)
-		im.paste(screen, (0, i * 0xa1))
+		screen = write_string_to_screen(*s, image = Image.new('RGBA', (0x100, 0xc0), (0, 0, 0, 0)), offset = (0, 0x20))[0]
+		im.paste(screen, (0, i * 0xc1))
 	im.save('/tmp/mog-passwords.png')
 	# }}}
 
@@ -591,7 +611,9 @@ if __name__ == '__main__':
 
 	# God messages (without context) {{{
 	for i in range(0x14):
-		im = Image.new('RGB', (0x201, 0xa0), (0, 0, 0))
+		im = Image.new('RGB', (0x201, 0xa0), (0, 0, 0x30))
+		make_god_bg(im)
+		make_god_bg(im, (0x101, 0))
 		write_god_message(i, im, (0x101, 0))
 		write_god_message(i + 0x20, im)
 		im.save('/tmp/msg-%02x.png' % i)

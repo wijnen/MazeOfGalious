@@ -903,7 +903,7 @@ T45B2h	CD255C..  .%\.	CALL	WriteStringToVRAM
 T45B5h	3A88E6..  :...	LD	A,(TE688H)
 T45B8h	3D......  ....	DEC	A	
 T45B9h	C601....  ....	ADD	A,001h	
-T45BBh	27......  '...	DAA		
+T45BBh	27......  '...	DAA			; turn decimal 10 into hex 10
 T45BCh	1100F0..  ....	LD	DE,0F000h
 T45BFh	12......  ....	LD	(DE),A	
 T45C0h	0601....  ....	LD	B,001h	
@@ -2522,7 +2522,7 @@ T51A3h	CD245D..  .$].	CALL	T5D24H
 draw_world_title:
 T51A6h	3A41E0..  :A..	LD	A,(WorldNumber)
 T51A9h	3D......  ....	DEC	A	
-T51AAh	11287D..  .(}.	LD	DE,07D28h
+T51AAh	11287D..  .(}.	LD	DE,07D28h	; "CASTLE  " (top left)
 T51ADh	2803....  (...	JR	Z,003h			; Jump to 051B2H
 T51AFh	11337D..  .3}.	LD	E,07D33h	; "WORLD " (top left)
 T51B2h	CD255C..  .%\.	CALL	WriteStringToVRAM	
