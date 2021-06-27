@@ -11,24 +11,11 @@ import read_patterns
 import read_sprites
 # }}}
 
-# Palette {{{
-palette = ((0, 0, 0,
-		0, 0, 0,
-		62, 184, 73,
-		116, 208, 125,
-		89, 85, 224,
-		128, 118, 241,
-		185, 94, 81,
-		101, 219, 239,
-		219, 101, 89,
-		255, 137, 125,
-		204, 195, 94,
-		222, 208, 135,
-		58, 162, 65,
-		183, 102, 181,
-		204, 204, 204,
-		255, 255, 255,
-	))
+def addr2rom(address, page): # {{{
+	'Convert address and page to an address in the rom file. page may be any of the 3 pages (so 6000,4 is the same as 6000,5)'
+	base = address - 0x6000	# address from start of (changed) mappings.
+	firstpage = ((page - 1) // 3) * 3 + 1	# First page of the set of 3.
+	return base + firstpage * 0x2000
 # }}}
 
 def get_room_charset(room): # {{{
@@ -68,9 +55,7 @@ enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "06"
 		"<Moai", "<Armor", "Middle Bat", "Mini Bat", "Bone", "Small Bone", "Small Fireball", "57",
 		"Crab's Breath", "Seed", "5A", "5B", "Spiral Ball ", "5D", "5E", "5F",
 		"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",
-		"68", "Thunder Cloud", "6A", "6B", "6C", "6D", "6E", "6F",
-		"70", "71", "72", "73", "74", "75", "76", "77",
-		"78", "79", "7A", "7B", "7C", "7D", "7E", "7F")
+		"68", "Thunder Cloud", "6A", "6B")
 # }}}
 
 # Find sprite codes that are loaded for a room. Can be used to check that sprite patterns are available and to map sprite names to their enemy codes. {{{
@@ -88,6 +73,19 @@ for w, num_rooms in enumerate(rooms):
 			ptr += 1
 		ptr += 1
 # }}}
+
+# Read enemy data for all enemy types. {{{
+edata_ptr = addr2rom(0x67b6, 4)
+edata = []
+print('%x'%edata_ptr)
+for e, name in enumerate(enemy_names):
+	if name is None:
+		edata.append(None)
+		continue
+	spritetype, spritename, spritecolor, byte3, byte4 = rom[edata_ptr + 5 * e:edata_ptr + 5 * (e + 1)]
+	edata.append({'type': spritetype, 'name': spritename, 'color': spritecolor, 'byte3': byte3, 'byte4': byte4})
+# }}}
+print('\n'.join('%s' % x for x in edata))
 
 def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 	'Convert rom into image'
@@ -204,8 +202,10 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 			code = fixes.get(e[0], e[0])
 			num = extra['enemy'][e]
 			pos = e[1], e[2] - 32
+			special = e[3]
 			boss_map = {0x3a: 0x00, 0x50: 0x02, 0x32: 0x04, 0x51: 0x05, 0x5c: None, 0x04: None} # Moais and armors, and baby in boulder
 			if code in boss_map:
+				# This is a character enemy.
 				block = boss_map[code]
 				if block is None:
 					if code == 4:
@@ -221,20 +221,29 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 					target = read_sprites.bosses[block]
 				im.paste(target, pos)
 			else:
+				# This is a sprite enemy.
 				if code not in room_sprites[world_num][room_num + 1]:
 					print('warning: wrong sprite in room %d %02x? %02x(%s) not in %s' % (world_num, room_num + 1, code, enemy_names[code], ','.join('%02x(%s)' % (x, enemy_names[x]) for x in room_sprites[world_num][room_num + 1])))
 				elif code in unused_enemies:
 					unused_enemies.remove(code)
 				if code == 0x31 and not (pos[1] & 8):
-					# Gas at odd row show use different sprite.
+					# Gas at odd row uses a different sprite.
 					sprite = read_sprites.sprite_imgs[code][7]
 				else:
 					sprite = read_sprites.sprites[code]
+				color = Image.new('P', sprite.size, 15 if code == 0xe else edata[code]['color']) # force bat color to white for visibility.
+				color.putpalette(read_patterns.palette)
+				sprite.paste(color, (0, 0), sprite)
+				# Debug bit 7 in the sprite type: change the color of those sprites.
+				#if special:
+				#	sprite.paste(Image.new('RGB', sprite.size, (0xff, 0, 0)), (0, 0), sprite)
 				im.paste(sprite, pos, sprite)
 				#imt.text(pos, enemy_names[code], fill = (255, 255, 255))
 			if num > 1:
 				imt.text((pos[0], pos[1] + 12), 'x%d' % num, fill = (255, 255, 255))
 	# TODO: show unused enemies on screen as well.
+	if len(unused_enemies) > 0:
+		print('Room %d:%02x unused enemies: %s' % (world_num, room_num + 1, ','.join('%02x' % e for e in unused_enemies)))
 	# }}}
 	return im
 # }}}
@@ -347,7 +356,7 @@ for idx, w in enumerate(world):
 		etype = rom[e] & 0x7f
 		ey = rom[e + 1] & 0xf8
 		ex = ((rom[e + 1] << 5) | ((rom[e] & 0x80) >> 3)) & 0xf0
-		record = (etype, ex, ey)
+		record = (etype, ex, ey, bool(rom[e] & 0x80))
 		if record not in enemies[room]:
 			enemies[room][record] = 0
 		enemies[room][record] += 1

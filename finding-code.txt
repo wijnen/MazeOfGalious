@@ -22,11 +22,8 @@ different part of the RAM. In that case, the method can simple be repeated to
 see when that was written to, until the source is in ROM.
 
 Still to do:
-- Enemy sprite colors
 - Horizontal elevators
 - Enemies that enter the screen later
 - Killall effects
-- World enter screens (use "WORLD X" instead of placeholder)
-- "trap" stones
 - Sprites output: align replaced sprites (or just don't show them)
-- Sprites: create multi-sprite shapes from code (as opposed to manual "fitting".
+- Sprites: create multi-sprite shapes from code (as opposed to manual "fitting").

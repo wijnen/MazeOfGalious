@@ -371,6 +371,54 @@ e *HL++	bottom limit room
 f *HL++	bottom limit position
 }}}
 
+More enemies {{{
+table at e800 is filled based on enemy type. bit 7 is not used there, but must encode something important.
+Let's change color of all enemies that have it set to find a pattern.
+It's not very clear. It may have to do with the sprite limit: both types will be in different groups, such that all of them are more often visible? In any case, it doesn't seem to be important here.
+Check the code. Things start at 515c @459, with a call to 656e. This is part of the new room setup code (which starts at 510b)
+
+set e614 to 00, e635 to 10, e636 to 11
+The rest of the function is only called in the castle.
+hl = ba2e + room // 4
+bc is filled from room bits (. are zero) .... .10. ..76 5432
+Use 2 bits from *hl, based on B. (iow: the table at ba2e uses 2 bits per room; lsb maps to lower room number.)
+If the result is 0 or 3, return.
+
+Let's find a room where it isn't 0: found 65. Here the bit code is 1.
+The code is written to e614
+The word at ba28 at index code (0048, 0f0e, or 0d0c) is written to e635.
+
+Mapping is switched to 456; 6054 is called.
+
+*e612 = 0
+Return if in world 10.
+Get pointer from table at 60ee, indexed by world number.
+That pointer goes to a list of rooms in the current world. the current room is searched on that list.
+If found, it sets *e612 to 1.
+Function ends.
+
+Next function fills the enemies.
+First (6091) it checks if the current room is in another list: world pointers at 60ae, 0-terminated list of rooms.
+	If it is, set e610 to 1, else to 0.
+
+The function show_enemy seems to be what we're looking for. It's at 65da @456 and gets as arguments A = type, DE = location, BC = some random number.
+	*f012 = 00 00 00 00
+	*f019 = type
+	*f01a = X Y
+	*e624 = B
+	*f01c = pointer to enemy data (5 bytes) values in brackets are for bat.
+		0: [81] bit 7 determines path when showing. bit set means sprite, reset character? bit 0-2: some other purpose: number of sprites in enemy?
+		1: [ac]	initial sprite name (for sprite enemies)
+		2: [01]	initial sprite color
+		3: [01]	number of sprites? life?
+		4: [69] ?
+	*f020 = current enemy data record (e800+k*20)
+
+setup_killall (6562 @456) is called. It sets *e621 if all enemies need to be killed and sets *e622 to number of killable enemies (list in 6584, length 17)
+
+
+}}}
+
 ####### Code block 0 {{{
 if not(ix[2] & 0x80): return
 if ix[9] & 0x80:

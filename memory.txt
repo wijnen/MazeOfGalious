@@ -1,43 +1,84 @@
-;Full memory map of MoG.
+Full memory map of MoG.
 
-;c000
-;d000
-;e000
-state:	equ	$e000
-substate: equ	$e001
-;	e041-e042: current world (1=castle) and current room
-World:	equ	$e041
-Room:	equ	$e042
-;	e0c0: is ladder disappeared(?)
-;	e4a0-e4ff: vertical elevator info; 06 records:
-;		0 elevator id
-;		1 current room
-;		2 flags: bit 1: down(0) or up(1) bit 2: ?
-;		3 current room index
-;		4 0
-;		5 current position Y
-;		6 0
-;		7 current position X
-;		8 dX per frame (all 0)
-;		9 dY per frame (all 2)
-;		a -
-;		b -
-;		c top limit room
-;		d top limit position
-;		e bottom limit room
-;		f bottom limit position
-;	e622: number of enemies to kill before special happens, or 0.
-;	e635: something about character enemies.
-;	e648-e64b: exits from this room: down, up. left, right
-;	e680: god id of shrine in this room
-;	e688: marker(?) for world door
-;	e690: god id of shrine you're standing in
-;	e691: shopping substate?
-;	e692: position of selector in shop
-;	e740: item id that is in current room
-;	e744-e745: appear location
-;	e800-?: enemy info; 20 byte each
-;	eaa3: X coordinate of trap wall
-;	ec80-ecff: sprite attribute buffer.
-;	ed00-eeff: screen buffer.
-;f000
+c000
+d000
+e000
+	e000	state
+	e001	substate
+	e041-e042: current world (1=castle) and current room
+	e097: something used to see if special thing already happened?
+	e0c0: is ladder disappeared(?)
+	e4a0-e4ff: vertical elevator info; 06 records:
+		0 elevator id
+		1 current room
+		2 flags: bit 1: down(0) or up(1) bit 2: ?
+		3 current room index
+		4 0
+		5 current position Y
+		6 0
+		7 current position X
+		8 dX per frame (all 0)
+		9 dY per frame (all 2)
+		a -
+		b -
+		c top limit room
+		d top limit position
+		e bottom limit room
+		f bottom limit position
+	e60c-e60d: address of some info about current room; 1 bit each.
+	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
+	e611: flag: 1 = all enemies need to be killed. 0 = no killall specials.
+	e612: some room property set up during room enter (to 0 if room not in list from 60ee, 1 if it is on the list).
+	e613: enemy counter during room setup, to index bits (for show/hide) in *e60c.
+	e614: some room property based on table (2 bits per room) at ba2e. Can be 0, 1 or 2.
+	e620: number of enemies in this room
+	e621: used during enemy setup
+	e622: number of enemies to kill before special happens, or 0.
+	e624: some enemy property set during setup (again for each enemy?)
+	e525: set to 80 if *e097 > 0 and correct enemy type is in room, otherwise set to 0 correct type taken from lists, see code at 659b @456
+	e635: maximum allowed number of enemies in this room
+	e636: something about enemies.
+	e648-e64b: exits from this room: down, up. left, right
+	e680: god id of shrine in this room
+	e688: marker(?) for world door
+	e690: god id of shrine you're standing in
+	e691: shopping substate?
+	e692: position of selector in shop
+	e740: item id that is in current room
+	e744-e745: appear location
+	e800-?: enemy info; 20 byte each
+		00	enemy type
+		01	initial 0
+		02	Flags. Bit 7: active. Initial f0 (normal) or f8 (killall)
+		03	enemy number, if bits in *e60c are used for this enemy (room?).
+		04	initial 00
+		05	Y
+		06	initial 00
+		07	X
+		08	initial 00
+		09	bit 7: set for sprite, clear for characters. bit 6: set for boss? initial from edata[0]
+		0a	sprite name (for sprite) or boss pattern for character enemies. initial from edata[1]
+		0b	sprite color; initial from edata[2] edata is 67b6 + 5 * *e635 ?! (should be etype...)
+		0c	?	from f012
+		0d	?	from f013
+		0e	?	from f014
+		0f	?	from f015
+		10	?	initial from from edata[3] (bat: 01); ff is special
+		11	?	initial from from edata[4] (bat: 69)
+		12+13	for character enemies: screen address (in ed00) for first character
+		14	initial 00
+		15	initial 00
+		16	initial 00
+		17	initial 00
+		18	initial 00
+		19	initial 00
+		1a	initial 00
+		1b	initial 00
+		1c	initial 00
+		1d	initial 00
+		1e	initial 00
+		1f	initial 00
+	eaa3: X coordinate of trap wall
+	ec80-ecff: sprite attribute buffer.
+	ed00-eeff: screen buffer.
+f000

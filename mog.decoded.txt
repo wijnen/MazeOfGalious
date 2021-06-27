@@ -2492,11 +2492,11 @@ T5151h	2053....  .S..	JR	NZ,053h			; Jump to 051A6H: draw god screen.
 T5153h	CD2B42..  .+B.	CALL	SetMapper9	
 T5156h	CD685D..  .h].	CALL	T5D68H			; Add item to room
 T5159h	CD1A69..  ..i.	CALL	T691AH	
-T515Ch	CD6E65..  .ne.	CALL	T656EH	
+T515Ch	CD6E65..  .ne.	CALL	prepare_castle_room_setup
 T515Fh	CD1542..  ..B.	CALL	SetMapper3	
 T5162h	CD8541..  ..A.	CALL	SetMapper456	
-T5165h	CD5460..  .T`.	CALL	T6054H	
-T5168h	CD0060..  ..`.	CALL	T6000H	
+T5165h	CD5460..  .T`.	CALL	some_room_setup
+T5168h	CD0060..  ..`.	CALL	setup_enemies
 T516Bh	AF......  ....	XOR	A			; Clear A and F
 T516Ch	3212E6..  2...	LD	(TE612H),A
 T516Fh	CD8661..  ..a.	CALL	T6186H	
@@ -5446,6 +5446,7 @@ T6567h	D0......  ....	RET	NC
 T6568h	322AEC..  2*..	LD	(TEC2AH),A
 T656Bh	C31F65..  ..e.	JP	T651FH		
 
+prepare_castle_room_setup:
 T656Eh	AF......  ....	XOR	A			; Clear A and F
 T656Fh	3214E6..  2...	LD	(TE614H),A
 T6572h	211011..  !...	LD	HL,01110h
@@ -19020,35 +19021,40 @@ Initial Address: 6000h
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
-T6000h	CD9160..  ..`.	CALL	T6091H	
+setup_enemies:
+T6000h	CD9160..  ..`.	CALL	T6091H		; set e041 to 1 if room is in specials list.
 T6003h	3A41E0..  :A..	LD	A,(WorldNumber)
-T6006h	21CBB5..  !...	LD	HL,0B5CBh
+T6006h	21CBB5..  !...	LD	HL,enemy_list - 2
 T6009h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T600Ch	EB......  ....	EX	DE,HL	
 T600Dh	3A42E0..  :B..	LD	A,(RoomNumber)
 T6010h	3D......  ....	DEC	A	
-T6011h	280F....  (...	JR	Z,00Fh			; Jump to 06022H
+T6011h	280F....  (...	JR	Z,00Fh			; Jump to 06022H: found current room immediately.
 T6013h	47......  G...	LD	B,A	
 T6014h	7E......  ~...	LD	A,(HL)	
 T6015h	23......  #...	INC	HL			;
 T6016h	E67F....  ....	AND	07Fh	
-T6018h	2804....  (...	JR	Z,004h			; Jump to 0601EH
+T6018h	2804....  (...	JR	Z,004h			; Jump to 0601EH: next room
 T601Ah	23......  #...	INC	HL			;
 T601Bh	C31460..  ..`.	JP	T6014H		
 
-T601Eh	05......  ....	DEC	B	
+T601Eh	05......  ....	DEC	B		; decrement room counter
 T601Fh	C21460..  ..`.	JP	NZ,T6014H
+; found current room
+
+; Loop over all enemies
 T6022h	7E......  ~...	LD	A,(HL)	
 T6023h	47......  G...	LD	B,A	
 T6024h	E67F....  ....	AND	07Fh	
-T6026h	C8......  ....	RET	Z		
+T6026h	C8......  ....	RET	Z		; end of list.
 
-T6027h	3200F0..  2...	LD	(TF000H),A
+T6027h	3200F0..  2...	LD	(TF000H),A	; save enemy type.
 T602Ah	23......  #...	INC	HL			;
-T602Bh	23......  #...	INC	HL			;
-T602Ch	CD7860..  .x`.	CALL	T6078H	
-T602Fh	20F1....  ....	JR	NZ,0F1h			; Jump to 06022H
-T6031h	2B......  +...	DEC	HL	
+T602Bh	23......  #...	INC	HL			; next enemy, to the continue will have it set right.
+T602Ch	CD7860..  .x`.	CALL	is_enemy_shown		; check for e612 marker (room is in 60ee-list)
+T602Fh	20F1....  ....	JR	NZ,0F1h			; Jump to 06022H: continue loop
+
+T6031h	2B......  +...	DEC	HL		; set pointer back to current enemy (second byte: location).
 T6032h	7E......  ~...	LD	A,(HL)	
 T6033h	E6F8....  ....	AND	0F8h	
 T6035h	57......  W...	LD	D,A	
@@ -19061,25 +19067,26 @@ T603Ch	17......  ....	RLA
 T603Dh	17......  ....	RLA		
 T603Eh	17......  ....	RLA		
 T603Fh	E6F0....  ....	AND	0F0h	
-T6041h	5F......  _...	LD	E,A	
+T6041h	5F......  _...	LD	E,A		; DE is now the location of the enemy.
 T6042h	0600....  ....	LD	B,000h	
 T6044h	ED5F....  ._..	LD	A,R	
 T6046h	E603....  ....	AND	003h	
 T6048h	4F......  O...	LD	C,A	
-T6049h	3A00F0..  :...	LD	A,(TF000H)
+T6049h	3A00F0..  :...	LD	A,(TF000H)	; retrieve enemy type.
 T604Ch	E5......  ....	PUSH	HL	
-T604Dh	CDDA65..  ..e.	CALL	T65DAH	
+T604Dh	CDDA65..  ..e.	CALL	show_enemy
 T6050h	E1......  ....	POP	HL	
-T6051h	C32260..  ."`.	JP	T6022H		
+T6051h	C32260..  ."`.	JP	T6022H		; loop over all enemies.
 
+some_room_setup:
 T6054h	AF......  ....	XOR	A			; Clear A and F
 T6055h	3212E6..  2...	LD	(TE612H),A
 T6058h	ED4B41E0  .KA.	LD	BC,(WorldNumber)
 T605Ch	79......  y...	LD	A,C	
 T605Dh	FE0B....  ....	CP	00Bh	
-T605Fh	C8......  ....	RET	Z		
+T605Fh	C8......  ....	RET	Z		; Return if we are in world 10.
 
-T6060h	21EE60..  !.`.	LD	HL,060EEh
+T6060h	21EE60..  !.`.	LD	HL,special_room_list
 T6063h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T6066h	1A......  ....	LD	A,(DE)	
 T6067h	B7......  ....	OR	A	
@@ -19096,13 +19103,15 @@ T6071h	210100..  !...	LD	HL,00001h
 T6074h	2212E6..  "...	LD	(TE612H),HL
 T6077h	C9......  ....	RET			
 
+; Function to handle if e612 was set for this room, called once per enemy: returns if this enemy is shown (Z) or not (NZ).
+is_enemy_shown:
 T6078h	3A12E6..  :...	LD	A,(TE612H)
 T607Bh	B7......  ....	OR	A	
-T607Ch	C8......  ....	RET	Z		
+T607Ch	C8......  ....	RET	Z		; Not set; nothing to handle
 
 T607Dh	E5......  ....	PUSH	HL	
 T607Eh	C5......  ....	PUSH	BC	
-T607Fh	2113E6..  !...	LD	HL,0E613h
+T607Fh	2113E6..  !...	LD	HL,0E613h	; set 1 bit in A, at position b.
 T6082h	46......  F...	LD	B,(HL)	
 T6083h	34......  4...	INC	(HL)			;
 T6084h	04......  ....	INC	B			;
@@ -19190,31 +19199,17 @@ T60EAh	02......  ....	LD	(BC),A
 T60EBh	0A......  ....	LD	A,(BC)	
 T60ECh	12......  ....	LD	(DE),A	
 T60EDh	1A......  ....	LD	A,(DE)	
+
 T60EEh	00......  ....	NOP		
 T60EFh	00......  ....	NOP		
-T60F0h	04......  ....	INC	B			;
-T60F1h	61......  a...	LD	H,C	
-T60F2h	3861....  8a..	JR	C,061h			; Jump to 06155H
-T60F4h	3E61....  >a..	LD	A,061h	
-T60F6h	43......  C...	LD	B,E	
-T60F7h	61......  a...	LD	H,C	
-T60F8h	4A......  J...	LD	C,D	
-T60F9h	61......  a...	LD	H,C	
-T60FAh	55......  U...	LD	D,L	
-T60FBh	61......  a...	LD	H,C	
-T60FCh	5F......  _...	LD	E,A	
-T60FDh	61......  a...	LD	H,C	
-T60FEh	69......  i...	LD	L,C	
-T60FFh	61......  a...	LD	H,C	
-T6100h	70......  p...	LD	(HL),B	
-T6101h	61......  a...	LD	H,C	
-T6102h	79......  y...	LD	A,C	
-T6103h	61......  a...	LD	H,C	
+special_room_list:	; 1 pointer per world, not including world 10.
+	defw 0x6104, 6138, 613e, 6143, 614a, 6155, 615f, 6169, 6170, 6179
+
+; castle data
 T6104h	0C......  ....	INC	C			;
 T6105h	0E14....  ....	LD	C,014h	
 T6107h	1617....  ....	LD	D,017h	
 T6109h	181A....  ....	JR	01Ah			; Jump to 06125H
-
 T610Bh	1D......  ....	DEC	E	
 T610Ch	212325..  !#%.	LD	HL,02523h
 T610Fh	282B....  (+..	JR	Z,02Bh			; Jump to 0613CH
@@ -19254,12 +19249,16 @@ T6134h	85......  ....	ADD	A,L
 T6135h	8D......  ....	ADC	A,L	
 T6136h	8E......  ....	ADC	A,(HL)	
 T6137h	00......  ....	NOP		
+
+; world 1 data
 T6138h	02......  ....	LD	(BC),A	
 T6139h	03......  ....	INC	BC			;
 T613Ah	05......  ....	DEC	B	
 T613Bh	0A......  ....	LD	A,(BC)	
 T613Ch	0D......  ....	DEC	C	
 T613Dh	00......  ....	NOP		
+
+; world 2 data
 T613Eh	02......  ....	LD	(BC),A	
 T613Fh	03......  ....	INC	BC			;
 T6140h	05......  ....	DEC	B	
@@ -19319,6 +19318,7 @@ T617Eh	0E0F....  ....	LD	C,00Fh
 T6180h	1015....  ....	DJNZ	015h			; Jump to 06197H
 T6182h	1617....  ....	LD	D,017h	
 T6184h	1800....  ....	JR	000h			; Jump to 06186H
+; end of data block.
 
 T6186h	2150E6..  !P..	LD	HL,0E650h
 T6189h	1151E6..  .Q..	LD	DE,0E651h
@@ -19581,7 +19581,7 @@ T6315h	5E......  ^...	LD	E,(HL)
 T6316h	1600....  ....	LD	D,000h	
 T6318h	010000..  ....	LD	BC,00000h
 T631Bh	3E09....  >...	LD	A,009h	
-T631Dh	C3DA65..  ..e.	JP	T65DAH		
+T631Dh	C3DA65..  ..e.	JP	show_enemy		
 
 T6320h	3A45E0..  :E..	LD	A,(TE045H)
 T6323h	113A63..  .:c.	LD	DE,0633Ah
@@ -19635,7 +19635,7 @@ T635Fh	16A0....  ....	LD	D,0A0h
 T6361h	2002....  ....	JR	NZ,002h			; Jump to 06365H
 T6363h	16B0....  ....	LD	D,0B0h	
 T6365h	3E08....  >...	LD	A,008h	
-T6367h	C3DA65..  ..e.	JP	T65DAH		
+T6367h	C3DA65..  ..e.	JP	show_enemy		
 
 T636Ah	34......  4...	INC	(HL)			;
 T636Bh	2C......  ,...	INC	L			;
@@ -19667,7 +19667,7 @@ T6388h	2D......  -...	DEC	L
 T6389h	35......  5...	DEC	(HL)	
 T638Ah	1690....  ....	LD	D,090h	
 T638Ch	3E0D....  >...	LD	A,00Dh	
-T638Eh	C3DA65..  ..e.	JP	T65DAH		
+T638Eh	C3DA65..  ..e.	JP	show_enemy		
 
 T6391h	34......  4...	INC	(HL)			;
 T6392h	3A45E0..  :E..	LD	A,(TE045H)
@@ -19695,7 +19695,7 @@ T63ACh	35......  5...	DEC	(HL)
 T63ADh	1600....  ....	LD	D,000h	
 T63AFh	010000..  ....	LD	BC,00000h
 T63B2h	3E21....  >!..	LD	A,021h	
-T63B4h	C3DA65..  ..e.	JP	T65DAH		
+T63B4h	C3DA65..  ..e.	JP	show_enemy		
 
 T63B7h	34......  4...	INC	(HL)			;
 T63B8h	3A45E0..  :E..	LD	A,(TE045H)
@@ -19723,7 +19723,7 @@ T63D2h	35......  5...	DEC	(HL)
 T63D3h	1690....  ....	LD	D,090h	
 T63D5h	010000..  ....	LD	BC,00000h
 T63D8h	3E30....  >0..	LD	A,030h	
-T63DAh	C3DA65..  ..e.	JP	T65DAH		
+T63DAh	C3DA65..  ..e.	JP	show_enemy		
 
 T63DDh	34......  4...	INC	(HL)			;
 T63DEh	3A45E0..  :E..	LD	A,(TE045H)
@@ -19759,7 +19759,7 @@ T6405h	5E......  ^...	LD	E,(HL)
 T6406h	16B0....  ....	LD	D,0B0h	
 T6408h	010000..  ....	LD	BC,00000h
 T640Bh	3E38....  >8..	LD	A,038h	
-T640Dh	C3DA65..  ..e.	JP	T65DAH		
+T640Dh	C3DA65..  ..e.	JP	show_enemy		
 
 T6410h	3A45E0..  :E..	LD	A,(TE045H)
 T6413h	112A64..  .*d.	LD	DE,0642Ah
@@ -19810,7 +19810,7 @@ T6449h	35......  5...	DEC	(HL)
 T644Ah	1600....  ....	LD	D,000h	
 T644Ch	010000..  ....	LD	BC,00000h
 T644Fh	3E35....  >5..	LD	A,035h	
-T6451h	C3DA65..  ..e.	JP	T65DAH		
+T6451h	C3DA65..  ..e.	JP	show_enemy		
 
 T6454h	34......  4...	INC	(HL)			;
 T6455h	3A45E0..  :E..	LD	A,(TE045H)
@@ -19840,7 +19840,7 @@ T6470h	35......  5...	DEC	(HL)
 T6471h	114030..  .@0.	LD	DE,03040h
 T6474h	010000..  ....	LD	BC,00000h
 T6477h	3E3E....  >>..	LD	A,03Eh	
-T6479h	C3DA65..  ..e.	JP	T65DAH		
+T6479h	C3DA65..  ..e.	JP	show_enemy		
 
 T647Ch	00......  ....	NOP		
 T647Dh	00......  ....	NOP		
@@ -20022,27 +20022,29 @@ T655Ch	CDE365..  ..e.	CALL	T65E3H
 T655Fh	DDE1....  ....	POP	IX	
 T6561h	C9......  ....	RET			
 
+setup_killall: ; e621 is set if all need to be killed; e622 is number of enemies that need to be killed.
 T6562h	AF......  ....	XOR	A			; Clear A and F
 T6563h	3211E6..  2...	LD	(TE611H),A
-T6566h	3A10E6..  :...	LD	A,(TE610H)
+T6566h	3A10E6..  :...	LD	A,(TE610H)	; set if room is in "special" (killall?) list
 T6569h	B7......  ....	OR	A	
-T656Ah	C8......  ....	RET	Z		
+T656Ah	C8......  ....	RET	Z		; e611 = 0; done.
 
-T656Bh	3A19F0..  :...	LD	A,(TF019H)
+T656Bh	3A19F0..  :...	LD	A,(TF019H)	; enemy type
 T656Eh	0617....  ....	LD	B,017h	
-T6570h	218465..  !.e.	LD	HL,06584h
+T6570h	218465..  !.e.	LD	HL,killable_enemy_types
 T6573h	BE......  ....	CP	(HL)	
 T6574h	2804....  (...	JR	Z,004h			; Jump to 0657AH
 T6576h	23......  #...	INC	HL			;
 T6577h	10FA....  ....	DJNZ	0FAh			; Jump to 06573H
-T6579h	C9......  ....	RET			
+T6579h	C9......  ....	RET			; enemy not found: return with e611 == 0
 
 T657Ah	2122E6..  !"..	LD	HL,0E622h
-T657Dh	34......  4...	INC	(HL)			;
+T657Dh	34......  4...	INC	(HL)			; 1 more enemy to kill for killall
 T657Eh	3E01....  >...	LD	A,001h	
-T6580h	3211E6..  2...	LD	(TE611H),A
+T6580h	3211E6..  2...	LD	(TE611H),A	; yes, killall is active (?)
 T6583h	C9......  ....	RET			
 
+killable_enemy_types:
 T6584h	defb 0x2f, 0x2d, 0x24, 0x0f, 0x2e, 0x22, 0x0c, 0x0e, 0x43, 0x0x10, 0x2a, 0x4c, 0x16, 0x1f, 0x13, 0x40, 0x15, 0x0a, 0x34, 0x14, 0x12, 0x07, 0x17
 
 T659Bh	AF......  ....	XOR	A			; Clear A and F
@@ -20067,15 +20069,25 @@ T65B6h	3E80....  >...	LD	A,080h
 T65B8h	3225E6..  2%..	LD	(TE625H),A
 T65BBh	C9......  ....	RET			
 
-T65BCh	D265C9..  .e..	JP	NC,TC965H
+pointer list for special things
+	defw 65D2, 65C9, 65C2
+T65BCh	D265
+
+	C9..  .e..	JP	NC,TC965H
 T65BFh	65......  e...	LD	H,L	
-T65C0h	C26558..  .eX.	JP	NZ,T5865H
+
+T65C0h	C265
+
+item 2
+	58..  .eX.	JP	NZ,T5865H
 T65C3h	65......  e...	LD	H,L	
 T65C4h	54......  T...	LD	D,H	
 T65C5h	55......  U...	LD	D,L	
 T65C6h	59......  Y...	LD	E,C	
 T65C7h	68......  h...	LD	L,B	
 T65C8h	65......  e...	LD	H,L	
+
+item 1
 T65C9h	41......  A...	LD	B,C	
 T65CAh	45......  E...	LD	B,L	
 T65CBh	46......  F...	LD	B,(HL)	
@@ -20085,6 +20097,8 @@ T65CEh	4A......  J...	LD	C,D
 T65CFh	4D......  M...	LD	C,L	
 T65D0h	4B......  K...	LD	C,E	
 T65D1h	3D......  ....	DEC	A	
+
+item 0
 T65D2h	44......  D...	LD	B,H	
 T65D3h	3F......  ?...	CCF		
 T65D4h	1A......  ....	LD	A,(DE)	
@@ -20092,6 +20106,8 @@ T65D5h	1D......  ....	DEC	E
 T65D6h	47......  G...	LD	B,A	
 T65D7h	1E56....  .V..	LD	E,056h	
 T65D9h	00......  ....	NOP		
+
+show_enemy:	; A = type, DE = location, BC = random (2-bit) for normal enemies, sometimes forced to 0.
 T65DAh	210000..  !...	LD	HL,00000h
 T65DDh	2212F0..  "...	LD	(TF012H),HL
 T65E0h	2214F0..  "...	LD	(TF014H),HL
@@ -20099,15 +20115,15 @@ T65E3h	3219F0..  2...	LD	(TF019H),A
 T65E6h	ED531AF0  .S..	LD	(TF01AH),DE
 T65EAh	78......  x...	LD	A,B	
 T65EBh	3224E6..  2$..	LD	(TE624H),A
-T65EEh	3A35E6..  :5..	LD	A,(TE635H)
+T65EEh	3A35E6..  :5..	LD	A,(TE635H)	; related to character enemies.
 T65F1h	47......  G...	LD	B,A	
 T65F2h	3A20E6..  :...	LD	A,(TE620H)
 T65F5h	B8......  ....	CP	B	
 T65F6h	D0......  ....	RET	NC		
 
-T65F7h	3A19F0..  :...	LD	A,(TF019H)
+T65F7h	3A19F0..  :...	LD	A,(TF019H)	; enemy type
 T65FAh	6F......  o...	LD	L,A	
-T65FBh	CDAF67..  ..g.	CALL	T67AFH	
+T65FBh	CDAF67..  ..g.	CALL	get_enemy_data	
 T65FEh	221CF0..  "...	LD	(TF01CH),HL
 T6601h	7E......  ~...	LD	A,(HL)	
 T6602h	CB7F....  ....	BIT	7,A	
@@ -20120,25 +20136,25 @@ T660Dh	47......  G...	LD	B,A
 T660Eh	3A21E6..  :!..	LD	A,(TE621H)
 T6611h	81......  ....	ADD	A,C	
 T6612h	B8......  ....	CP	B	
-T6613h	D0......  ....	RET	NC		
+T6613h	D0......  ....	RET	NC		; return if B < *e621 + (edata[0] & 7)
 
-T6614h	CD8D67..  ..g.	CALL	T678DH	
+T6614h	CD8D67..  ..g.	CALL	find_next_available_enemy_record
 T6617h	C0......  ....	RET	NZ		
 
 T6618h	3A21E6..  :!..	LD	A,(TE621H)
 T661Bh	81......  ....	ADD	A,C	
-T661Ch	3221E6..  2!..	LD	(TE621H),A
+T661Ch	3221E6..  2!..	LD	(TE621H),A	; *e621 += (edata[0] & 7): number of sprites?
 T661Fh	C32666..  .&f.	JP	T6626H		
 
-T6622h	CD8D67..  ..g.	CALL	T678DH	
+T6622h	CD8D67..  ..g.	CALL	find_next_available_enemy_record
 T6625h	C0......  ....	RET	NZ		
 
 T6626h	E5......  ....	PUSH	HL	
-T6627h	DDE1....  ....	POP	IX	
+T6627h	DDE1....  ....	POP	IX		; set IX to enemy data record (e800+k*20)
 T6629h	2220F0..  "...	LD	(TF020H),HL
 T662Ch	2120E6..  !...	LD	HL,0E620h
 T662Fh	34......  4...	INC	(HL)			;
-T6630h	CD6265..  .be.	CALL	T6562H	
+T6630h	CD6265..  .be.	CALL	setup_killall	; e621 = flag, e622 = number
 T6633h	CD9B65..  ..e.	CALL	T659BH	
 T6636h	2A20F0..  *...	LD	HL,(TF020H)
 T6639h	3A19F0..  :...	LD	A,(TF019H)
@@ -20211,24 +20227,33 @@ T66ACh	E5......  ....	PUSH	HL
 T66ADh	3A19F0..  :...	LD	A,(TF019H)
 T66B0h	3D......  ....	DEC	A	
 T66B1h	CD5040..  .P@.	CALL	switch_hook	
-defw 0x7950, 0x6cdb, 0xabfe, 0x6f5d, 0x6ae8, 0x7679, 0xa830, 0x6dfe, 0x700d, 0x7b0d, 0x7a93, 0x9d97, 0x784b, 0x7d18, 0x7347, 0x71c9
-defw 0x73ba, 0x7097, 0xa3e2, 0x7249, 0x8e05, 0x8c1f, 0x951c, 0x6c50, 0x863d, 0x6c32, 0x6ec2, 0x6f55, 0x6c42, 0x8cec, 0x942f, 0x93d4
-defw 0x7e89, 0x80c0, 0xa198, 0x9b30, 0x98c0, 0xa42a, 0x8935, 0x9357, 0x92ba, 0x969a, 0x87da, 0xa974, 0x9725, 0xa070, 0x91fe, 0x7f2e
-defw 0x8b32, 0x9078, 0x9143, 0xaaf4, 0xab88, 0x8a39, 0x8681, 0xa7a8, 0xa8df, 0x9159, 0x91e0, 0xae4c, 0xaec4, 0xa283, 0x9890, 0x8d04
-defw 0x8d7f, 0x838d, 0x84d5, 0x9f1e, 0x8fba, 0x8ce6, 0x95ac, 0x6c42, 0xa0e3, 0x80fb, 0xa548, 0x8fca, 0x8ff7, 0x822a, 0x82f9, 0x9159
-defw 0x9078, 0xa0f1, 0xa0f1, 0x6eed, 0xad05, 0x9f1e, 0xad51, 0xadb2, 0xae03, 0x74ba, 0x6a05, 0xaabe, 0x6aaa, 0x6aaa, 0x6aaa, 0x8458
-defw 0x84c5, 0x8544, 0x6ac4, 0xaaa3, 0xa560, 0x678a, 0xa5e0, 0x9f3f, 0x74bb, 0x7937, 0xaab5
+; Custom handling per enemy type. (first record is enemy type 1)
+	defw 0x7950, 0x6cdb, 0xabfe, 0x6f5d, 0x6ae8, 0x7679, 0xa830, 0x6dfe	; 01-08
+	defw 0x700d, 0x7b0d, 0x7a93, 0x9d97, 0x784b, 0x7d18, 0x7347, 0x71c9	; 09-10
+	defw 0x73ba, 0x7097, 0xa3e2, 0x7249, 0x8e05, 0x8c1f, 0x951c, 0x6c50	; 11-18
+	defw 0x863d, 0x6c32, 0x6ec2, 0x6f55, 0x6c42, 0x8cec, 0x942f, 0x93d4	; 19-20
+	defw 0x7e89, 0x80c0, 0xa198, 0x9b30, 0x98c0, 0xa42a, 0x8935, 0x9357	; 21-28
+	defw 0x92ba, 0x969a, 0x87da, 0xa974, 0x9725, 0xa070, 0x91fe, 0x7f2e	; 29-30
+	defw 0x8b32, 0x9078, 0x9143, 0xaaf4, 0xab88, 0x8a39, 0x8681, 0xa7a8	; 31-38
+	defw 0xa8df, 0x9159, 0x91e0, 0xae4c, 0xaec4, 0xa283, 0x9890, 0x8d04	; 39-40
+	defw 0x8d7f, 0x838d, 0x84d5, 0x9f1e, 0x8fba, 0x8ce6, 0x95ac, 0x6c42	; 41-48
+	defw 0xa0e3, 0x80fb, 0xa548, 0x8fca, 0x8ff7, 0x822a, 0x82f9, 0x9159	; 49-50
+	defw 0x9078, 0xa0f1, 0xa0f1, 0x6eed, 0xad05, 0x9f1e, 0xad51, 0xadb2	; 51-58
+	defw 0xae03, 0x74ba, 0x6a05, 0xaabe, 0x6aaa, 0x6aaa, 0x6aaa, 0x8458	; 59-60
+	defw 0x84c5, 0x8544, 0x6ac4, 0xaaa3, 0xa560, 0x678a, 0xa5e0, 0x9f3f	; 61-68
+	defw 0x74bb, 0x7937, 0xaab5						; 69-6b
 
 T678Ah	C9......  ....	RET			
 
 T678Bh	37......  7...	SCF		
 T678Ch	C9......  ....	RET			
 
-T678Dh	3A19F0..  :...	LD	A,(TF019H)
-T6790h	FE43....  .C..	CP	043h	
-T6792h	2811....  (...	JR	Z,011h			; Jump to 067A5H
+find_next_available_enemy_record:
+T678Dh	3A19F0..  :...	LD	A,(TF019H)	; enemy type
+T6790h	FE43....  .C..	CP	043h		; lizard with long tongue
+T6792h	2811....  (...	JR	Z,011h			; Jump to 067A5H: lizard
 T6794h	2100E8..  !...	LD	HL,0E800h
-T6797h	3A35E6..  :5..	LD	A,(TE635H)
+T6797h	3A35E6..  :5..	LD	A,(TE635H)	; number of iterations
 T679Ah	47......  G...	LD	B,A	
 T679Bh	112000..  ....	LD	DE,00020h
 T679Eh	AF......  ....	XOR	A			; Clear A and F
@@ -20237,51 +20262,67 @@ T67A0h	C8......  ....	RET	Z
 
 T67A1h	19......  ....	ADD	HL,DE	
 T67A2h	10FB....  ....	DJNZ	0FBh			; Jump to 0679FH
-T67A4h	C9......  ....	RET			
+T67A4h	C9......  ....	RET			; no record available; return NZ (not found)
 
+lizard:	; the lizard adds a record to e900 instead of e800 for some reason
 T67A5h	2100E9..  !...	LD	HL,0E900h
 T67A8h	3A35E6..  :5..	LD	A,(TE635H)
 T67ABh	D608....  ....	SUB	008h	
 T67ADh	18EB....  ....	JR	0EBh			; Jump to 0679AH
 
+get_enemy_data:	; return pointer to enemy data, records of 5 bytes.
 T67AFh	4D......  M...	LD	C,L	
 T67B0h	2600....  &...	LD	H,000h	
 T67B2h	44......  D...	LD	B,H	
 T67B3h	29......  )...	ADD	HL,HL	
 T67B4h	29......  )...	ADD	HL,HL	
 T67B5h	09......  ....	ADD	HL,BC	
-T67B6h	01B667..  ..g.	LD	BC,067B6h
+T67B6h	01B667..  ..g.	LD	BC,enemy_data - 5
 T67B9h	09......  ....	ADD	HL,BC	
 T67BAh	C9......  ....	RET			
 
+enemy_data:	; table with 5-byte records, indexed by enemy type.
 T67BBh	A2......  ....	AND	D	
 T67BCh	A0......  ....	AND	B	
 T67BDh	08......  ....	EX	AF,AF'	
 T67BEh	04......  ....	INC	B			;
 T67BFh	00......  ....	NOP		
+
 T67C0h	81......  ....	ADD	A,C	
 T67C1h	A0......  ....	AND	B	
 T67C2h	0F......  ....	RRCA		
-T67C3h	017581..  .u..	LD	BC,08175h
+T67C3h	0175
+
+	81..  .u..	LD	BC,08175h
 T67C6h	C40801..  ....	CALL	NZ,T0108H
 T67C9h	05......  ....	DEC	B	
+
 T67CAh	40......  @...	LD	B,B	
 T67CBh	00......  ....	NOP		
 T67CCh	00......  ....	NOP		
-T67CDh	012281..  ."..	LD	BC,08122h
+T67CDh	0122
+
+	81..  ."..	LD	BC,08122h
 T67D0h	A0......  ....	AND	B	
 T67D1h	07......  ....	RLCA		
 T67D2h	03......  ....	INC	BC			;
-T67D3h	2A81A0..  *...	LD	HL,(TA081H)
+T67D3h	2A
+
+	81A0..  *...	LD	HL,(TA081H)
 T67D6h	08......  ....	EX	AF,AF'	
 T67D7h	FF......  ....	RST	38h	
-T67D8h	1081....  ....	DJNZ	081h			; Jump to 0675BH
+T67D8h	10
+
+	81....  ....	DJNZ	081h			; Jump to 0675BH
 T67DAh	A0......  ....	AND	B	
 T67DBh	09......  ....	ADD	HL,BC	
 T67DCh	02......  ....	LD	(BC),A	
-T67DDh	2682....  &...	LD	H,082h	
+T67DDh	26
+
+	82....  &...	LD	H,082h	
 T67DFh	CC09FF..  ....	CALL	Z,TFF09H
 T67E2h	4D......  M...	LD	C,L	
+
 T67E3h	81......  ....	ADD	A,C	
 T67E4h	C40EFE..  ....	CALL	NZ,TFE0EH
 T67E7h	13......  ....	INC	DE			;
@@ -20301,9 +20342,11 @@ T67F7h	81......  ....	ADD	A,C
 T67F8h	C8......  ....	RET	Z		
 
 T67F9h	09......  ....	ADD	HL,BC	
-T67FAh	010081..  ....	LD	BC,08100h
-T67FDh	AC......  ....	XOR	H	
-T67FEh	010169..  ..i.	LD	BC,06901h
+T67FAh	0100
+
+bat_info:
+	defb 81, AC, 01, 01, 69
+
 T6801h	81......  ....	ADD	A,C	
 T6802h	A0......  ....	AND	B	
 T6803h	0A......  ....	LD	A,(BC)	
@@ -24406,7 +24449,7 @@ T871Eh	3E19....  >...	LD	A,019h
 T8720h	DD4618..  .F..	LD	B,(IX+018h)
 T8723h	DD5605..  .V..	LD	D,(IX+005h)
 T8726h	DD5E07..  .^..	LD	E,(IX+007h)
-T8729h	C3DA65..  ..e.	JP	T65DAH		
+T8729h	C3DA65..  ..e.	JP	show_enemy		
 
 T872Ch	DDE5....  ....	PUSH	IX	
 T872Eh	CD4787..  .G..	CALL	T8747H	
@@ -30275,7 +30318,7 @@ TB41Bh	D8......  ....	RET	C
 
 TB41Ch	CD3DB4..  ....	CALL	TB43DH	
 TB41Fh	DD6E00..  .n..	LD	L,(IX+000h)
-TB422h	CDAF67..  ..g.	CALL	T67AFH	
+TB422h	CDAF67..  ..g.	CALL	get_enemy_data	
 TB425h	EB......  ....	EX	DE,HL	
 TB426h	AF......  ....	XOR	A			; Clear A and F
 TB427h	DD7700..  .w..	LD	(IX+000h),A
@@ -30423,28 +30466,40 @@ TB5CAh	C8......  ....	RET	Z
 TB5CBh	37......  7...	SCF		
 TB5CCh	C9......  ....	RET			
 
+enemy_list:	; world pointers to 0-terminated enemy lists.
 TB5CDh	E3......  ....	EX	(SP),HL	
 TB5CEh	B5......  ....	OR	L	
+
 TB5CFh	42......  B...	LD	B,D	
 TB5D0h	BB......  ....	CP	E	
-TB5D1h	C3BB28..  ..(.	JP	T28BBH		
 
+TB5D1h	C3BB
+
+	28..  ..(.	JP	T28BBH		
 TB5D4h	BC......  ....	CP	H	
+
 TB5D5h	98......  ....	SBC	A,B	
 TB5D6h	BC......  ....	CP	H	
+
 TB5D7h	17......  ....	RLA		
 TB5D8h	BD......  ....	CP	L	
+
 TB5D9h	81......  ....	ADD	A,C	
 TB5DAh	BD......  ....	CP	L	
-TB5DBh	E8......  ....	RET	PE		
 
+TB5DBh	E8......  ....	RET	PE		
 TB5DCh	BD......  ....	CP	L	
+
 TB5DDh	7E......  ~...	LD	A,(HL)	
 TB5DEh	BE......  ....	CP	(HL)	
+
 TB5DFh	E7......  ....	RST	20h	
 TB5E0h	BE......  ....	CP	(HL)	
+
 TB5E1h	AE......  ....	XOR	(HL)	
 TB5E2h	BF......  ....	CP	A	
+
+; enemies for castle.
 TB5E3h	00......  ....	NOP		
 TB5E4h	23......  #...	INC	HL			;
 TB5E5h	24......  $...	INC	H			;
@@ -53012,37 +53067,19 @@ TBA24h	00......  ....	NOP
 TBA25h	2C......  ,...	INC	L			;
 TBA26h	00......  ....	NOP		
 TBA27h	00......  ....	NOP		
-TBA28h	48......  H...	LD	C,B	
-TBA29h	00......  ....	NOP		
-TBA2Ah	0E0F....  ....	LD	C,00Fh	
-TBA2Ch	0C......  ....	INC	C			;
-TBA2Dh	0D......  ....	DEC	C	
-TBA2Eh	00......  ....	NOP		
-TBA2Fh	44......  D...	LD	B,H	
-TBA30h	12......  ....	LD	(DE),A	
-TBA31h	14......  ....	INC	D			;
-TBA32h	05......  ....	DEC	B	
-TBA33h	2012....  ....	JR	NZ,012h			; Jump to 0BA47H
-TBA35h	02......  ....	LD	(BC),A	
-TBA36h	54......  T...	LD	D,H	
-TBA37h	0644....  .D..	LD	B,044h	
-TBA39h	210401..  !...	LD	HL,00104h
-TBA3Ch	010000..  ....	LD	BC,00000h
-TBA3Fh	010000..  ....	LD	BC,00000h
-TBA42h	110005..  ....	LD	DE,00500h
-TBA45h	00......  ....	NOP		
-TBA46h	00......  ....	NOP		
-TBA47h	54......  T...	LD	D,H	
-TBA48h	00......  ....	NOP		
-TBA49h	00......  ....	NOP		
-TBA4Ah	04......  ....	INC	B			;
-TBA4Bh	010020..  ....	LD	BC,02000h
-TBA4Eh	08......  ....	EX	AF,AF'	
-TBA4Fh	40......  @...	LD	B,B	
-TBA50h	1001....  ....	DJNZ	001h			; Jump to 0BA53H
-TBA52h	1005....  ....	DJNZ	005h			; Jump to 0BA59H
-TBA54h	AC......  ....	XOR	H	
-TBA55h	BA......  ....	CP	D	
+
+; These values are stored in e635 at room load, based on the 2-bit table at ba2e
+TBA28h	defw 0048
+TBA2Ah	defw 0F0E
+TBA2Ch	defw 0D0C
+
+; This table (2 bits per room; castle only) defines some room property, stored in e014.
+TBA2Eh	defb 00, 44, 12, 14, 05, 20, 12, 02	; Room 00-20 (1-based, so 2 bits wasted)
+TBA36h	defb 54, 06, 44, 21, 04, 01, 01, 00	; Room 20-40
+TBA3Eh	defb 00, 01, 00, 00, 11, 00, 05, 00	; Room 40-60
+TBA46h	defb 00, 54, 00, 00, 04, 01, 00, 20	; Room 60-80
+TBA4Eh	defb 08, 40, 10, 01, 10, 05, AC, BA	; Room 80-a0 (?)
+
 TBA56h	07......  ....	RLCA		
 TBA57h	B4......  ....	OR	H	
 TBA58h	BA......  ....	CP	D	

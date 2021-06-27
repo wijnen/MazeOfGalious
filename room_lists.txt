@@ -1,0 +1,7 @@
+All the lists that are indexed by world/room:
+
+ba2e: castle only; 2 bits per room. values 0,1,2 (indexed to ba28). sets e635+e636	@459
+60ee: world pointers to 0-terminated list of rooms. sets e612		@456
+60ae: world pointers to 0-terminated list of rooms. sets e610		@456
+b5cb: world pointers to 0-terminated list per room: enemies.		@456
+
