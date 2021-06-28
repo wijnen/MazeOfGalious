@@ -18,27 +18,73 @@ def addr2rom(address, page): # {{{
 	return base + firstpage * 0x2000
 # }}}
 
+def getptr(address, page = None): # {{{
+	if page is not None:
+		address = addr2rom(address, page)
+	else:
+		page = address >> 13
+	return addr2rom(struct.unpack('<H', rom[address:address + 2])[0], page)
+# }}}
+
 def get_room_charset(room): # {{{
 	'Every room has a charset (16 options). This function reads the charset id for a given room.'
-	d = rom[0x140d7 + (room + 1) // 2]
+	d = rom[addr2rom(0x60d7 + (room + 1) // 2, 0xa)]
 	if (room + 1) & 1:
 		return d & 0xf
 	else:
 		return d >> 4
 # }}}
 
-# Prepare global rom. {{{
+# Prepare global data. {{{
 rom = open('MazeOfGalious.rom', 'rb').read()
 # Get pointers for rom to each world. First world is the castle.
-world = struct.unpack('<' + 'H' * 11, rom[0xeac0:0xead6])
-# Convert pointers in CPU view to pointers in flat ROM image.
-world = [x - 0x6000 + 0xe000 for x in world]
+world_tile_data = [getptr(addr) for addr in range(0xeac0, 0xead6, 2)]
 # Compute number of rooms from address of next room. This does not work for the last world, so hardcode that value.
-rooms = [(world[x + 1] - world[x]) // 40 for x in range(len(world) - 1)] + [6]
+rooms = [(world_tile_data[x + 1] - world_tile_data[x]) // 40 for x in range(len(world_tile_data) - 1)] + [6]
 # Read charset ids for all castle rooms.
 charset_id = [get_room_charset(i) for i in range(rooms[0])]
 # Rooms are built from tiles of 4x4 characters. There are a total of 0xac tiles defined.
-tiles = numpy.array([[[rom[0xe000 + t * 0x10 + y * 4 + x] for x in range(4)] for y in range(4)] for t in range(0xac)], dtype = numpy.uint8)
+tiles = numpy.array([[[rom[addr2rom(0x6000 + t * 0x10 + y * 4 + x, 7)] for x in range(4)] for y in range(4)] for t in range(0xac)], dtype = numpy.uint8)
+# }}}
+
+# Prepare roomlists. {{{
+roomlist_ba2e = []	# ?
+for r in range(rooms[0]):
+	roomlist_ba2e.append((rom[addr2rom(0xba2e + (r >> 2), 9)] >> (2 * ((r + 1) & 3))) & 0x3)
+roomlist_60ee = []	# ?
+roomlist_60ae = []	# killall?
+roomlist_enemy = []
+room_sprites = []
+for w in range(11):
+	roomlist_60ee.append(set())
+	ptr = getptr(0x60ee + 2 * (w + 1), 4)
+	while rom[ptr] != 0:
+		roomlist_60ee[-1].add(rom[ptr])
+		ptr += 1
+	roomlist_60ae.append(set())
+	ptr = getptr(0x60ae + 2 * w, 4)
+	while rom[ptr] != 0:
+		roomlist_60ae[-1].add(rom[ptr])
+		ptr += 1
+	# Roomlist b5cb.
+	roomlist_enemy.append([])
+	ptr = getptr(0xb5cb + 2 * (w + 1), 4)
+	for r in range(rooms[w]):
+		roomlist_enemy[-1].append([])
+		while rom[ptr] != 0:
+			roomlist_enemy[-1][-1].append(tuple(rom[ptr:ptr + 2]))
+			ptr += 2
+		ptr += 1
+	# Find sprite codes that are loaded for a room. Can be used to check that sprite patterns are available and to map sprite names to their enemy codes.
+	room_sprites.append([None])
+	ptr = getptr(0x9737 + 2 * (w + 1), 0xb)
+	# ptr is now pointing at a list of enemy codes that are loaded for this room.
+	for r in range(rooms[w]):
+		room_sprites[-1].append([])
+		while rom[ptr] != 0:
+			room_sprites[-1][-1].append(rom[ptr])
+			ptr += 1
+		ptr += 1
 # }}}
 
 # Enemy names taken from openmsx mog overlay. {{{
@@ -58,26 +104,9 @@ enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "06"
 		"68", "Thunder Cloud", "6A", "6B")
 # }}}
 
-# Find sprite codes that are loaded for a room. Can be used to check that sprite patterns are available and to map sprite names to their enemy codes. {{{
-room_sprites = []
-for w, num_rooms in enumerate(rooms):
-	room_sprites.append([None])
-	ptr = 0x17737 + 2 * (w + 1)
-	ptr = struct.unpack('<H', rom[ptr:ptr + 2])[0] - 0x8000 + 0x16000
-	# ptr is now pointing at a list of enemy codes that are loaded for this room.
-	room = 0
-	for room in range(num_rooms):
-		room_sprites[-1].append([])
-		while rom[ptr] != 0:
-			room_sprites[-1][-1].append(rom[ptr])
-			ptr += 1
-		ptr += 1
-# }}}
-
 # Read enemy data for all enemy types. {{{
 edata_ptr = addr2rom(0x67b6, 4)
 edata = []
-print('%x'%edata_ptr)
 for e, name in enumerate(enemy_names):
 	if name is None:
 		edata.append(None)
@@ -85,7 +114,6 @@ for e, name in enumerate(enemy_names):
 	spritetype, spritename, spritecolor, byte3, byte4 = rom[edata_ptr + 5 * e:edata_ptr + 5 * (e + 1)]
 	edata.append({'type': spritetype, 'name': spritename, 'color': spritecolor, 'byte3': byte3, 'byte4': byte4})
 # }}}
-print('\n'.join('%s' % x for x in edata))
 
 def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 	'Convert rom into image'
@@ -137,7 +165,7 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 				# Y is hardcoded to 0x78. X are 4 values taken from *a630 @789.
 				stone = read_patterns.composite([0], [[0xc2, 0xc3]])
 				for i in range(4):
-					x = rom[0xa630 - 0x6000 + 0x2000 * 7 + i]
+					x = rom[addr2rom(0xa630 + i, 7)]
 					im.paste(stone, (x, 0x78 - 0x20), Image.new('L', stone.size, 128))
 			elif traptype == 7:	# destructible wall
 				trap_img = read_patterns.composite([0 if world_num == 0 else 1], [[0xf0] * 4] * 3)
@@ -243,7 +271,8 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 				imt.text((pos[0], pos[1] + 12), 'x%d' % num, fill = (255, 255, 255))
 	# TODO: show unused enemies on screen as well.
 	if len(unused_enemies) > 0:
-		print('Room %d:%02x unused enemies: %s' % (world_num, room_num + 1, ','.join('%02x' % e for e in unused_enemies)))
+		#print('Room %d:%02x unused enemies: %s' % (world_num, room_num + 1, ','.join('%02x' % e for e in unused_enemies)))
+		pass
 	# }}}
 	return im
 # }}}
@@ -254,7 +283,7 @@ out = []
 # Keep some data about shrines to add their images to the map later.
 shrineroom = {}
 
-for idx, w in enumerate(world):
+for w, world_tiles in enumerate(world_tile_data):
 	# Create all lists so they exist even without contents.
 	items = {}	# key is room, value is id, x, y
 	shrines = {}
@@ -264,9 +293,9 @@ for idx, w in enumerate(world):
 	ladders = {}
 	traps = {}
 	elevator = {}
-	if idx == 0: # Only in castle.
+	if w == 0: # Only in castle.
 		# Find shrines {{{
-		target = 0x5dda
+		target = addr2rom(0x9dda, 2)
 		while rom[target] != 0:
 			room, shrine_id, shrine_y, shrine_x = rom[target:target + 4]
 			shrineroom[shrine_id] = room
@@ -276,16 +305,16 @@ for idx, w in enumerate(world):
 		# }}}
 		# Find worlddoors {{{
 		for num, target in enumerate(range(0x9990, 0x9999)):
-			room = rom[target - 0x8000 + 2 * 0x2000]
-			addr = 0x9997 + (num + 1) * 2 - 0x8000 + 2 * 0x2000
+			room = rom[addr2rom(target, 2)]
+			addr = addr2rom(0x9997 + (num + 1) * 2, 2)
 			y, x = rom[addr:addr + 2]
 			#print('door %x %x %x %x' % (num + 1, room, x, y))
 			worlddoor[room - 1] = (num + 1, x, y - 32)
 		# }}}
 		# Find boulders {{{
-		target = 0xb8a2 - 0xa000 + 9 * 0x2000
+		target = addr2rom(0xb8a2, 9)
 		room = 0
-		while room < rooms[idx]:
+		while room < rooms[w]:
 			if rom[target] == 0:
 				target += 1
 				room += 1
@@ -299,10 +328,9 @@ for idx, w in enumerate(world):
 		# }}}
 		# Find vertical elevators. {{{
 		for e in range(6):
-			ptr = 0xbb24 - 0xa000 + 9 * 0x2000 + 8 * (5 - e)
+			ptr = addr2rom(0xbb24 + 8 * (5 - e), 9)
 			y, x, dx, dy, top_room, top_y, bottom_room, bottom_y = rom[ptr:ptr + 8]
-			roomslistptr = 0xba80 + 2 * e - 0xa000 + 9 * 0x2000
-			roomsptr = struct.unpack('<H', rom[roomslistptr:roomslistptr + 2])[0] - 0xa000 + 9 * 0x2000
+			roomsptr = getptr(0xba80 + 2 * e, 9)
 			assert top_room == rom[roomsptr]
 			erooms = []
 			while rom[roomsptr] != bottom_room:
@@ -317,22 +345,21 @@ for idx, w in enumerate(world):
 	# Also in worlds.
 	# Find disappearing ladders {{{
 	for i in range(0xd):
-		addr = 0x126eb + i * 2
-		ldata = 0x12700 + (i + 1) * 5
+		addr = addr2rom(0xa6eb + i * 2, 6)
+		ldata = addr2rom(0xa700 + (i + 1) * 5, 6)
 		lw, lr = rom[addr:addr + 2]
-		if lw != idx + 1:
+		if lw != w + 1:
 			continue
 		y, x, h, _, _ = rom[ldata:ldata + 5]
 		ladders[lr - 1] = [x, y, h]
 	# }}}
 	# Find traps {{{
 	# traps is a dict. traps[room] = [[x, y, traptype], ...]
-	world_ptr = 0xa7bc + (idx + 1) * 2 - 0x6000 + 7 * 0x2000
-	ptr = struct.unpack('<H', rom[world_ptr:world_ptr + 2])[0] - 0x6000 + 7 * 0x2000
-	#print('loop for world %x' % idx)
-	for traproom in range(rooms[idx]):
+	ptr = getptr(0xa7bc + (w + 1) * 2, 7)
+	#print('loop for world %x' % w)
+	for traproom in range(rooms[w]):
 		while rom[ptr] != 0:
-			#print('world %x room %02x ptr %05x' % (idx, traproom, ptr))
+			#print('world %x room %02x ptr %05x' % (w, traproom, ptr))
 			traptype, coord = rom[ptr:ptr + 2]
 			y = (coord & 0xe0) - 0x20
 			x = (coord << 3) & 0xf8
@@ -343,29 +370,23 @@ for idx, w in enumerate(world):
 		ptr += 1
 	# }}}
 	# Find enemies {{{
-	target = 0xb5cb + (idx + 1) * 2 - 0xa000 + 6 * 0x2000
-	e = struct.unpack('<H', rom[target:target + 2])[0] - 0xa000 + 6 * 0x2000
-	room = 0
-	while room < rooms[idx]:
-		if rom[e] == 0:
-			room += 1
-			e += 1
+	for room, e in enumerate(roomlist_enemy[w]):
+		if len(e) == 0:
 			continue
 		if room not in enemies:
 			enemies[room] = {}
-		etype = rom[e] & 0x7f
-		ey = rom[e + 1] & 0xf8
-		ex = ((rom[e + 1] << 5) | ((rom[e] & 0x80) >> 3)) & 0xf0
-		record = (etype, ex, ey, bool(rom[e] & 0x80))
-		if record not in enemies[room]:
-			enemies[room][record] = 0
-		enemies[room][record] += 1
-		#print('enemy %s at %02x %02x in room %02x world %d' % (enemy_names[etype], ex, ey, room + 1, idx))
-		e += 2
+		for t, pos in e:
+			etype = t & 0x7f
+			ey = pos & 0xf8
+			ex = ((pos << 5) | ((t & 0x80) >> 3)) & 0xf0
+			record = (etype, ex, ey, bool(t & 0x80))
+			if record not in enemies[room]:
+				enemies[room][record] = 0
+			enemies[room][record] += 1
+			#print('enemy %s at %02x %02x in room %02x world %d' % (enemy_names[etype], ex, ey, room + 1, w))
 	# }}}
 	# Find items {{{
-	itemworldaddr = 0xb6fc + 2 * (idx + 1) - 0xa000 + 9 * 0x2000
-	itemptr = struct.unpack('<H', rom[itemworldaddr:itemworldaddr + 2])[0] - 0xa000 + 9 * 0x2000
+	itemptr = getptr(0xb6fc + (w + 1) * 2, 9)
 	while rom[itemptr] != 0:
 		# Data is: room(8-bit) x4,x3,item(6-bit) y7,y6,y5,y4,y3,x7,x6,x5
 		room, xitem, yx = rom[itemptr:itemptr + 3]
@@ -376,21 +397,21 @@ for idx, w in enumerate(world):
 		if item < 7:
 			y += 8
 		items[room - 1] = (item, x, y - 0x20)
-		#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, idx, room, item, x, y))
+		#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, w, room, item, x, y))
 		itemptr += 3
 	# }}}
 	# Create all rooms in a world. (14x20 characters per room)
-	fullmap = numpy.zeros((rooms[idx], 0x14, 0x20), dtype = numpy.uint8)
+	fullmap = numpy.zeros((rooms[w], 0x14, 0x20), dtype = numpy.uint8)
 	# Read tiles in a room (8x5, so 40 bytes total).
-	roomdata = numpy.array([[x for x in rom[w + 40 * room:w + 40 * (room + 1)]] for room in range(rooms[idx])], dtype = numpy.uint8).reshape((rooms[idx], 5, 8))
+	roomdata = numpy.array([[x for x in rom[world_tiles + 40 * room:world_tiles + 40 * (room + 1)]] for room in range(rooms[w])], dtype = numpy.uint8).reshape((rooms[w], 5, 8))
 	# Unpack characters from tiles. {{{
 	for y in range(5):
 		for x in range(8):
-			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range(rooms[idx])]
+			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range(rooms[w])]
 	# }}}
 	# Convert character map to image.
 	worldmap = []
-	for r in range(rooms[idx]):
+	for r in range(rooms[w]):
 		extra = {
 			'item': items.get(r),
 			'shrine': shrines.get(r),
@@ -401,8 +422,8 @@ for idx, w in enumerate(world):
 			'traps': traps.get(r),
 			'elevator': elevator.get(r),
 		}
-		#print('world %d room %x' % (idx, r))
-		worldmap.append(makeimage(idx, r, fullmap[r], charset_id[r] if idx == 0 else 7, extra))
+		#print('world %d room %x' % (w, r))
+		worldmap.append(makeimage(w, r, fullmap[r], charset_id[r] if w == 0 else 7, extra))
 	out.append(worldmap)
 # }}}
 
@@ -416,9 +437,7 @@ exits = [numpy.zeros((4, rooms[w]), dtype = numpy.uint8) for w in range(11)]
 l = [[0, 0] for w in range(11)]
 h = [[0, 0] for w in range(11)]
 for w in range(11):
-	waddr = 0x129f1 + 2 * w
-	# Convert from CPU view to flat ROM address.
-	a = struct.unpack('<H', rom[waddr:waddr + 2])[0] - 0xa000 + 0x12000
+	a = getptr(0xa9f1 + 2 * w, 9)
 	# Read all exits.
 	for r in range(rooms[w]):
 		raddr = a + 4 * (r + 1)
@@ -478,7 +497,7 @@ for w in range(11):
 			double = [s for s in screenpos if screenpos[s][0] == x and screenpos[s][1] == y]
 			if double != []:
 				print('two screens in one position: %x %x' % (double[0], target))
-			screenpos[target] = x, y
+			screenpos[target] = numpy.array([x, y])
 			# Update bounding box.
 			if x < l[w][0]:
 				l[w][0] = x
@@ -493,7 +512,7 @@ for w in range(11):
 				queue.append(target)
 		done.add(current)
 	#print('done: %d/%d, todo: %s, w,h=%d,%d' % (len(done), rooms[w], str(todo), h[w][0] - l[w][0], h[w][1] - l[w][1]))
-#print '\n'.join(['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate(world)])
+#print '\n'.join(['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate(world_tile_data)])
 
 	# Create the world image.
 	size = h[w][0] - l[w][0] + 1, h[w][1] - l[w][1] + 1
@@ -507,8 +526,8 @@ for w in range(11):
 		x = tx * 257
 		y = ty * 161
 		if w > 0:
-			god_room = rom[0x8f0a - 0x6000 + 0x2000 * 1 + (w - 1)]
-			god_id = rom[0x8f14 - 0x6000 + 0x2000 * 1 + (w - 1)]
+			god_room = rom[addr2rom(0x8f0a + (w - 1), 2)]
+			god_id = rom[addr2rom(0x8f14 + (w - 1), 2)]
 			if sp == god_room:
 				# This is the god room of this world.
 				worldmap[w].paste(read_patterns.gods[god_id], (x, y))
@@ -518,11 +537,27 @@ for w in range(11):
 			debug_charset = False	# w == 0	# Use this to debug charsets castle.
 			worldmap[w].paste(out[w][sp - 1], (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '%02x' % sp
-			worldmapt.rectangle((x, y, x + 15 + (15 if debug_charset else 0), y + 10), fill = (0, 0, 0))
-			if debug_charset:
-				worldmapt.text((x + 2, y), "%02x/%x" % (sp, charset_id[sp - 1]), fill = (255, 255, 255))
+			if sp in roomlist_60ae[w]:
+				# "killall"
+				bg = (0xff, 0, 0)
 			else:
-				worldmapt.text((x + 2, y), "%02x" % sp, fill = (255, 255, 255))
+				bg = (0, 0, 0)
+			if sp in roomlist_60ee[w]:
+				# ?
+				fg = (0xff, 0xff, 0)
+			else:
+				fg = (0xff, 0xff, 0xff)
+			if w == 0 and sp < rooms[w] and roomlist_ba2e[sp] != 0:
+				if roomlist_ba2e[sp] == 1:
+					border = (0xff, 0xff, 0xff)
+				else:
+					border = (0, 0xff, 0)
+				worldmapt.rectangle((x, y, x + 17 + (15 if debug_charset else 0), y + 12), fill = border)
+			worldmapt.rectangle((x, y, x + 15 + (15 if debug_charset else 0), y + 10), fill = bg)
+			if debug_charset:
+				worldmapt.text((x + 2, y), "%02x/%x" % (sp, charset_id[sp - 1]), fill = fg)
+			else:
+				worldmapt.text((x + 2, y), "%02x" % sp, fill = fg)
 		elif sp >= 0xf0:
 			worldmap[w].paste(read_patterns.world_screen(w), (x, y))
 		else:

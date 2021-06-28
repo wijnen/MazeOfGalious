@@ -1,7 +1,55 @@
 All the lists that are indexed by world/room:
 
 ba2e: castle only; 2 bits per room. values 0,1,2 (indexed to ba28). sets e635+e636	@459
-60ee: world pointers to 0-terminated list of rooms. sets e612		@456
-60ae: world pointers to 0-terminated list of rooms. sets e610		@456
-b5cb: world pointers to 0-terminated list per room: enemies.		@456
+	This list is 1-indexed, so the first two bits are unused.
 
+60ee: world pointers to 0-terminated list of rooms. sets e612		@456
+	Purpose unknown. This list is 1-based (it really starts at 60f0)
+
+60ae: world pointers to 0-terminated list of rooms. sets e610		@456
+	Killall-room? Some other rooms also seem to be included. 0-based.
+
+b5cb: world pointers to 0-terminated list per room: enemies.		@456
+	2 bytes per element, containing enemy information. 1-based (starts at b5cd)
+
+9737: world pointers to 0-terminated list per room: sprites to load.	@abc
+	1-based (starts at 9739)
+
+9dda @2: shrines: 4 byte records; terminating 0.
+	0-based.
+
+9990 @2: worlddoor rooms
+	0-based; castle only
+
+9997 @2: worlddoor position, 2 byte records.
+	1-based, so starts at 9999
+
+b8a2 @9: boulders (castle only) 0-terminated list of coordinate (1B) per room.
+	0-based.
+
+bb24 @9: vertical elevator data. 5 8-byte records. Reversed.
+	"0"-based (last record is at bb24)
+
+ba80 @9: vertical elevator rooms. list of pointers to 0-terminated list of rooms.
+	0-based.
+
+a6eb @6: disappearing ladders. list of world and room per ladder (so 2 bytes each).
+	0-based.
+
+a700 @6: disappearing ladders. y, x, h, ?, ? (5 byte) each. matches other ladder list.
+	1-based, so starts at a705.
+
+a7bc @7: world pointers to 0-terminated trap list per room.
+	1-based. 2-byte records: type, pos.
+
+b6fc @9: world poitnters to 0-terminated list of items
+	1-based, 2-byte records.
+
+a9f1 @9: world pointers to room exits
+	0-based; 4 bytes per room.
+
+6000 @7: tile definitions (4x4 characters)
+	0-based; there are 0xac tiles.
+
+7ac0 @7: world pointers to room definitions (5*8 tiles each)
+	0-based.
