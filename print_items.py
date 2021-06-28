@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import sys
@@ -51,4 +51,4 @@ for item in rom.get_items ():
 im = vdp.draw_screen ()
 filename = '/tmp/mog_all_items.png'
 im.save (filename)
-print 'Image saved as %s.' % filename
+print ('Image saved as %s.' % filename)

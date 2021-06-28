@@ -25,6 +25,7 @@ e000
 		d top limit position
 		e bottom limit room
 		f bottom limit position
+	e525: set to 80 if *e097 > 0 and correct enemy type is in room, otherwise set to 0 correct type taken from lists, see code at 659b @456
 	e60c-e60d: address of some info about current room; 1 bit each.
 	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
 	e611: flag: 1 = all enemies need to be killed. 0 = no killall specials.
@@ -35,10 +36,16 @@ e000
 	e621: used during enemy setup
 	e622: number of enemies to kill before special happens, or 0.
 	e624: some enemy property set during setup (again for each enemy?)
-	e525: set to 80 if *e097 > 0 and correct enemy type is in room, otherwise set to 0 correct type taken from lists, see code at 659b @456
 	e635: maximum allowed number of enemies in this room
 	e636: something about enemies.
 	e648-e64b: exits from this room: down, up. left, right
+	e650: falling+bouncing grey boulders appear in this room
+	e653: exploding fireballs appear in this room
+	e659: jumping fish appear in this room
+	e65c: crawlers appear in this room
+	e65f: seahorse demons appear in this room
+	e662: vertical blobs appear in this room
+	e665: falling (non bouncing) grey boulders appear in this room
 	e680: god id of shrine in this room
 	e688: marker(?) for world door
 	e690: god id of shrine you're standing in

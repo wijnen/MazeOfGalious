@@ -198,8 +198,10 @@ T413Dh	D0......  ....	RET	NC		; [BD] return if no carry.
 T413Eh	14......  ....	INC	D		; [BD] ++D;
 T413Fh	C9......  ....	RET			; [BD] return;
 
-; [BD] Motherfucker volgens Bas.
 ; Jump to *(PC + 2 * A);
+;
+; Notice that the game code will CALL this function, yet this function 
+; will never RETurn.
 switch:
 T4140h	E1......  ....	POP	HL		; [BD] HL = PC;
 T4141h	87......  ....	ADD	A,A		; A += A;
@@ -212,7 +214,7 @@ T4147h	7E......  ~...	LD	A,(HL)		; A = *(HL);
 T4148h	23......  #...	INC	HL		; ++HL;
 T4149h	66......  f...	LD	H,(HL)		; H = *(HL);
 T414Ah	6F......  o...	LD	L,A		; L = A;
-T414Bh	E9......  ....	JP	(HL)		; Jump to ... ? jump table?
+T414Bh	E9......  ....	JP	(HL)		; PC = *(HL) Jump to computed address in HL.
 
 DE=*(HL+2*A):	; return *(2*A + HL) as DE
 T414Ch	87......  ....	ADD	A,A	
@@ -19368,12 +19370,14 @@ T61E0h	2C......  ,...	INC	L			;
 T61E1h	3610....  6...	LD	(HL),010h
 T61E3h	C9......  ....	RET			
 
+# {{{ if (!in_castle) return
 T61E4h	2A41E0..  *A..	LD	HL,(WorldNumber)
 T61E7h	7D......  }...	LD	A,L	
 T61E8h	3D......  ....	DEC	A	
 T61E9h	C0......  ....	RET	NZ		
+}}}
 
-T61EAh	7C......  |...	LD	A,H	
+T61EAh	7C......  |...	LD	A,H			; A = roomnumber
 T61EBh	FE3A....  .:..	CP	03Ah	
 T61EDh	280B....  (...	JR	Z,00Bh			; Jump to 061FAH
 T61EFh	FE47....  .G..	CP	047h	
@@ -19383,9 +19387,18 @@ T61F5h	2803....  (...	JR	Z,003h			; Jump to 061FAH
 T61F7h	FE72....  .r..	CP	072h	
 T61F9h	C0......  ....	RET	NZ		
 
-T61FAh	3E01....  >...	LD	A,001h	
-T61FCh	3250E6..  2P..	LD	(TE650H),A
-T61FFh	C9......  ....	RET			
+;; We only reach this code if:
+;; AND: we are in the castle
+;; AND:
+;;         we are in room 0x03
+;;      OR we are in room 0x47
+;;      OR we are in room 0x71
+;;      OR we are in room 0x72
+;;
+;; What's special in those rooms: falling boulders.
+T61FAh	3E01....  >...	LD	A,001h			; a = 1
+T61FCh	3250E6..  2P..	LD	(TE650H),A		; *(0xe650) = 1
+T61FFh	C9......  ....	RET				; return
 
 T6200h	3A87E0..  :...	LD	A,(TE087H)
 T6203h	B7......  ....	OR	A	
@@ -19432,18 +19445,24 @@ T6233h	3E01....  >...	LD	A,001h
 T6235h	3253E6..  2S..	LD	(TE653H),A
 T6238h	C9......  ....	RET			
 
-T6239h	2A41E0..  *A..	LD	HL,(WorldNumber)
-T623Ch	2D......  -...	DEC	L	
-T623Dh	C0......  ....	RET	NZ		
+# {{{ if (!in_castle) return
+T6239h	2A41E0..  *A..	LD	HL,(WorldNumber)	; L = worldnumber (1 based)
+T623Ch	2D......  -...	DEC	L			; --L (make it zero based, set flags)
+T623Dh	C0......  ....	RET	NZ			; if (L!=0) return
+# }}}
 
-T623Eh	7C......  |...	LD	A,H	
-T623Fh	D689....  ....	SUB	089h	
-T6241h	FE04....  ....	CP	004h	
-T6243h	D0......  ....	RET	NC		
+# {{{ if (room_number < 0x89 || room_number > 0x8c) return
+T623Eh	7C......  |...	LD	A,H			; A = H
+T623Fh	D689....  ....	SUB	089h			; H -= 0x89
+T6241h	FE04....  ....	CP	004h			; Compute A - 4, set flags
+T6243h	D0......  ....	RET	NC			; return if no carry (ie A - 4 >= 0)
+# }}}
 
+# {{{ Enable substate for jumping fish (0xe659).
 T6244h	3C......  <...	INC	A			;
 T6245h	3259E6..  2Y..	LD	(TE659H),A
 T6248h	C9......  ....	RET			
+# }}}
 
 T6249h	2A41E0..  *A..	LD	HL,(WorldNumber)
 T624Ch	7D......  }...	LD	A,L	
