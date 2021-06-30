@@ -13,6 +13,8 @@ import read_sprites
 
 def addr2rom(address, page): # {{{
 	'Convert address and page to an address in the rom file. page may be any of the 3 pages (so 6000,4 is the same as 6000,5)'
+	if page is None:
+		return address
 	base = address - 0x6000	# address from start of (changed) mappings.
 	firstpage = ((page - 1) // 3) * 3 + 1	# First page of the set of 3.
 	return base + firstpage * 0x2000
@@ -23,7 +25,90 @@ def getptr(address, page = None): # {{{
 		address = addr2rom(address, page)
 	else:
 		page = address >> 13
-	return addr2rom(struct.unpack('<H', rom[address:address + 2])[0], page)
+	romptr = struct.unpack('<H', rom[address:address + 2])[0]
+	if romptr < 0x4000:
+		return None
+	if romptr < 0x6000:
+		return romptr - 0x4000
+	return addr2rom(romptr, page)
+# }}}
+
+# List reading helpers. {{{
+def read_A(N, addr, page, length = None, parse_record = None, parse_list = None): # {{{
+	'''Read a type A list from rom. If length is None, read  a type A0 list.
+	Return a list of bytes objects.
+	If parse_record is not None, the returned elements are passed through that function.'''
+	if parse_record is None:
+		parse_record = lambda x: x
+	if parse_list is None:
+		parse_list = lambda x: x
+	ptr = addr2rom(addr, page)
+	ret = []
+	while length is None or len(ret) < length:
+		if length is None and rom[ptr] == 0:
+			return parse_list(ret)
+		ret.append(parse_record(rom[ptr:ptr + N]))
+		ptr += N
+	return parse_list(ret)
+# }}}
+
+def read_B(N, addr, page, length, parse_record = None, parse_list = None): # {{{
+	'''Read a type B list from rom.
+	Return a list of lists of bytes objects.
+	If parse_record is not None, the returned elements are passed through that function.
+	If parse_list is not None, the returned lists of elements are passed through that function.
+	'''
+	if parse_record is None:
+		parse_record = lambda x: x
+	if parse_list is None:
+		parse_list = lambda x: x
+	#print('read B %x %x %x %d' % (N, addr, page or -1, length or -1))
+	ptr = addr2rom(addr, page)
+	ret = []
+	while len(ret) < length:
+		current = []
+		while rom[ptr] != 0:
+			current.append(parse_record(rom[ptr:ptr + N]))
+			ptr += N
+		ret.append(parse_list(current))
+		ptr += 1
+	return ret
+# }}}
+
+def read_W(target, N, addr, page, lengths = (), **ka): # {{{
+	'''Read a type W* list from rom. If length is None, read  a type WA0 list.
+	Otherwise, lengths must be a list of 11 lengths. The default will be replaced by num_rooms.
+	target is called to read the contents. This is usually read_A or read_B.
+	this function is not meant to be called directly.
+	Return a list of bytes objects.'''
+	if lengths == ():
+		lengths = num_rooms
+	#print('read W %x %x %x %s %s' % (N, addr, page, lengths, ka))
+	ptrs = [getptr(addr + 2 * i, page) for i in range(11)]
+	#print('pointers: ' + ','.join('%05x' % (x or 0) for x in ptrs))
+	ret = []
+	for ptr, length in zip(ptrs, lengths):
+		if ptr is None:
+			ret.append(None)
+			continue
+		ret.append(target(N, ptr, None, length, **ka))
+	return ret
+# }}}
+
+def read_WA(N, addr, page, lengths = (), **ka): # {{{
+	'''Read a type WA list from rom. If length is None, read  a type WA0 list.
+	Otherwise, lengths must be a list of 11 lengths. The default will be replaced by num_rooms.
+	Return a list of bytes objects.'''
+	return read_W(read_A, N, addr, page, lengths, **ka)
+# }}}
+
+def read_WB(N, addr, page, lengths = (), **ka): # {{{
+	'''Read a type WB list from rom.
+	Otherwise, lengths must be a list of 11 lengths. The default will be replaced by num_rooms.
+	Return a list of bytes objects.'''
+	#print('read WB %x %x %x %s %s' % (N, addr, page, lengths, ka))
+	return read_W(read_B, N, addr, page, lengths, **ka)
+# }}}
 # }}}
 
 def get_room_charset(room): # {{{
@@ -40,51 +125,21 @@ rom = open('MazeOfGalious.rom', 'rb').read()
 # Get pointers for rom to each world. First world is the castle.
 world_tile_data = [getptr(addr) for addr in range(0xeac0, 0xead6, 2)]
 # Compute number of rooms from address of next room. This does not work for the last world, so hardcode that value.
-rooms = [(world_tile_data[x + 1] - world_tile_data[x]) // 40 for x in range(len(world_tile_data) - 1)] + [6]
+num_rooms = [(world_tile_data[x + 1] - world_tile_data[x]) // 40 for x in range(len(world_tile_data) - 1)] + [6]
 # Read charset ids for all castle rooms.
-charset_id = [get_room_charset(i) for i in range(rooms[0])]
+charset_id = [get_room_charset(i) for i in range(num_rooms[0])]
 # Rooms are built from tiles of 4x4 characters. There are a total of 0xac tiles defined.
 tiles = numpy.array([[[rom[addr2rom(0x6000 + t * 0x10 + y * 4 + x, 7)] for x in range(4)] for y in range(4)] for t in range(0xac)], dtype = numpy.uint8)
 # }}}
 
 # Prepare roomlists. {{{
 roomlist_ba2e = []	# ?
-for r in range(rooms[0]):
+for r in range(num_rooms[0]):	# tyoe C(.2)
 	roomlist_ba2e.append((rom[addr2rom(0xba2e + (r >> 2), 9)] >> (2 * ((r + 1) & 3))) & 0x3)
-roomlist_60ee = []	# ?
-roomlist_60ae = []	# killall?
-roomlist_enemy = []
-room_sprites = []
-for w in range(11):
-	roomlist_60ee.append(set())
-	ptr = getptr(0x60ee + 2 * (w + 1), 4)
-	while rom[ptr] != 0:
-		roomlist_60ee[-1].add(rom[ptr])
-		ptr += 1
-	roomlist_60ae.append(set())
-	ptr = getptr(0x60ae + 2 * w, 4)
-	while rom[ptr] != 0:
-		roomlist_60ae[-1].add(rom[ptr])
-		ptr += 1
-	# Roomlist b5cb.
-	roomlist_enemy.append([])
-	ptr = getptr(0xb5cb + 2 * (w + 1), 4)
-	for r in range(rooms[w]):
-		roomlist_enemy[-1].append([])
-		while rom[ptr] != 0:
-			roomlist_enemy[-1][-1].append(tuple(rom[ptr:ptr + 2]))
-			ptr += 2
-		ptr += 1
-	# Find sprite codes that are loaded for a room. Can be used to check that sprite patterns are available and to map sprite names to their enemy codes.
-	room_sprites.append([None])
-	ptr = getptr(0x9737 + 2 * (w + 1), 0xb)
-	# ptr is now pointing at a list of enemy codes that are loaded for this room.
-	for r in range(rooms[w]):
-		room_sprites[-1].append([])
-		while rom[ptr] != 0:
-			room_sprites[-1][-1].append(rom[ptr])
-			ptr += 1
-		ptr += 1
+roomlist_60ee = read_WA(1, 0x60ee + 2, 4, lengths = [None] * 10, parse_list = set, parse_record = lambda x: x[0]) + [set()]	# ?
+roomlist_60ae = read_WA(1, 0x60ae, 4, lengths = [None] * 11, parse_list = set, parse_record = lambda x: x[0])	# killall?
+roomlist_enemy = read_WB(2, 0xb5cb + 2, 6, parse_record = tuple)
+roomlist_sprites = read_WB(1, 0x9737 + 2, 0xa, parse_record = lambda x: x[0])	# Sprites which are loaded for each screen.
 # }}}
 
 # Enemy names taken from openmsx mog overlay. {{{
@@ -223,7 +278,7 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 			im.paste(sprite, (x + 0x10, y), t)
 	# }}}
 	# Draw enemies. {{{
-	unused_enemies = set(room_sprites[world_num][room_num + 1])
+	unused_enemies = set(roomlist_sprites[world_num][room_num])
 	if extra['enemy'] is not None:
 		for e in extra['enemy']:
 			fixes = {0x64: 0x2c, 0x69: 0x06}
@@ -250,8 +305,8 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 				im.paste(target, pos)
 			else:
 				# This is a sprite enemy.
-				if code not in room_sprites[world_num][room_num + 1]:
-					print('warning: wrong sprite in room %d %02x? %02x(%s) not in %s' % (world_num, room_num + 1, code, enemy_names[code], ','.join('%02x(%s)' % (x, enemy_names[x]) for x in room_sprites[world_num][room_num + 1])))
+				if code not in roomlist_sprites[world_num][room_num]:
+					print('warning: wrong sprite in room %d %02x? %02x(%s) not in %s' % (world_num, room_num + 1, code, enemy_names[code], ','.join('%02x(%s)' % (x, enemy_names[x]) for x in roomlist_sprites[world_num][room_num])))
 				elif code in unused_enemies:
 					unused_enemies.remove(code)
 				if code == 0x31 and not (pos[1] & 8):
@@ -314,7 +369,7 @@ for w, world_tiles in enumerate(world_tile_data):
 		# Find boulders {{{
 		target = addr2rom(0xb8a2, 9)
 		room = 0
-		while room < rooms[w]:
+		while room < num_rooms[w]:
 			if rom[target] == 0:
 				target += 1
 				room += 1
@@ -345,9 +400,10 @@ for w, world_tiles in enumerate(world_tile_data):
 	# Also in worlds.
 	# Find disappearing ladders {{{
 	for i in range(0xd):
-		addr = addr2rom(0xa6eb + i * 2, 6)
-		ldata = addr2rom(0xa700 + (i + 1) * 5, 6)
+		addr = addr2rom(0xa6eb + i * 2, 9)
+		ldata = addr2rom(0xa700 + (i + 1) * 5, 9)
 		lw, lr = rom[addr:addr + 2]
+		print('%x' % addr, lw, lr)
 		if lw != w + 1:
 			continue
 		y, x, h, _, _ = rom[ldata:ldata + 5]
@@ -357,7 +413,7 @@ for w, world_tiles in enumerate(world_tile_data):
 	# traps is a dict. traps[room] = [[x, y, traptype], ...]
 	ptr = getptr(0xa7bc + (w + 1) * 2, 7)
 	#print('loop for world %x' % w)
-	for traproom in range(rooms[w]):
+	for traproom in range(num_rooms[w]):
 		while rom[ptr] != 0:
 			#print('world %x room %02x ptr %05x' % (w, traproom, ptr))
 			traptype, coord = rom[ptr:ptr + 2]
@@ -401,17 +457,17 @@ for w, world_tiles in enumerate(world_tile_data):
 		itemptr += 3
 	# }}}
 	# Create all rooms in a world. (14x20 characters per room)
-	fullmap = numpy.zeros((rooms[w], 0x14, 0x20), dtype = numpy.uint8)
+	fullmap = numpy.zeros((num_rooms[w], 0x14, 0x20), dtype = numpy.uint8)
 	# Read tiles in a room (8x5, so 40 bytes total).
-	roomdata = numpy.array([[x for x in rom[world_tiles + 40 * room:world_tiles + 40 * (room + 1)]] for room in range(rooms[w])], dtype = numpy.uint8).reshape((rooms[w], 5, 8))
+	roomdata = numpy.array([[x for x in rom[world_tiles + 40 * room:world_tiles + 40 * (room + 1)]] for room in range(num_rooms[w])], dtype = numpy.uint8).reshape((num_rooms[w], 5, 8))
 	# Unpack characters from tiles. {{{
 	for y in range(5):
 		for x in range(8):
-			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range(rooms[w])]
+			fullmap[:, y * 4:(y + 1) * 4, x * 4:(x + 1) * 4] = [tiles[roomdata[r, y, x]] for r in range(num_rooms[w])]
 	# }}}
 	# Convert character map to image.
 	worldmap = []
-	for r in range(rooms[w]):
+	for r in range(num_rooms[w]):
 		extra = {
 			'item': items.get(r),
 			'shrine': shrines.get(r),
@@ -432,25 +488,25 @@ worldmap = []
 textmap = []
 invalid = Image.new('RGB', (256, 160), (0xc0, 0x20, 0xc0))
 # Prepare rom structure for storing all room exits.
-exits = [numpy.zeros((4, rooms[w]), dtype = numpy.uint8) for w in range(11)]
+exits = [numpy.zeros((4, num_rooms[w]), dtype = numpy.uint8) for w in range(11)]
 # Compute bounding box.
 l = [[0, 0] for w in range(11)]
 h = [[0, 0] for w in range(11)]
 for w in range(11):
 	a = getptr(0xa9f1 + 2 * w, 9)
 	# Read all exits.
-	for r in range(rooms[w]):
+	for r in range(num_rooms[w]):
 		raddr = a + 4 * (r + 1)
 		exits[w][:, r] = struct.unpack('<BBBB', rom[raddr:raddr + 4])
 	# check if values are sane.
-	for r in range(rooms[w]):
+	for r in range(num_rooms[w]):
 		for e in range(4):
 			target = exits[w][e, r]
-			# rooms[w] + 1 is meeting a god; 0xff - w is world exit
-			if target == 0xff or target == 0xff - w or target == rooms[w] + 1:
+			# num_rooms[w] + 1 is meeting a god; 0xff - w is world exit
+			if target == 0xff or target == 0xff - w or target == num_rooms[w] + 1:
 				#print 'world %d, found room %x' % (w, target)
 				continue
-			if not 0 < target <= rooms[w]:
+			if not 0 < target <= num_rooms[w]:
 				print('invalid exit %d=%x for room %x world %d' % (e, target, r, w))
 				continue
 			# World 4, room 4 has an upper exit to itself; ignore it.
@@ -462,7 +518,7 @@ for w in range(11):
 	screenpos = {1: numpy.array((0, 0))}
 	queue = [list(screenpos.keys())[0]]
 	done = set()
-	todo = set(range(1, rooms[w] + 1))
+	todo = set(range(1, num_rooms[w] + 1))
 	delta = numpy.array(((0, -1), (0, 1), (-1, 0), (1, 0)))
 	if w == 0:
 		# Screen 94 is not linked, but belongs at (1,-1). Link it there.
@@ -508,11 +564,11 @@ for w in range(11):
 			if y > h[w][1]:
 				h[w][1] = y
 			# Only add real screens to queue.
-			if 0 < target <= rooms[w]:
+			if 0 < target <= num_rooms[w]:
 				queue.append(target)
 		done.add(current)
-	#print('done: %d/%d, todo: %s, w,h=%d,%d' % (len(done), rooms[w], str(todo), h[w][0] - l[w][0], h[w][1] - l[w][1]))
-#print '\n'.join(['world %d; address: %05x rooms: %d' % (n, x, rooms[n]) for n, x in enumerate(world_tile_data)])
+	#print('done: %d/%d, todo: %s, w,h=%d,%d' % (len(done), num_rooms[w], str(todo), h[w][0] - l[w][0], h[w][1] - l[w][1]))
+#print '\n'.join(['world %d; address: %05x num_rooms: %d' % (n, x, num_rooms[n]) for n, x in enumerate(world_tile_data)])
 
 	# Create the world image.
 	size = h[w][0] - l[w][0] + 1, h[w][1] - l[w][1] + 1
@@ -533,7 +589,7 @@ for w in range(11):
 				worldmap[w].paste(read_patterns.gods[god_id], (x, y))
 				textmap[w][ty][tx] = '[]'
 				continue
-		if 0 < sp <= rooms[w]: 
+		if 0 < sp <= num_rooms[w]: 
 			debug_charset = False	# w == 0	# Use this to debug charsets castle.
 			worldmap[w].paste(out[w][sp - 1], (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '%02x' % sp
@@ -547,7 +603,7 @@ for w in range(11):
 				fg = (0xff, 0xff, 0)
 			else:
 				fg = (0xff, 0xff, 0xff)
-			if w == 0 and sp < rooms[w] and roomlist_ba2e[sp] != 0:
+			if w == 0 and sp < num_rooms[w] and roomlist_ba2e[sp] != 0:
 				if roomlist_ba2e[sp] == 1:
 					border = (0xff, 0xff, 0xff)
 				else:
