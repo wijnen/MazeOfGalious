@@ -14,7 +14,7 @@ import numpy
 from PIL import Image
 from PIL import ImageDraw, ImageOps
 
-data = open('MazeOfGalious.rom', 'rb').read()
+rom = open('MazeOfGalious.rom', 'rb').read()
 
 sprite_imgs = {}	# All "enemey" sprite images, indexed by enemy code. Elements are lists of RGBA images.
 sprites = {}	# Same as above, but nice composits.
@@ -49,6 +49,7 @@ def make_sprite_image(sp, idx, addr, n):
 	im = Image.fromarray(ar, 'RGBA')
 	#im.save('/tmp/mogsprite-%02x-%04x-%x.png' % (idx, addr, n))
 	return im
+
 def append_to_all(new_sprites, row, idx):
 	addrs = list(new_sprites)
 	addrs.sort()
@@ -59,7 +60,7 @@ def append_to_all(new_sprites, row, idx):
 			sprite_imgs[code] = []
 		if last_s is None or s != last_s:
 			all_sprites.append([])
-			rows.append(('--' if row is None else '%02x' % row) + ' %02x' % (((s - 0x1800) // 0x20) * 4))
+			rows.append((row, ((s - 0x1800) // 0x20) * 4))
 		for n, sp in enumerate(new_sprites[s]):
 			img = make_sprite_image(sp, idx, s, n)
 			if code is not None:
@@ -164,27 +165,31 @@ for addr, page, target in regular:
 # 44  4a 3c
 
 idx = 0
-for romaddr in range(0x15c74, 0x15d48, 2):
-	target = struct.unpack('<H', data[romaddr:romaddr + 2])[0] - 0x6000 + 10 * 0x2000
+start = {}
+for code in range(1, 0x6a + 1):
+	romaddr = 0x15c74 + 2 * (code - 1)
+	target = struct.unpack('<H', rom[romaddr:romaddr + 2])[0] - 0x6000 + 10 * 0x2000
 	while True:
-		if data[target] == 0:
+		if rom[target] == 0:
 			break
-		vram = 0x1800 + 8 * data[target]
+		if code not in start or start[code] > rom[target]:
+			start[code] = rom[target]
+		vram = 0x1800 + 8 * rom[target]
 		target += 1
-		sprite = struct.unpack('<H', data[target:target + 2])[0] - 0x6000 + 10 * 0x2000
+		sprite = struct.unpack('<H', rom[target:target + 2])[0] - 0x6000 + 10 * 0x2000
 		target += 2
 		sprites = parse_sprites(sprite, vram)
-		append_to_all(sprites, (romaddr - 0x15c74) // 2 + 1, idx)
+		append_to_all(sprites, code, idx)
 		idx += 1
-w = max(len(x) for x in all_sprites)
+w = max(((row[1] - start.get(row[0], row[1])) // 4) * 17 + len(x) for row, x in zip(rows, all_sprites))
 h = len(all_sprites)
 offset = 34
 im = Image.new('RGB', (offset + w * 17 - 1, h * 17 - 1), (0, 0, 240))
 imt = ImageDraw.Draw(im)
 for y, sp in enumerate(all_sprites):
-	imt.text((2, y* 17 + 4), rows[y])
+	imt.text((2, y* 17 + 4), ('--' if rows[y][0] is None else '%02x' % rows[y][0]) + ' %02x' % rows[y][1])
 	for x, s in enumerate(sp):
-		im.paste(s, (offset + x * 17, y * 17, offset + x * 17 + 16, y * 17 + 16))
+		im.paste(s, (((rows[y][1] - start.get(rows[y][0], rows[y][1])) // 4) * 17 + offset + x * 17, y * 17))
 im.save('/tmp/mogsprites.png')
 elevator = all_sprites[7][0]
 
@@ -305,12 +310,12 @@ boss_charsets = [
 	10, [0], 6, 6, 6]
 bosses = []
 for t, boss in enumerate(boss_charsets):
-	w, h = data[0x1dd90 + 2 * t:0x1dd90 + 2 * (t + 1)]
-	ptr = struct.unpack('<H', data[0x1de0a + 2 * t:0x1de0a + 2 * (t + 1)])[0] - 0x8000 + 0x1c000
+	w, h = rom[0x1dd90 + 2 * t:0x1dd90 + 2 * (t + 1)]
+	ptr = struct.unpack('<H', rom[0x1de0a + 2 * t:0x1de0a + 2 * (t + 1)])[0] - 0x8000 + 0x1c000
 	canvas = Image.new('RGB', (w * 8, h * 8))
 	for y in range(h):
 		for x in range(w):
-			char = read_patterns.get_char(read_patterns.boss_sets[boss] if isinstance(boss, int) else [0] if boss is None else boss, data[ptr + w * y + x])
+			char = read_patterns.get_char(read_patterns.boss_sets[boss] if isinstance(boss, int) else [0] if boss is None else boss, rom[ptr + w * y + x])
 			if char is not None:
 				canvas.paste(char, (x * 8, y * 8))
 	bosses.append(canvas)

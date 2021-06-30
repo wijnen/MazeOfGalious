@@ -140,23 +140,33 @@ roomlist_60ee = read_WA(1, 0x60ee + 2, 4, lengths = [None] * 10, parse_list = se
 roomlist_60ae = read_WA(1, 0x60ae, 4, lengths = [None] * 11, parse_list = set, parse_record = lambda x: x[0])	# killall?
 roomlist_enemy = read_WB(2, 0xb5cb + 2, 6, parse_record = tuple)
 roomlist_sprites = read_WB(1, 0x9737 + 2, 0xa, parse_record = lambda x: x[0])	# Sprites which are loaded for each screen.
+# Enemies that enter the room later are all hardcoded.
+entering_enemies = {
+		0x09: set(((0, frozenset((0x03, 0x47, 0x71, 0x72))),)), # Bouncing Rock
+		0x08: set(((0, frozenset((0x90, 0x91, 0x92, 0x93))), (8, frozenset((0x0f, 0x10, 0x11, 0x12, 0x13))), (9, frozenset((0x03, 0x04, 0x05))), (10, frozenset((0x02, 0x03))),)), # Lava Flare
+		0x0d: set(((0, frozenset((0x89, 0x8a, 0x8b, 0x8c))),)), # Fish
+		0x21: set(((0, frozenset((0x0a, 0x11, 0x1c, 0x38, 0x49, 0x7a, 0x83, 0x84, 0x50))), (4, frozenset((0x0a, 0x0c))), (6, frozenset((0x08,))),)), # Crawler
+		0x30: set(((5, frozenset((0x07, 0x08, 0x09, 0x0a))),)), # Seahorse Demon
+		0x38: set(((0, frozenset((0x66, 0x5e, 0x5f))),)), # VerBlob
+		0x35: set(((0, frozenset((0x2f, 0x3b))), (8, frozenset((0x02, 0x0e))),)), # Rolling Rock
+		0x3e: set(((6, frozenset((0x02, 0x03, 0x04, 0x07, 0x08, 0x11, 0x12))),))} # Flocking Bird
 # }}}
 
 # Enemy names taken from openmsx mog overlay. {{{
 enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "06", "Ring Worm",
-		"08", "09", "Knight", "Water Strider", "Sparky", "Fish", "Bat", "Pacman",
+		"Lava Flare", "Bouncing Rock", "Knight", "Water Strider", "Sparky", "Fish", "Bat", "Pacman",
 		"Insect", "Hedgehog", "Rockman", "Cloud Demon", "Mudman", "Ill", "Bird Dragon", "Egg Bird",
-		"Worm", "Butterfly", "Snake's Fire", "Fireball", "1C", "1D", "1E", "Goblin",
+		"Worm", "Butterfly", "Snake's Fire", "Fireball", "1C", "1D", "1E", "Goblin",	# 1D and 1E are blocked by bronze shield
 		"Shadow Blob", "Crawler", "Pea Shooter", "Trapwall", "Swine", "Bones", "Living Helmet", "Owl",
 		"Ectoplasm", "Drifting Cloud", "Poltergeist", "Wizard", "Shoe 1", "Frost Demon", "Bamboo Shoot", "Frog Plant",
-		"Seahorse Demon", "Gas", "Armor>", "Armor's Dart", "Bally", "35", "DingDong", "Great Butterfly",
-		"VerBlob", "39", "Moai>", "Moai Head Projectile", "Trickster Ghost", "Star", "Flocking Bird", "3F",
-		"Cyclop's Ghost", "41", "Maner", "Gero", "44", "45", "46", "47",
-		"48", "Huge Bat", "4A", "4B", "Fuzzball", "4D", "Fairy Dust", "4F",
+		"Seahorse Demon", "Gas", "Armor>", "Armor's Dart", "Bally", "Rolling Rock", "DingDong", "Great Butterfly",
+		"VerBlob", "39", "Moai>", "Moai Head Projectile", "Trickster Ghost", "Star", "Flocking Bird", "3F",	# 3F is blocked by bronze shield
+		"Cyclop's Ghost", "41", "Maner", "Gero", "44", "45", "46", "47",	# 44 and 47 are blocked by bronze shield; 41, 45, 46 by silver shield
+		"Butterfly Poop", "Huge Bat", "4A", "4B", "Fuzzball", "4D", "Fairy Dust", "4F",	# 4A, 4B and 4D are blocked by silver shield
 		"<Moai", "<Armor", "Middle Bat", "Mini Bat", "Bone", "Small Bone", "Small Fireball", "57",
 		"Crab's Breath", "Seed", "5A", "5B", "Spiral Ball ", "5D", "5E", "5F",
-		"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",
-		"68", "Thunder Cloud", "6A", "6B")
+		"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",	# 61 is blocked by silver shield
+		"68", "Thunder Cloud", "Splash", "6B")	# 68 is blocked by gold shield
 # }}}
 
 # Read enemy data for all enemy types. {{{
@@ -403,7 +413,6 @@ for w, world_tiles in enumerate(world_tile_data):
 		addr = addr2rom(0xa6eb + i * 2, 9)
 		ldata = addr2rom(0xa700 + (i + 1) * 5, 9)
 		lw, lr = rom[addr:addr + 2]
-		print('%x' % addr, lw, lr)
 		if lw != w + 1:
 			continue
 		y, x, h, _, _ = rom[ldata:ldata + 5]

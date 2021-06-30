@@ -25,5 +25,4 @@ Still to do:
 - Horizontal elevators
 - Enemies that enter the screen later
 - Killall effects
-- Sprites output: align replaced sprites (or just don't show them)
 - Sprites: create multi-sprite shapes from code (as opposed to manual "fitting").

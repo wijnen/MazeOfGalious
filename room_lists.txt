@@ -1,26 +1,28 @@
 =====================================================================
 			The lists
 =====================================================================
+A(1):9990	@2: [09] (castle only) worlddoor rooms (not including world 10).
+A(2):9997+2	@2: [12] (castle only) worlddoor position (not including world 10). Record is (y, x)
+A0(4):9dda	@2: [2d] (castle only) shrines. Record is (room, shrine_id, y, x)
 
-LC(.2):ba2e+.2@9: (castle only); 2 bits per room. values 0,1,2 (indexed to ba28). *e635 and *e636 are set based on these bits when entering a room.
-WB(1):60ee+2@4: room numbers. When entering a room in this list, *e612 is set. Purpose unknown.
-WB(1):60ae@4: room numbers. When entering a room in this list, *e010 is set. Killall-room? Some other rooms also seem to be included.
-WB(2):b5cb+2@6: enemies. contains type and position.
-WB(1):9737+2@a: sprites to load into vram for the room.
-A0(4):9dda@2: (castle only) shrines. Record is (room, shrine_id, y, x)
-A(1):9990@2: (castle only) worlddoor rooms (not including world 10).
-A(2):9997+2@2: (castle only) worlddoor position (not including world 10). Record is (y, x)
-B(1):b8a2@9: (castle only) boulders. Record is boulder position
-A(8):bb24@9: (castle only) vertical elevator data. Note: list is in reverse order. Record is (y, x, dx, dy, top_room, top_y, bottom_room, bottom_y)
-B(1):ba80@9: (castle only) vertical elevator rooms. First record is the top room; the rest is in order. Record is (room)
-A(2):a6eb@9: disappearing ladder locations. Record is (world, room)
-A(5):a700+5@6: disappearing ladder details. Matches other ladder list. Record is (y, x, h, ?, ?)
-WB(2):a7bc+2@7: "trap" information per room. Record is (type, position)
-WA0(3):b6fc+2@9: items. position and item id are encoded in the same bytes. Record is (room, item_id_and_x, x_and_y)
-WA(4):a9f1@9: Room exits. Record is (up, down, left, right) room numbers.
-A(10):6000@7: tile definitions (4x4 characters). There are 0xac tiles. Record is character code.
-WA(28):7ac0@7: room definitions (5*8 tiles). Record is tile id.
-MC(.4):60d7+.4@a: character set ids for rooms in the castle. Initial nybble (so msn) is unused.
+WB(1):60ae	@4: [40] room numbers. When entering a room in this list, *e010 is set. Killall-room? Some other rooms also seem to be included.
+WB(1):60ee+2	@4: [98] room numbers. When entering a room in this list, *e612 is set. Purpose unknown.
+A(5):a700+5	@6: [3c] disappearing ladder details. Matches other ladder list. Record is (y, x, h, ?, ?)
+WB(2):b5cb+2	@6: [ab0] enemies. contains type and position.
+
+A(10):6000	@7: [ac0] tile definitions (4x4 characters). There are 0xac tiles. Record is character code.
+WA(28):7ac0	@7: [] room definitions (5*8 tiles). Record is tile id.
+WB(2):a7bc+2	@7: [] "trap" information per room. Record is (type, position)
+A(2):a6eb	@9: [] disappearing ladder locations. Record is (world, room)
+WA(4):a9f1	@9: [] Room exits. Record is (up, down, left, right) room numbers.
+WA0(3):b6fc+2	@9: [] items. position and item id are encoded in the same bytes. Record is (room, item_id_and_x, x_and_y)
+B(1):b8a2	@9: [] (castle only) boulders. Record is boulder position
+B(1):ba80	@9: [] (castle only) vertical elevator rooms. First record is the top room; the rest is in order. Record is (room)
+A(8):bb24	@9: [] (castle only) vertical elevator data. Note: list is in reverse order. Record is (y, x, dx, dy, top_room, top_y, bottom_room, bottom_y)
+LC(2):ba2e+2/8	@9: [25] (castle only); 2 bits per room. values 0,1,2 (indexed to ba28). *e635 and *e636 are set based on these bits when entering a room.
+
+MC(4):60d7+4/8	@a: [] character set ids for rooms in the castle. Initial nybble (so msn) is unused.
+WB(1):9737+2	@a: [] sprites to load into vram for the room.
 
 
 =====================================================================
@@ -46,14 +48,14 @@ Type B(N): Each property has a record of N bytes. They are stored in a (packed)
 
 		ce fa fe be 00 00 fe ca 00
 
-Type MC(N) and LC: Similar to type A(N), but the values are smaller than 1
-	byte. N is written as .n, where n is the number of bits. A 1-based list
+Type MC(n) and LC(n): Similar to type A(N), but the values are smaller than 1
+	byte. n is the number of bits. A 1-based list
 	starts at the same address, but does not use the first n bits.
 
 	The first element may be in the least or most significant bits, denoted
 	by the M or L prefix in the list type.
 
-	Example: a list of [1,2, 3, 4] stored as LC(.4):
+	Example: a list of [1,2, 3, 4] stored as LC(4):
 
 		21 43
 

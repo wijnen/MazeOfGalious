@@ -19415,6 +19415,7 @@ T6211h	280A....  (...	JR	Z,00Ah			; Jump to 0621DH
 T6213h	3D......  ....	DEC	A	
 T6214h	C0......  ....	RET	NZ		
 
+; This is the check if we are in world 10. H == room number.
 T6215h	7C......  |...	LD	A,H	
 T6216h	D602....  ....	SUB	002h	
 T6218h	FE02....  ....	CP	002h	
@@ -19422,6 +19423,7 @@ T621Ah	D0......  ....	RET	NC
 
 T621Bh	1816....  ....	JR	016h			; Jump to 06233H
 
+; This is the check if we are in world 9. H == room number.
 T621Dh	7C......  |...	LD	A,H	
 T621Eh	D603....  ....	SUB	003h	
 T6220h	FE03....  ....	CP	003h	
@@ -19429,6 +19431,7 @@ T6222h	D0......  ....	RET	NC
 
 T6223h	180E....  ....	JR	00Eh			; Jump to 06233H
 
+; This is the check if we are in world 8. H == room number.
 T6225h	7C......  |...	LD	A,H	
 T6226h	D60F....  ....	SUB	00Fh	
 T6228h	FE05....  ....	CP	005h	
@@ -19436,6 +19439,7 @@ T622Ah	D0......  ....	RET	NC
 
 T622Bh	1806....  ....	JR	006h			; Jump to 06233H
 
+; This is the check if we are in the castle. H == room number.
 T622Dh	7C......  |...	LD	A,H	
 T622Eh	D690....  ....	SUB	090h	
 T6230h	FE04....  ....	CP	004h	
@@ -19473,6 +19477,7 @@ T6252h	2833....  (3..	JR	Z,033h			; Jump to 06287H
 T6254h	FE04....  ....	CP	004h	
 T6256h	C0......  ....	RET	NZ		
 
+; World 4.
 T6257h	7C......  |...	LD	A,H	
 T6258h	FE0A....  ....	CP	00Ah	
 T625Ah	282F....  (/..	JR	Z,02Fh			; Jump to 0628BH
@@ -19480,6 +19485,7 @@ T625Ch	FE0C....  ....	CP	00Ch
 T625Eh	282B....  (+..	JR	Z,02Bh			; Jump to 0628BH
 T6260h	C9......  ....	RET			
 
+; Castle.
 T6261h	7C......  |...	LD	A,H	
 T6262h	FE0A....  ....	CP	00Ah	
 T6264h	2825....  (%..	JR	Z,025h			; Jump to 0628BH
@@ -19501,6 +19507,7 @@ T6282h	FE50....  .P..	CP	050h
 T6284h	2805....  (...	JR	Z,005h			; Jump to 0628BH
 T6286h	C9......  ....	RET			
 
+; World 6.
 T6287h	7C......  |...	LD	A,H	
 T6288h	FE08....  ....	CP	008h	
 T628Ah	C0......  ....	RET	NZ		
@@ -19545,6 +19552,7 @@ T62BEh	280D....  (...	JR	Z,00Dh			; Jump to 062CDH
 T62C0h	FE08....  ....	CP	008h	
 T62C2h	C0......  ....	RET	NZ		
 
+; World 8
 T62C3h	7C......  |...	LD	A,H	
 T62C4h	FE02....  ....	CP	002h	
 T62C6h	280D....  (...	JR	Z,00Dh			; Jump to 062D5H
@@ -19552,6 +19560,7 @@ T62C8h	FE0E....  ....	CP	00Eh
 T62CAh	2809....  (...	JR	Z,009h			; Jump to 062D5H
 T62CCh	C9......  ....	RET			
 
+; Castle
 T62CDh	7C......  |...	LD	A,H	
 T62CEh	FE2F....  ./..	CP	02Fh	
 T62D0h	2803....  (...	JR	Z,003h			; Jump to 062D5H
@@ -20070,12 +20079,12 @@ T659Bh	AF......  ....	XOR	A			; Clear A and F
 T659Ch	3225E6..  2%..	LD	(TE625H),A
 T659Fh	3A97E0..  :...	LD	A,(TE097H)	; Shield
 T65A2h	3D......  ....	DEC	A	
-T65A3h	F8......  ....	RET	M		
+T65A3h	F8......  ....	RET	M		; No shield: return.
 
 T65A4h	21BC65..  !.e.	LD	HL,065BCh
 T65A7h	CD5340..  .S@.	CALL	DE=*(HL+2*A)_hook	
 T65AAh	EB......  ....	EX	DE,HL	
-T65ABh	3A19F0..  :...	LD	A,(TF019H)
+T65ABh	3A19F0..  :...	LD	A,(TF019H)	; Enemy type
 T65AEh	47......  G...	LD	B,A	
 T65AFh	7E......  ~...	LD	A,(HL)	
 T65B0h	B7......  ....	OR	A	
@@ -20097,33 +20106,33 @@ T65BFh	65......  e...	LD	H,L
 
 T65C0h	C265
 
-item 2
-	58..  .eX.	JP	NZ,T5865H
-T65C3h	65......  e...	LD	H,L	
-T65C4h	54......  T...	LD	D,H	
-T65C5h	55......  U...	LD	D,L	
-T65C6h	59......  Y...	LD	E,C	
-T65C7h	68......  h...	LD	L,B	
-T65C8h	65......  e...	LD	H,L	
+gold shield
+	58..  .eX.	JP	NZ,T5865H	; crab's breath
+T65C3h	65......  e...	LD	H,L		; breath
+T65C4h	54......  T...	LD	D,H		; bone
+T65C5h	55......  U...	LD	D,L		; small bone
+T65C6h	59......  Y...	LD	E,C		; seed
+T65C7h	68......  h...	LD	L,B		; ?
+T65C8h	65......  e...	LD	H,L		; breath
 
-item 1
-T65C9h	41......  A...	LD	B,C	
-T65CAh	45......  E...	LD	B,L	
-T65CBh	46......  F...	LD	B,(HL)	
-T65CCh	61......  a...	LD	H,C	
-T65CDh	48......  H...	LD	C,B	
-T65CEh	4A......  J...	LD	C,D	
-T65CFh	4D......  M...	LD	C,L	
-T65D0h	4B......  K...	LD	C,E	
-T65D1h	3D......  ....	DEC	A	
+silver shield
+T65C9h	41......  A...	LD	B,C		; ?
+T65CAh	45......  E...	LD	B,L		; ?
+T65CBh	46......  F...	LD	B,(HL)		; ?
+T65CCh	61......  a...	LD	H,C		; ?
+T65CDh	48......  H...	LD	C,B		; Butterfly Poop
+T65CEh	4A......  J...	LD	C,D		; ?
+T65CFh	4D......  M...	LD	C,L		; ?
+T65D0h	4B......  K...	LD	C,E		; ?
+T65D1h	3D......  ....	DEC	A		; star
 
-item 0
-T65D2h	44......  D...	LD	B,H	
-T65D3h	3F......  ?...	CCF		
-T65D4h	1A......  ....	LD	A,(DE)	
-T65D5h	1D......  ....	DEC	E	
-T65D6h	47......  G...	LD	B,A	
-T65D7h	1E56....  .V..	LD	E,056h	
+bronze shield
+T65D2h	44......  D...	LD	B,H		; ?
+T65D3h	3F......  ?...	CCF			; ?
+T65D4h	1A......  ....	LD	A,(DE)		; snake's fire
+T65D5h	1D......  ....	DEC	E		; ?
+T65D6h	47......  G...	LD	B,A		; ?
+T65D7h	1E56....  .V..	LD	E,056h		; ?, small fireball
 T65D9h	00......  ....	NOP		
 
 show_enemy:	; A = type, DE = location, BC = random (2-bit) for normal enemies, sometimes forced to 0.
