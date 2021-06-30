@@ -48951,17 +48951,18 @@ TA7A4h	3A07EC..  :...	LD	A,(TEC07H)
 TA7A7h	B7......  ....	OR	A	
 TA7A8h	C8......  ....	RET	Z		
 
-TA7A9h	3A00EC..  :...	LD	A,(TEC00H)
-TA7ACh	87......  ....	ADD	A,A	
-TA7ADh	4F......  O...	LD	C,A	
-TA7AEh	0600....  ....	LD	B,000h	
-TA7B0h	21AEE0..  !...	LD	HL,0E0AEh
-TA7B3h	09......  ....	ADD	HL,BC	
-TA7B4h	3602....  6...	LD	(HL),002h
-TA7B6h	2C......  ,...	INC	L			;
-TA7B7h	363C....  6<..	LD	(HL),03Ch
+; Disappearing ladder stuff.
+TA7A9h	3A00EC..  :...	LD	A,(TEC00H)		; A = id/index of disappearing ladder
+TA7ACh	87......  ....	ADD	A,A			; A*=2 (since struct is 2 bytes)
+TA7ADh	4F......  O...	LD	C,A			; C = A
+TA7AEh	0600....  ....	LD	B,000h			; BC = A
+TA7B0h	21AEE0..  !...	LD	HL,0E0AEh		; HL = 0xE0AE, start of disappearing ladder timers
+TA7B3h	09......  ....	ADD	HL,BC			; HL += BC, go to wanted index
+TA7B4h	3602....  6...	LD	(HL),002h		; Set state to: timer is still counting down?
+TA7B6h	2C......  ,...	INC	L			; Point HL to reappear timer.
+TA7B7h	363C....  6<..	LD	(HL),03Ch		; Set reappear disappeared timer to 0x3c ticks.
 TA7B9h	AF......  ....	XOR	A			; Clear A and F
-TA7BAh	3200EC..  2...	LD	(TEC00H),A
+TA7BAh	3200EC..  2...	LD	(TEC00H),A		; Clear ID of disappearing ladder
 TA7BDh	C9......  ....	RET			
 
 TA7BEh	D4A7A7..  ....	CALL	NC,TA7A7H

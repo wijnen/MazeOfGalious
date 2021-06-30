@@ -7,7 +7,25 @@ e000
 	e001	substate
 	e041-e042: current world (1=castle) and current room
 	e097: something used to see if special thing already happened?
-	e0c0: is ladder disappeared(?)
+	e0b0-e0c7:
+		byte 0:
+			0: Timer expired?
+			1: Timer expired and in correct room/draw ladder upon re-entering room?
+			2: Timer not yet expired?
+		byte 1: Timer for reappearing disappeared ladder. Counts down to 0x00, possible statically from 0x3C (=60, intended as 60 seconds?). Steps down every 0x20 (test: and 0x1F) beats of counter 0xE604. Takes about 75 seconds to countdown 40 ticks.
+		
+		e0b0-e0b1: (ID 01) room 0x0d
+		e0b2-e0b3: (ID 02) room 0x13
+		e0b4-e0b5: (ID 03) room 0x15
+		e0b6-e0b7: (ID 04) room 0x3c
+		e0b8-e0b9: (ID 05) room 0x46
+		e0ba-e0bb: (ID 06) room 0x49
+		e0bc-e0bd: (ID 07) room 0x56
+		e0be-e0bf: (ID 08) room 0x66
+		e0c0-e0c1: (ID 09) room 0x6a
+		e0c2-e0c3: (ID 0A) room 0x74
+		e0c4-e0c5: (ID 0A) room 0x7c
+		e0c6-e0c7: (ID 0A) room 0x85
 	e4a0-e4ff: vertical elevator info; 06 records:
 		0 elevator id
 		1 current room
@@ -25,6 +43,7 @@ e000
 		d top limit position
 		e bottom limit room
 		f bottom limit position
+	e604: Counter. Starts counting from 0x00 upwards, upon entering a room.
 	e60c-e60d: address of some info about current room; 1 bit each.
 	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
 	e611: flag: 1 = all enemies need to be killed. 0 = no killall specials.
@@ -99,8 +118,18 @@ e000
 		02: X						B0	A0	80	50	30	30	60	E0	70	20	A0	B0	30
 		03: height (counted from top)			07	07	03	07	07	0F	07	07	07	07	0B	07	0B
 		04: ?						40	40	20	40	40	80	40	40	40	40	60	40	60
-		05: ?						16	14	90	0A	06	06	0C	9C	8E	84	14	16	86
-		06: ?						EE	EF	EE	EE	EF	EE	EF	EE	EE	EE	EE	EF	EE
+		05: X of something					16	14	90	0A	06	06	0C	9C	8E	84	14	16	86
+		06:						EE	EF	EE	EE	EF	EE	EF	EE	EE	EE	EE	EF	EE
+			0000 0001
+			0000 0010
+			0000 0100
+			0000 1000
+				0: Draw ladder downwards?
+				1: Draw ladder upwards?
+			0001 0000
+			0010 0000
+			0100 0000
+			1000 0000:
 		07: 00: hasn't disappeared, 01: disappeared	00	00	00	00	00	00	00	00	00	00	00	00	00
 	ec80-ecff: sprite attribute buffer.
 	ed00-eeff: screen buffer.
