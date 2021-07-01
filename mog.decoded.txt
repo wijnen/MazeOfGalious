@@ -20121,10 +20121,10 @@ T65CAh	45......  E...	LD	B,L		; ?
 T65CBh	46......  F...	LD	B,(HL)		; ?
 T65CCh	61......  a...	LD	H,C		; ?
 T65CDh	48......  H...	LD	C,B		; Butterfly Poop
-T65CEh	4A......  J...	LD	C,D		; ?
+T65CEh	4A......  J...	LD	C,D		; Pea Shot
 T65CFh	4D......  M...	LD	C,L		; ?
 T65D0h	4B......  K...	LD	C,E		; ?
-T65D1h	3D......  ....	DEC	A		; star
+T65D1h	3D......  ....	DEC	A		; star (from trickster ghost)
 
 bronze shield
 T65D2h	44......  D...	LD	B,H		; ?
@@ -20132,7 +20132,7 @@ T65D3h	3F......  ?...	CCF			; ?
 T65D4h	1A......  ....	LD	A,(DE)		; snake's fire
 T65D5h	1D......  ....	DEC	E		; ?
 T65D6h	47......  G...	LD	B,A		; ?
-T65D7h	1E56....  .V..	LD	E,056h		; ?, small fireball
+T65D7h	1E56....  .V..	LD	E,056h		; rockman bullet, small fireball
 T65D9h	00......  ....	NOP		
 
 show_enemy:	; A = type, DE = location, BC = random (2-bit) for normal enemies, sometimes forced to 0.

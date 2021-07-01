@@ -21,7 +21,9 @@ sprites = {}	# Same as above, but nice composits.
 all_sprites = []	# All sprites that will be in the output
 rows = []		# For each element of all_sprites, the sprite number or a string.
 
+size = 0
 def parse_sprites(addr, vram):
+	global size
 	sprite_data = read_patterns.decompress(addr, multiple = vram)
 	ret = {}
 	for s in sprite_data:
@@ -181,7 +183,7 @@ for code in range(1, 0x6a + 1):
 		sprites = parse_sprites(sprite, vram)
 		append_to_all(sprites, code, idx)
 		idx += 1
-w = max(((row[1] - start.get(row[0], row[1])) // 4) * 17 + len(x) for row, x in zip(rows, all_sprites))
+w = max(((row[1] - start.get(row[0], row[1])) // 4) + len(x) for row, x in zip(rows, all_sprites))
 h = len(all_sprites)
 offset = 34
 im = Image.new('RGB', (offset + w * 17 - 1, h * 17 - 1), (0, 0, 240))

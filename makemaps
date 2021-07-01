@@ -52,18 +52,21 @@ def read_A(N, addr, page, length = None, parse_record = None, parse_list = None)
 	return parse_list(ret)
 # }}}
 
+B_size = 0
 def read_B(N, addr, page, length, parse_record = None, parse_list = None): # {{{
 	'''Read a type B list from rom.
 	Return a list of lists of bytes objects.
 	If parse_record is not None, the returned elements are passed through that function.
 	If parse_list is not None, the returned lists of elements are passed through that function.
 	'''
+	global B_size
 	if parse_record is None:
 		parse_record = lambda x: x
 	if parse_list is None:
 		parse_list = lambda x: x
 	#print('read B %x %x %x %d' % (N, addr, page or -1, length or -1))
 	ptr = addr2rom(addr, page)
+	start = ptr
 	ret = []
 	while len(ret) < length:
 		current = []
@@ -72,6 +75,7 @@ def read_B(N, addr, page, length, parse_record = None, parse_list = None): # {{{
 			ptr += N
 		ret.append(parse_list(current))
 		ptr += 1
+	B_size += ptr - start
 	return ret
 # }}}
 
@@ -123,9 +127,10 @@ def get_room_charset(room): # {{{
 # Prepare global data. {{{
 rom = open('MazeOfGalious.rom', 'rb').read()
 # Get pointers for rom to each world. First world is the castle.
-world_tile_data = [getptr(addr) for addr in range(0xeac0, 0xead6, 2)]
+world_tile_data = [getptr(addr, 7) for addr in range(0x6ac0, 0x6ad6, 2)]
 # Compute number of rooms from address of next room. This does not work for the last world, so hardcode that value.
 num_rooms = [(world_tile_data[x + 1] - world_tile_data[x]) // 40 for x in range(len(world_tile_data) - 1)] + [6]
+print('total rooms: %x; castle rooms: %x' % (sum(num_rooms), num_rooms[0]))
 # Read charset ids for all castle rooms.
 charset_id = [get_room_charset(i) for i in range(num_rooms[0])]
 # Rooms are built from tiles of 4x4 characters. There are a total of 0xac tiles defined.
@@ -138,8 +143,12 @@ for r in range(num_rooms[0]):	# tyoe C(.2)
 	roomlist_ba2e.append((rom[addr2rom(0xba2e + (r >> 2), 9)] >> (2 * ((r + 1) & 3))) & 0x3)
 roomlist_60ee = read_WA(1, 0x60ee + 2, 4, lengths = [None] * 10, parse_list = set, parse_record = lambda x: x[0]) + [set()]	# ?
 roomlist_60ae = read_WA(1, 0x60ae, 4, lengths = [None] * 11, parse_list = set, parse_record = lambda x: x[0])	# killall?
+B_size = 0
 roomlist_enemy = read_WB(2, 0xb5cb + 2, 6, parse_record = tuple)
+print('enemy size: %x' % (B_size + 2 * 11))
+B_size = 0
 roomlist_sprites = read_WB(1, 0x9737 + 2, 0xa, parse_record = lambda x: x[0])	# Sprites which are loaded for each screen.
+print('sprites size: %x' % (B_size + 2 * 11))
 # Enemies that enter the room later are all hardcoded.
 entering_enemies = {
 		0x09: set(((0, frozenset((0x03, 0x47, 0x71, 0x72))),)), # Bouncing Rock
@@ -153,18 +162,18 @@ entering_enemies = {
 # }}}
 
 # Enemy names taken from openmsx mog overlay. {{{
-enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "06", "Ring Worm",
+enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "Thunder Fire", "Ring Worm",
 		"Lava Flare", "Bouncing Rock", "Knight", "Water Strider", "Sparky", "Fish", "Bat", "Pacman",
-		"Insect", "Hedgehog", "Rockman", "Cloud Demon", "Mudman", "Ill", "Bird Dragon", "Egg Bird",
-		"Worm", "Butterfly", "Snake's Fire", "Fireball", "1C", "1D", "1E", "Goblin",	# 1D and 1E are blocked by bronze shield
+		"Insect", "Hedgehog", "Rockman", "Cloud Demon", "Mudman", "Ill", "Bird Dragon", "Egg Bird", 
+		"Worm", "Butterfly", "Snake's Fire", "Fireball", "1C", "1D", "Rockman Bullet", "Goblin",	# 1D is blocked by bronze shield
 		"Shadow Blob", "Crawler", "Pea Shooter", "Trapwall", "Swine", "Bones", "Living Helmet", "Owl",
 		"Ectoplasm", "Drifting Cloud", "Poltergeist", "Wizard", "Shoe 1", "Frost Demon", "Bamboo Shoot", "Frog Plant",
 		"Seahorse Demon", "Gas", "Armor>", "Armor's Dart", "Bally", "Rolling Rock", "DingDong", "Great Butterfly",
 		"VerBlob", "39", "Moai>", "Moai Head Projectile", "Trickster Ghost", "Star", "Flocking Bird", "3F",	# 3F is blocked by bronze shield
 		"Cyclop's Ghost", "41", "Maner", "Gero", "44", "45", "46", "47",	# 44 and 47 are blocked by bronze shield; 41, 45, 46 by silver shield
-		"Butterfly Poop", "Huge Bat", "4A", "4B", "Fuzzball", "4D", "Fairy Dust", "4F",	# 4A, 4B and 4D are blocked by silver shield
+		"Butterfly Poop", "Huge Bat", "Pea Shot", "4B", "Fuzzball", "4D", "Fairy Dust", "4F",	# 4A, 4B and 4D are blocked by silver shield
 		"<Moai", "<Armor", "Middle Bat", "Mini Bat", "Bone", "Small Bone", "Small Fireball", "57",
-		"Crab's Breath", "Seed", "5A", "5B", "Spiral Ball ", "5D", "5E", "5F",
+		"Crab's Breath", "Seed", "5A", "Killed Item", "Spiral Ball ", "5D", "5E", "5F",
 		"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",	# 61 is blocked by silver shield
 		"68", "Thunder Cloud", "Splash", "6B")	# 68 is blocked by gold shield
 # }}}
@@ -275,8 +284,8 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 		for i in range(h):
 			im.paste(limg, (x, (y + i * 8) - 0x20), t)
 	# }}}
-	if extra['elevator'] is not None: # {{{
-		e = extra['elevator']
+	if extra['vertical_elevator'] is not None: # {{{
+		e = extra['vertical_elevator']
 		sprite = read_sprites.elevator
 		if e['limit'] is not None:
 			x, y = e['limit']
@@ -286,6 +295,14 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 		for x, y in e['path']:
 			im.paste(sprite, (x, y), t)
 			im.paste(sprite, (x + 0x10, y), t)
+	# }}}
+	if extra['horizontal_elevator'] is not None: # {{{
+		x, y = extra['horizontal_elevator']
+		sprite = read_sprites.elevator
+		im.paste(sprite, (x[0], y), sprite)
+		im.paste(sprite, (x[0] + 0x10, y), sprite)
+		im.paste(sprite, (x[1], y), sprite)
+		im.paste(sprite, (x[1] + 0x10, y), sprite)
 	# }}}
 	# Draw enemies. {{{
 	unused_enemies = set(roomlist_sprites[world_num][room_num])
@@ -348,6 +365,7 @@ out = []
 # Keep some data about shrines to add their images to the map later.
 shrineroom = {}
 
+sizes = {'items': 0, 'shrines': 0, 'worlddoor': 0, 'enemies': 0, 'boulders': 0, 'ladders': 0, 'traps': 0, 'vertical_elevator': 0}
 for w, world_tiles in enumerate(world_tile_data):
 	# Create all lists so they exist even without contents.
 	items = {}	# key is room, value is id, x, y
@@ -357,16 +375,19 @@ for w, world_tiles in enumerate(world_tile_data):
 	boulders = {}
 	ladders = {}
 	traps = {}
-	elevator = {}
+	vertical_elevator = {}
+	horizontal_elevator = {}
 	if w == 0: # Only in castle.
 		# Find shrines {{{
 		target = addr2rom(0x9dda, 2)
+		start = target
 		while rom[target] != 0:
 			room, shrine_id, shrine_y, shrine_x = rom[target:target + 4]
 			shrineroom[shrine_id] = room
 			# Room-1, because this rom starts counting at 1. y-32, because the coordinate includes the screen header.
 			shrines[room - 1] = [shrine_id, shrine_x, shrine_y - 32]
 			target += 4
+		sizes['shrines'] += (target - start) + 1
 		# }}}
 		# Find worlddoors {{{
 		for num, target in enumerate(range(0x9990, 0x9999)):
@@ -375,9 +396,11 @@ for w, world_tiles in enumerate(world_tile_data):
 			y, x = rom[addr:addr + 2]
 			#print('door %x %x %x %x' % (num + 1, room, x, y))
 			worlddoor[room - 1] = (num + 1, x, y - 32)
+		sizes['worlddoor'] += 2 * 10
 		# }}}
 		# Find boulders {{{
 		target = addr2rom(0xb8a2, 9)
+		start = target
 		room = 0
 		while room < num_rooms[w]:
 			if rom[target] == 0:
@@ -390,6 +413,7 @@ for w, world_tiles in enumerate(world_tile_data):
 			y = ((rom[target] & 0xe0) | 8) - 32
 			boulders[room].append((x, y))
 			target += 1
+		sizes['boulders'] += target - start
 		# }}}
 		# Find vertical elevators. {{{
 		for e in range(6):
@@ -402,10 +426,19 @@ for w, world_tiles in enumerate(world_tile_data):
 				erooms.append(rom[roomsptr])
 				roomsptr += 1
 			# Elevator struct should be filled per room.
-			elevator[top_room - 1] = {'limit': (x, top_y - 0x20), 'path': [(x, 0x98)]}
-			elevator[bottom_room - 1] = {'limit': (x, bottom_y - 0x20), 'path': [(x, -0x8)]}
+			vertical_elevator[top_room - 1] = {'limit': (x, top_y - 0x20), 'path': [(x, 0x98)]}
+			vertical_elevator[bottom_room - 1] = {'limit': (x, bottom_y - 0x20), 'path': [(x, -0x8)]}
 			for r in erooms[1:]:
-				elevator[r - 1] = {'limit': None, 'path': [(x, -0x8), (x, 0x50), (x, 0x98)]}
+				vertical_elevator[r - 1] = {'limit': None, 'path': [(x, -0x8), (x, 0x50), (x, 0x98)]}
+		sizes['vertical_elevator'] += 6 * 8
+		# }}}
+		# Find hotizontal elevators. {{{
+		for e in range(0xf):
+			room = rom[addr2rom(0xba53 + 3 * e, 9)]
+			ptr = getptr(0xba53 + 3 * e + 1, 9)
+			y = rom[ptr + 0] - 0x20
+			x = (rom[ptr + 5], rom[ptr + 7])
+			horizontal_elevator[room - 1] = (x, y)
 		# }}}
 	# Also in worlds.
 	# Find disappearing ladders {{{
@@ -417,10 +450,12 @@ for w, world_tiles in enumerate(world_tile_data):
 			continue
 		y, x, h, _, _ = rom[ldata:ldata + 5]
 		ladders[lr - 1] = [x, y, h]
+	sizes['ladders'] += 0xd * (2 + 5)
 	# }}}
 	# Find traps {{{
 	# traps is a dict. traps[room] = [[x, y, traptype], ...]
 	ptr = getptr(0xa7bc + (w + 1) * 2, 7)
+	start = ptr
 	#print('loop for world %x' % w)
 	for traproom in range(num_rooms[w]):
 		while rom[ptr] != 0:
@@ -433,6 +468,7 @@ for w, world_tiles in enumerate(world_tile_data):
 				traps[traproom] = []
 			traps[traproom].append((x, y, traptype))
 		ptr += 1
+	sizes['traps'] += ptr - start
 	# }}}
 	# Find enemies {{{
 	for room, e in enumerate(roomlist_enemy[w]):
@@ -452,6 +488,7 @@ for w, world_tiles in enumerate(world_tile_data):
 	# }}}
 	# Find items {{{
 	itemptr = getptr(0xb6fc + (w + 1) * 2, 9)
+	start = itemptr
 	while rom[itemptr] != 0:
 		# Data is: room(8-bit) x4,x3,item(6-bit) y7,y6,y5,y4,y3,x7,x6,x5
 		room, xitem, yx = rom[itemptr:itemptr + 3]
@@ -464,6 +501,7 @@ for w, world_tiles in enumerate(world_tile_data):
 		items[room - 1] = (item, x, y - 0x20)
 		#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, w, room, item, x, y))
 		itemptr += 3
+	sizes['items'] += itemptr - start
 	# }}}
 	# Create all rooms in a world. (14x20 characters per room)
 	fullmap = numpy.zeros((num_rooms[w], 0x14, 0x20), dtype = numpy.uint8)
@@ -485,11 +523,14 @@ for w, world_tiles in enumerate(world_tile_data):
 			'boulder': boulders.get(r),
 			'ladder': ladders.get(r),
 			'traps': traps.get(r),
-			'elevator': elevator.get(r),
+			'vertical_elevator': vertical_elevator.get(r),
+			'horizontal_elevator': horizontal_elevator.get(r),
 		}
 		#print('world %d room %x' % (w, r))
 		worldmap.append(makeimage(w, r, fullmap[r], charset_id[r] if w == 0 else 7, extra))
 	out.append(worldmap)
+for e in sizes:
+	print('%s: %x' % (e, sizes[e]))
 # }}}
 
 # Link stuff together. {{{

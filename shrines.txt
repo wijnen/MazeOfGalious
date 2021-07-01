@@ -371,6 +371,44 @@ e *HL++	bottom limit room
 f *HL++	bottom limit position
 }}}
 
+Horizontal elevators {{{
+7682 @1ef: writing sprite to buffer.
+copied from ec25
+641d: fill ec20+10
+source: bb14 @129
+Looks like source is ba53 @ 129, 3 bytes each, 0f targets.
+	0: (81) room (castle only)
+	1+2: (bb14) pointer to data
+
+		data is 8 byte:
+		0	(78)	initial y
+		1	(30)	initial x
+		2	(00)	dx?
+		3	(02)	dy?
+		4	(00)
+		5	(30)	minx?
+		6	(00)
+		7	(b0)	maxx?
+
+	Vul ec20:
+		0	01: enable
+		1	81: room
+		2	00: 0
+		3	02: id
+		4	00: 0
+		5	78: src[0]: y
+		6	00: 0
+		7	30: src[1]: x
+		8	00: src[2]: dy?
+		9	02: src[3]: dx?
+		a	--
+		b	--
+		c	00: src[4]
+		d	30: src[5]: minx?
+		e	00: src[6]
+		f	b0: src[7]: maxx?
+}}}
+
 More enemies {{{
 table at e800 is filled based on enemy type. bit 7 is not used there, but must encode something important.
 Let's change color of all enemies that have it set to find a pattern.

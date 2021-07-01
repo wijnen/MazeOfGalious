@@ -11,19 +11,25 @@ A(5):a700+5	@6: [3c] disappearing ladder details. Matches other ladder list. Rec
 WB(2):b5cb+2	@6: [ab0] enemies. contains type and position.
 
 A(10):6000	@7: [ac0] tile definitions (4x4 characters). There are 0xac tiles. Record is character code.
-WA(28):7ac0	@7: [] room definitions (5*8 tiles). Record is tile id.
-WB(2):a7bc+2	@7: [] "trap" information per room. Record is (type, position)
-A(2):a6eb	@9: [] disappearing ladder locations. Record is (world, room)
-WA(4):a9f1	@9: [] Room exits. Record is (up, down, left, right) room numbers.
-WA0(3):b6fc+2	@9: [] items. position and item id are encoded in the same bytes. Record is (room, item_id_and_x, x_and_y)
-B(1):b8a2	@9: [] (castle only) boulders. Record is boulder position
-B(1):ba80	@9: [] (castle only) vertical elevator rooms. First record is the top room; the rest is in order. Record is (room)
-A(8):bb24	@9: [] (castle only) vertical elevator data. Note: list is in reverse order. Record is (y, x, dx, dy, top_room, top_y, bottom_room, bottom_y)
+WA(28):6ac0	@7: [3126] room definitions (5*8 tiles). Record is tile id.
+WB(2):a7bc+2	@7: [216] "trap" information per room. Record is (type, position)
+A(2):a6eb	@9: [3e9] disappearing ladder locations. Record is (world, room)
+WA(4):a9f1	@9: [4e8] Room exits. Record is (up, down, left, right) room numbers.
+WA0(3):b6fc+2	@9: [183] items. position and item id are encoded in the same bytes. Record is (room, item_id_and_x, x_and_y)
+B(1):b8a2	@9: [188] (castle only) boulders. Record is boulder position
+B(1):ba80	@9: [c] (castle only) vertical elevator rooms. First record is the top room; the rest is in order. Record is (room)
+A(8):bb24	@9: [30] (castle only) vertical elevator data. Note: list is in reverse order. Record is (y, x, dx, dy, top_room, top_y, bottom_room, bottom_y)
 LC(2):ba2e+2/8	@9: [25] (castle only); 2 bits per room. values 0,1,2 (indexed to ba28). *e635 and *e636 are set based on these bits when entering a room.
 
-MC(4):60d7+4/8	@a: [] character set ids for rooms in the castle. Initial nybble (so msn) is unused.
-WB(1):9737+2	@a: [] sprites to load into vram for the room.
+MC(4):60d7+4/8	@a: [2f] character set ids for rooms in the castle. Initial nybble (so msn) is unused.
+WB(1):9737+2	@a: [2d4] sprites to load into vram for the room.
 
+
+
+Other sizes:
+image characters: [48f7]
+text characters: [429]
+item characters: [6f4]
 
 =====================================================================
 			List types

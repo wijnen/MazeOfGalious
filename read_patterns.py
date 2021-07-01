@@ -118,11 +118,14 @@ text_pattern_data_pointers = [
 		(0x1dbec, 0x5d0)]	# entering password; god screens: kana (4b-80)
 # }}}
 
+size = 0
 def decompress(address, multiple = None): # {{{
 	'''Build patterns from the rom format that send_vram expects.
 	Return an array of characters (each of which is an 8 byte array containing screen 2 rom).
 	This is really just decompression.
 	If multiple is given, it must be the initial address.'''
+	global size
+	start = address
 	ret = []
 	mret = {multiple: [ret]}
 	while rom[address] != 0:
@@ -144,6 +147,7 @@ def decompress(address, multiple = None): # {{{
 		else:
 			ret.extend([rom[address]] * c)
 			address += 1
+	size += (address - start) + 1
 	if multiple is not None:
 		return {x: [numpy.array(mr, dtype = numpy.uint8) for mr in mret[x]] for x in mret}
 	return numpy.array(ret, dtype = numpy.uint8)
@@ -214,6 +218,7 @@ def apply_mirror(addr, target): # {{{
 		addr += 4
 # }}}
 
+size = 0
 # Load all non-text characters (mostly bosses). {{{
 for addr, mirror in pattern_data_pointers:
 	all_characters.append([None] * 0x100)
@@ -231,6 +236,7 @@ for addr in boss3_pointers[0]:
 for addr in boss3_pointers[1]:
 	apply_mirror(addr, all_characters[-1])
 # }}}
+print('size for image characters: %x' % size)
 
 # Add special charset for debugging. {{{
 debug_set = [len(all_characters)]
@@ -247,6 +253,7 @@ for i in range(0x100):
 	all_characters[-1][i] = im
 # }}}
 
+size = 0
 # Load all text characters (no color table, all white on black). {{{
 first_text_charset = len(all_characters)
 # Read image rom for text and similar "extra" characters.
@@ -268,6 +275,7 @@ title_text_sets = [0, first_text_charset + 2, first_text_charset + 3, first_text
 end_demo_text_sets = [0, first_text_charset + 6, first_text_charset + 7]
 base_sets = [0, first_text_charset, first_text_charset + 1]
 # }}}
+print('size for text characters: %x' % size)
 
 # Add special "god_wall" charset for the custom god wall character. {{{
 # God wall is regular 0xf0 with custom color map.
@@ -334,6 +342,7 @@ def block(charsets, first): # {{{
 
 # Items. {{{
 # Read image rom for items. Only one item is shown at a time (except in item screen). It's always in 76-7a.
+size = 0
 items = [None] * 0x30
 for idx in range(7, 0x2d):
 	offset = 0x14000 - 0x6000
@@ -351,6 +360,7 @@ for idx in range(7, 0x2d):
 	im = Image.fromarray(ar, 'P')
 	im.putpalette(palette)
 	items[idx] = im.convert('RGB')
+print('size for item characters: %x' % size)
 
 # Add weapons images.
 weaponchars = ((0x44, 0x45), (0x46, 0x47), (0x4e, None), (0x4f, None), (0x50, 0x51), (0x52, 0x53))
