@@ -6,7 +6,8 @@ e000
 	e000	state
 	e001	substate
 	e041-e042: current world (1=castle) and current room
-	e097: something used to see if special thing already happened?
+	e070-e099: item inventory (see items.txt for individual item addresses)
+	e097: active shield (0 means no shield; 3 means gold)
 	e0b0-e0c7:
 		byte 0:
 			0: Timer expired?
@@ -73,11 +74,12 @@ e000
 			e66a: ? (initialized to 0010)
 	e680: god id of shrine in this room
 	e688: marker(?) for world door
+	e68c: world door state (closed; opening; open)
 	e690: god id of shrine you're standing in
 	e691: shopping substate?
 	e692: position of selector in shop
 	e740: item id that is in current room
-	e744-e745: appear location
+	e744-e745: appear location for world 10 door
 	e800-?: enemy info; 20 byte each
 		00	enemy type
 		01	initial 0
@@ -132,6 +134,23 @@ e000
 			0100 0000
 			1000 0000:
 		ec07: 00: hasn't disappeared, 01: disappeared	00	00	00	00	00	00	00	00	00	00	00	00	00
+		ec20-ec30: horizontal elevator info
+			00: enabled
+			01: room number (always the current room)
+			02: 0
+			03: elevator id
+			04: 0
+			05: current Y (does not change)
+			06: 0
+			07: current X; initial is minimum
+			08: Y step per frame (always 0)
+			09: X step per frame (02 or fe)
+			0a: -
+			0b: -
+			0c: 0
+			0d: minimum X
+			0e: 0
+			0f: maximum X
 	ec80-ecff: sprite attribute buffer.
 	ed00-eeff: screen buffer.
 f000

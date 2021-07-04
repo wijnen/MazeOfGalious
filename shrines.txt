@@ -189,7 +189,7 @@ Summary:
 	everything happens in @789
 	table at a6eb contains world+room words with ladders -> get index from this table (note: 1-based)
 	use index on table at a700: record size 5
-	table contains Y, X, height, ?, ? of ladder (note: Y is screen pixels, so offset by 20)
+	table contains Y, X, height, ?, trigger of ladder (note: Y is screen pixels, so offset by 20) trigger is 1 for disappear at top, 2 for bottom, 3 for both.
 }}}
 
 ##### trap walls {{{

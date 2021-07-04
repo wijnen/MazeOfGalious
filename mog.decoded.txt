@@ -1069,7 +1069,7 @@ T46D2h	66......  f...	LD	H,(HL)
 T46D3h	2E01....  ....	LD	L,001h	
 T46D5h	2241E0..  "A..	LD	(WorldNumber),HL
 T46D8h	CDCD51..  ..Q.	CALL	PrepareNewRoom	
-T46DBh	CD956C..  ..l.	CALL	T6C95H	
+T46DBh	CD956C..  ..l.	CALL	draw_world_door
 T46DEh	CD8F9E..  ....	CALL	T9E8FH	
 T46E1h	AF......  ....	XOR	A			; Clear A and F
 T46E2h	321AE0..  2...	LD	(TE01AH),A
@@ -2695,7 +2695,7 @@ T52FCh	CD4142..  .AB.	CALL	SetMapperF
 T52FFh	CDC676..  ..v.	CALL	T76C6H	
 T5302h	CDB279..  ..y.	CALL	T79B2H	
 T5305h	CD566C..  .Vl.	CALL	T6C56H	
-T5308h	CD956C..  ..l.	CALL	T6C95H	
+T5308h	CD956C..  ..l.	CALL	draw_world_door
 T530Bh	CDB773..  ..s.	CALL	T73B7H		; Draw shrine?
 T530Eh	CDE371..  ..q.	CALL	T71E3H	
 T5311h	CDDD54..  ..T.	CALL	lock_e602
@@ -6522,7 +6522,7 @@ T6C77h	87......  ....	ADD	A,A
 T6C78h	C660....  .`..	ADD	A,060h	
 T6C7Ah	18E9....  ....	JR	0E9h			; Jump to 06C65H
 
-T6C7Ch	21876C..  !.l.	LD	HL,06C87h
+T6C7Ch	21876C..  !.l.	LD	HL,appear_locations - 2
 T6C7Fh	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
 T6C82h	2A44E7..  *D..	LD	HL,(TE744H)
 T6C85h	72......  r...	LD	(HL),D	
@@ -6530,6 +6530,8 @@ T6C86h	2C......  ,...	INC	L			;
 T6C87h	73......  s...	LD	(HL),E	
 T6C88h	C9......  ....	RET			
 
+appear_locations:
+	defw 0x4445, 0x4647, 0x4e00, 4f00, 5051, 5253
 T6C89h	45......  E...	LD	B,L	
 T6C8Ah	44......  D...	LD	B,H	
 T6C8Bh	47......  G...	LD	B,A	
@@ -6542,11 +6544,12 @@ T6C91h	51......  Q...	LD	D,C
 T6C92h	50......  P...	LD	D,B	
 T6C93h	53......  S...	LD	D,E	
 T6C94h	52......  R...	LD	D,D	
+
+draw_world_door:
 T6C95h	2188E6..  !...	LD	HL,0E688h
 T6C98h	7E......  ~...	LD	A,(HL)	
 T6C99h	B7......  ....	OR	A	
 T6C9Ah	C8......  ....	RET	Z		
-
 T6C9Bh	2C......  ,...	INC	L			;
 T6C9Ch	2C......  ,...	INC	L			;
 T6C9Dh	5E......  ^...	LD	E,(HL)	
@@ -6555,15 +6558,15 @@ T6C9Fh	56......  V...	LD	D,(HL)
 T6CA0h	EB......  ....	EX	DE,HL	
 T6CA1h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
 T6CA4h	EB......  ....	EX	DE,HL	
-T6CA5h	21C76C..  !.l.	LD	HL,06CC7h
-T6CA8h	3A8CE6..  :...	LD	A,(TE68CH)
+T6CA5h	21C76C..  !.l.	LD	HL,world_door_graphics
+T6CA8h	3A8CE6..  :...	LD	A,(world_door_state)
 T6CABh	87......  ....	ADD	A,A	
 T6CACh	87......  ....	ADD	A,A	
 T6CADh	47......  G...	LD	B,A	
 T6CAEh	87......  ....	ADD	A,A	
 T6CAFh	80......  ....	ADD	A,B	
 T6CB0h	4F......  O...	LD	C,A	
-T6CB1h	0600....  ....	LD	B,000h	
+T6CB1h	0600....  ....	LD	B,000h	; BC = *e687 * 0c
 T6CB3h	09......  ....	ADD	HL,BC	
 T6CB4h	D9......  ....	EXX		
 T6CB5h	0603....  ....	LD	B,003h	
@@ -6577,6 +6580,7 @@ T6CC3h	10F2....  ....	DJNZ	0F2h			; Jump to 06CB7H
 T6CC5h	D9......  ....	EXX		
 T6CC6h	C9......  ....	RET			
 
+world_door_graphics:
 T6CC7h	5A......  Z...	LD	E,D	
 T6CC8h	5A......  Z...	LD	E,D	
 T6CC9h	5A......  Z...	LD	E,D	
@@ -6589,6 +6593,7 @@ T6CCFh	5A......  Z...	LD	E,D
 T6CD0h	5B......  [...	LD	E,E	
 T6CD1h	5B......  [...	LD	E,E	
 T6CD2h	5A......  Z...	LD	E,D	
+
 T6CD3h	5A......  Z...	LD	E,D	
 T6CD4h	5A......  Z...	LD	E,D	
 T6CD5h	5A......  Z...	LD	E,D	
@@ -6601,6 +6606,7 @@ T6CDBh	5A......  Z...	LD	E,D
 T6CDCh	6D......  m...	LD	L,L	
 T6CDDh	6E......  n...	LD	L,(HL)	
 T6CDEh	5A......  Z...	LD	E,D	
+
 T6CDFh	5A......  Z...	LD	E,D	
 T6CE0h	5A......  Z...	LD	E,D	
 T6CE1h	5A......  Z...	LD	E,D	
@@ -6613,6 +6619,7 @@ T6CE7h	5A......  Z...	LD	E,D
 T6CE8h	6D......  m...	LD	L,L	
 T6CE9h	6E......  n...	LD	L,(HL)	
 T6CEAh	5A......  Z...	LD	E,D	
+
 T6CEBh	DD7E0A..  .~..	LD	A,(IX+00Ah)
 T6CEEh	CDA76E..  ..n.	CALL	T6EA7H	
 T6CF1h	DD710B..  .q..	LD	(IX+00Bh),C
