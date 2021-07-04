@@ -124,7 +124,7 @@ layout, we can produce a better disassembly per page:
   z80dasm -o MazeOfGalious.page.06.asm -g 0xa000 -at -b MazeOfGalious.page.06.blocks MazeOfGalious.page.06.bin
   z80dasm -o MazeOfGalious.page.07.asm -g 0x6000 -at -b MazeOfGalious.page.07.blocks MazeOfGalious.page.07.bin
   z80dasm -o MazeOfGalious.page.08.asm -g 0x8000 -at -b MazeOfGalious.page.08.blocks MazeOfGalious.page.08.bin
-  z80dasm -o MazeOfGalious.page.08.asm -g 0xa000 -at -b MazeOfGalious.page.09.blocks MazeOfGalious.page.09.bin
+  z80dasm -o MazeOfGalious.page.09.asm -g 0xa000 -at -b MazeOfGalious.page.09.blocks MazeOfGalious.page.09.bin
   z80dasm -o MazeOfGalious.page.0a.asm -g 0x6000 -at -b MazeOfGalious.page.0a.blocks MazeOfGalious.page.0a.bin
   z80dasm -o MazeOfGalious.page.0b.asm -g 0x8000 -at -b MazeOfGalious.page.0b.blocks MazeOfGalious.page.0b.bin
   z80dasm -o MazeOfGalious.page.0c.asm -g 0xa000 -at -b MazeOfGalious.page.0c.blocks MazeOfGalious.page.0c.bin
