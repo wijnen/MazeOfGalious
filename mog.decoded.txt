@@ -2737,7 +2737,7 @@ T5375h	CD3AA4..  .:..	CALL	TA43AH
 T5378h	CD41A5..  .A..	CALL	TA541H	
 T537Bh	CD61A6..  .a..	CALL	TA661H	
 T537Eh	CDB5A6..  ....	CALL	TA6B5H	
-T5381h	CDA4A7..  ....	CALL	TA7A4H	
+T5381h	CDA4A7..  ....	CALL	SetupDisappearingLadderTimer		;; TA7A4H
 T5384h	CD6C41..  .lA.	CALL	SetMapper123	
 T5387h	CD7163..  .qc.	CALL	T6371H	
 T538Ah	CD9863..  ..c.	CALL	T6398H	
@@ -48820,75 +48820,101 @@ TA6E6h	2A00F0..  *...	LD	HL,(TF000H)
 TA6E9h	77......  w...	LD	(HL),A	
 TA6EAh	C9......  ....	RET			
 
-TA6EBh	010D01..  ....	LD	BC,0010Dh
-TA6EEh	13......  ....	INC	DE			;
-TA6EFh	011501..  ....	LD	BC,00115h
-TA6F2h	3C......  <...	INC	A			;
-TA6F3h	014601..  .F..	LD	BC,00146h
-TA6F6h	49......  I...	LD	C,C	
-TA6F7h	015601..  .V..	LD	BC,00156h
-TA6FAh	66......  f...	LD	H,(HL)	
-TA6FBh	016A01..  .j..	LD	BC,0016Ah
-TA6FEh	74......  t...	LD	(HL),H	
-TA6FFh	017C01..  .|..	LD	BC,0017Ch
-TA702h	85......  ....	ADD	A,L	
-TA703h	018840..  ..@.	LD	BC,04088h
-TA706h	B0......  ....	OR	B	
-TA707h	07......  ....	RLCA		
-TA708h	40......  @...	LD	B,B	
-TA709h	03......  ....	INC	BC			;
-TA70Ah	80......  ....	ADD	A,B	
-TA70Bh	A0......  ....	AND	B	
-TA70Ch	07......  ....	RLCA		
-TA70Dh	40......  @...	LD	B,B	
-TA70Eh	016080..  .`..	LD	BC,08060h
-TA711h	03......  ....	INC	BC			;
-TA712h	2003....  ....	JR	NZ,003h			; Jump to 0A717H
-TA714h	40......  @...	LD	B,B	
-TA715h	50......  P...	LD	D,B	
-TA716h	07......  ....	RLCA		
-TA717h	40......  @...	LD	B,B	
-TA718h	02......  ....	LD	(BC),A	
-TA719h	80......  ....	ADD	A,B	
-TA71Ah	3007....  0...	JR	NC,007h			; Jump to 0A723H
-TA71Ch	40......  @...	LD	B,B	
-TA71Dh	02......  ....	LD	(BC),A	
-TA71Eh	40......  @...	LD	B,B	
-TA71Fh	300F....  0...	JR	NC,00Fh			; Jump to 0A730H
-TA721h	80......  ....	ADD	A,B	
-TA722h	02......  ....	LD	(BC),A	
-TA723h	80......  ....	ADD	A,B	
-TA724h	60......  `...	LD	H,B	
-TA725h	07......  ....	RLCA		
-TA726h	40......  @...	LD	B,B	
-TA727h	02......  ....	LD	(BC),A	
-TA728h	60......  `...	LD	H,B	
-TA729h	E0......  ....	RET	PO		
+## Table of rooms with a disappearing ladder.
+defw 010dh	;; TA6EBh, world=1, room=0x0d (castle) #01
+defw 0113h	;; TA6EDh, world=1, room=0x13 (castle) #02
+defw 0115h	;; TA6EFh, world=1, room=0x15 (castle) #03
+defw 013ch	;; TA6F1h, world=1, room=0x3c (castle) #04
+defw 0146h	;; TA6F3h, world=1, room=0x46 (castle) #05
+defw 0149h	;; TA6F5h, world=1, room=0x49 (castle) #06
+defw 0156h	;; TA6F7h, world=1, room=0x56 (castle) #07
+defw 0166h	;; TA6F9h, world=1, room=0x66 (castle) #08
+defw 016Ah	;; TA6FBh, world=1; room=0x6a (castle) #09
+defw 0174h	;; TA6FDh, world=1; room=0x74 (castle) #0A (10)
+defw 017ch	;; TA6FFh, world=1; room=0x7c (castle) #0B (11)
+defw 0185h	;; TA701h, world=1; room=0x85 (castle) #0C (12)
+defw 0188h	;; TA703h, world=1; room=0x88 (castle) #0D (13)
 
-TA72Ah	07......  ....	RLCA		
-TA72Bh	40......  @...	LD	B,B	
-TA72Ch	016070..  .`p.	LD	BC,07060h
-TA72Fh	07......  ....	RLCA		
-TA730h	40......  @...	LD	B,B	
-TA731h	03......  ....	INC	BC			;
-TA732h	60......  `...	LD	H,B	
-TA733h	2007....  ....	JR	NZ,007h			; Jump to 0A73CH
-TA735h	40......  @...	LD	B,B	
-TA736h	02......  ....	LD	(BC),A	
-TA737h	40......  @...	LD	B,B	
-TA738h	A0......  ....	AND	B	
-TA739h	0B......  ....	DEC	BC	
-TA73Ah	60......  `...	LD	H,B	
-TA73Bh	03......  ....	INC	BC			;
-TA73Ch	80......  ....	ADD	A,B	
-TA73Dh	B0......  ....	OR	B	
-TA73Eh	07......  ....	RLCA		
-TA73Fh	40......  @...	LD	B,B	
-TA740h	03......  ....	INC	BC			;
-TA741h	60......  `...	LD	H,B	
-TA742h	300B....  0...	JR	NC,00Bh			; Jump to 0A74FH
-TA744h	60......  `...	LD	H,B	
-TA745h	02......  ....	LD	(BC),A	
+## Table of details about the disappearing ladder.
+#### ID=1, room 0x0d:
+defb 40h	;; TA705h, Y
+defb b0h	;; TA706h, X
+defb 07h	;; TA707h, height
+defb 40h	;; TA708h, ?
+defb 03h	;; TA709h, disappear when at either bottom or top
+#### ID=2, room 0x13:
+defb 80h	;; TA70Ah, Y
+defb a0h	;; TA70Bh, X
+defb 07h	;; TA70Ch, height
+defb 40h	;; TA70Dh, ?
+defb 01h	;; TA70Eh, disappear when at top
+#### ID=3, room 0x15:
+defb 60h	;; TA70Fh, Y
+defb 80h	;; TA710h, X
+defb 03h	;; TA711h, height
+defb 20h	;; TA712h, ?
+defb 03h	;; TA713h, disappear when at either bottom or top
+#### ID=4, room 0x3c:
+defb 40h	;; TA714h, Y
+defb 50h	;; TA715h, X
+defb 07h	;; TA716h, height
+defb 40h	;; TA717h, ?
+defb 02h	;; TA718h, disappear when at bottom
+#### ID=5, room 0x46:
+defb 80h	;; TA719h, Y
+defb 30h	;; TA71Ah, X
+defb 07h	;; TA71Bh, height
+defb 40h	;; TA71Ch, ?
+defb 02h	;; TA71Dh, disappear when at bottom
+#### ID=6, room 0x49:
+defb 40h	;; TA71Eh, Y
+defb 30h	;; TA71Fh, X
+defb 0fh	;; TA71Fh, height
+defb 80h	;; TA721h, ?
+defb 02h	;; TA722h, disappear when at bottom
+#### ID=7, room 0x56:
+defb 80h	;; TA723h, Y
+defb 60h	;; TA724h, X
+defb 07h	;; TA725h, height
+defb 40h	;; TA726h, ?
+defb 02h	;; TA727h, disappear when at bottom
+#### ID=8, room 0x66:
+defb 60h	;; TA728h, Y
+defb e0h	;; TA729h, X
+defb 07h	;; TA72Ah, height
+defb 40h	;; TA72Bh, ?
+defb 01h	;; TA72Ch, disappear when at top
+#### ID=9, room 0x6a:
+defb 60h	;; TA72Dh, Y
+defb 70h	;; TA72Eh, X
+defb 07h	;; TA72Fh, height
+defb 40h	;; TA730h, ?
+defb 03h	;; TA731h, disappear when at either bottom or top
+#### ID=a, room 0x74:
+defb 60h	;; TA732h, Y
+defb 20h	;; TA733h, X
+defb 07h	;; TA734h, height
+defb 40h	;; TA735h, ?
+defb 02h	;; TA736h, disappear when at the bottom
+#### ID=b, room 0x7c:
+defb 40h	;; TA737h, Y
+defb A0h	;; TA738h, X
+defb 0Bh	;; TA739h, height
+defb 60h	;; TA73Ah, ?
+defb 03h	;; TA73Bh, disappear when at either bottom or top
+#### ID=c, room 0x85:
+defb 80h	;; TA73Ch, Y
+defb B0h	;; TA73Dh, X
+defb 07h	;; TA73Eh, height
+defb 40h	;; TA73Fh, ?
+defb 03h	;; TA740h, disappear when at either bottom or top
+#### ID=d, room 0x88:
+defb 60h	;; TA741h, Y
+defb 30h	;; TA742h, X
+defb 0Bh	;; TA743h, height
+defb 60h	;; TA744h, ?
+defb 02h	;; TA745h, disappear when at the bottom
+
 TA746h	21B0E0..  !...	LD	HL,0E0B0h
 TA749h	060F....  ....	LD	B,00Fh	
 TA74Bh	2200F0..  "...	LD	(TF000H),HL
@@ -48947,23 +48973,28 @@ TA79Fh	2205EC..  "...	LD	(TEC05H),HL
 TA7A2h	D9......  ....	EXX		
 TA7A3h	C9......  ....	RET			
 
-TA7A4h	3A07EC..  :...	LD	A,(TEC07H)
-TA7A7h	B7......  ....	OR	A	
-TA7A8h	C8......  ....	RET	Z		
 
-; Disappearing ladder stuff.
-TA7A9h	3A00EC..  :...	LD	A,(TEC00H)		; A = id/index of disappearing ladder
-TA7ACh	87......  ....	ADD	A,A			; A*=2 (since struct is 2 bytes)
+#{{{ Setup timer after ladder has disappeared. Called from T5381h only.
+SetupDisappearingLadderTimer:
+TA7A4h	3A07EC..  :...	LD	A,(TEC07H)		; A = 0xEC07
+;; TA7BEh jumps conditionally to here.
+TA7A7h	B7......  ....	OR	A			; Set flags
+TA7A8h	C8......  ....	RET	Z			; if (A==0) return
+
+; 0xEC07 != 0. This means ladder has disappeared.
+TA7A9h	3A00EC..  :...	LD	A,(TEC00H)		; A = number/id/index of disappearing ladder
+TA7ACh	87......  ....	ADD	A,A			; A += A (since struct is 2 bytes)
 TA7ADh	4F......  O...	LD	C,A			; C = A
 TA7AEh	0600....  ....	LD	B,000h			; BC = A
-TA7B0h	21AEE0..  !...	LD	HL,0E0AEh		; HL = 0xE0AE, start of disappearing ladder timers
+TA7B0h	21AEE0..  !...	LD	HL,0E0AEh		; HL = 0xE0AE, start of disappearing ladder timers. Actual start is at 0xe0B0
 TA7B3h	09......  ....	ADD	HL,BC			; HL += BC, go to wanted index
 TA7B4h	3602....  6...	LD	(HL),002h		; Set state to: timer is still counting down?
-TA7B6h	2C......  ,...	INC	L			; Point HL to reappear timer.
+TA7B6h	2C......  ,...	INC	L			; Point HL to "reappear timer".
 TA7B7h	363C....  6<..	LD	(HL),03Ch		; Set reappear disappeared timer to 0x3c ticks.
 TA7B9h	AF......  ....	XOR	A			; Clear A and F
-TA7BAh	3200EC..  2...	LD	(TEC00H),A		; Clear ID of disappearing ladder
+TA7BAh	3200EC..  2...	LD	(TEC00H),A		; Clear ID/number/index of disappearing ladder.
 TA7BDh	C9......  ....	RET			
+# }}}
 
 TA7BEh	D4A7A7..  ....	CALL	NC,TA7A7H
 TA7C1h	A8......  ....	XOR	B	
