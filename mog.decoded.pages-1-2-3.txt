@@ -9535,7 +9535,7 @@ T9E3Ah	C9......  ....	RET
 T9E3Bh	3E80....  >...	LD	A,080h	
 T9E3Dh	320FE5..  2...	LD	(TE50FH),A
 T9E40h	AF......  ....	XOR	A			; Clear A and F
-T9E41h	320BE5..  2...	LD	(TE50BH),A
+T9E41h	320BE5..  2...	LD	(TE50BH),A		; Reset ladder ticker.
 T9E44h	218AE6..  !...	LD	HL,0E68Ah
 T9E47h	7E......  ~...	LD	A,(HL)	
 T9E48h	C608....  ....	ADD	A,008h	
@@ -9564,7 +9564,7 @@ T9E75h	B7......  ....	OR	A
 T9E76h	ED52....  .R..	SBC	HL,DE	
 T9E78h	2204E5..  "...	LD	(TE504H),HL
 T9E7Bh	210BE5..  !...	LD	HL,0E50Bh
-T9E7Eh	34......  4...	INC	(HL)			;
+T9E7Eh	34......  4...	INC	(HL)			; Increment ladder ticker?
 T9E7Fh	060E....  ....	LD	B,00Eh	
 T9E81h	CDF4A5..  ....	CALL	TA5F4H	
 T9E84h	210FE5..  !...	LD	HL,0E50Fh
@@ -9575,7 +9575,7 @@ T9E8Bh	3208E6..  2...	LD	(TE608H),A
 T9E8Eh	C9......  ....	RET			
 
 T9E8Fh	AF......  ....	XOR	A			; Clear A and F
-T9E90h	320BE5..  2...	LD	(TE50BH),A
+T9E90h	320BE5..  2...	LD	(TE50BH),A		; *(0xe50b) = 0, clear ladder ticker?
 T9E93h	3E10....  >...	LD	A,010h	
 T9E95h	18C2....  ....	JR	0C2h			; Jump to 09E59H
 
@@ -9584,7 +9584,7 @@ T9E9Ah	114000..  .@..	LD	DE,00040h
 T9E9Dh	19......  ....	ADD	HL,DE	
 T9E9Eh	2204E5..  "...	LD	(TE504H),HL
 T9EA1h	210BE5..  !...	LD	HL,0E50Bh
-T9EA4h	34......  4...	INC	(HL)			;
+T9EA4h	34......  4...	INC	(HL)			; Increment ladder ticker?
 T9EA5h	0610....  ....	LD	B,010h	
 T9EA7h	CDF4A5..  ....	CALL	TA5F4H	
 T9EAAh	CDB5AF..  ....	CALL	TAFB5H	
@@ -10655,21 +10655,21 @@ TA652h	3A08E5..  :...	LD	A,(TE508H)
 TA655h	A7......  ....	AND	A	
 TA656h	C0......  ....	RET	NZ		
 
-TA657h	210BE5..  !...	LD	HL,0E50Bh
-TA65Ah	34......  4...	INC	(HL)			;
-TA65Bh	3A2EE5..  :...	LD	A,(TE52EH)
-TA65Eh	E60F....  ....	AND	00Fh	
-TA660h	C8......  ....	RET	Z		
+TA657h	210BE5..  !...	LD	HL,0E50Bh		; HL = ?address of ladder ticker?
+TA65Ah	34......  4...	INC	(HL)			; Increment ladder ticker?
+TA65Bh	3A2EE5..  :...	LD	A,(TE52EH)		; 0xe52e is non-zero if a control is pressed.
+TA65Eh	E60F....  ....	AND	00Fh			; A & 0x0F and set flags
+TA660h	C8......  ....	RET	Z			; Return if no key pressed.
 
-TA661h	CB3F....  .?..	SRL	A	
-TA663h	0601....  ....	LD	B,001h	
-TA665h	0E02....  ....	LD	C,002h	
-TA667h	3849....  8I..	JR	C,049h			; Jump to 0A6B2H
-TA669h	04......  ....	INC	B			;
-TA66Ah	CB3F....  .?..	SRL	A	
-TA66Ch	3844....  8D..	JR	C,044h			; Jump to 0A6B2H
-TA66Eh	FE03....  ....	CP	003h	
-TA670h	C8......  ....	RET	Z		
+TA661h	CB3F....  .?..	SRL	A			; C=A&1, A>>=1, Carry flag denotes key up pressed.
+TA663h	0601....  ....	LD	B,001h			; B = 1
+TA665h	0E02....  ....	LD	C,002h			; C = 2
+TA667h	3849....  8I..	JR	C,049h			; Jump to 0A6B2H if key up is pressed.
+TA669h	04......  ....	INC	B			; ++B (B from 1 to 2)
+TA66Ah	CB3F....  .?..	SRL	A			; C=A&1, A>>=1, Carry flag denotes key down pressed.
+TA66Ch	3844....  8D..	JR	C,044h			; Jump to 0A6B2H if arrow down is pressed.
+TA66Eh	FE03....  ....	CP	003h			;
+TA670h	C8......  ....	RET	Z			; ?Return if both right and left pressed?
 
 TA671h	0601....  ....	LD	B,001h	
 TA673h	CB3F....  .?..	SRL	A	
@@ -10712,12 +10712,14 @@ TA6ABh	3A07E5..  :...	LD	A,(TE507H)
 TA6AEh	83......  ....	ADD	A,E	
 TA6AFh	C393A8..  ....	JP	TA893H		
 
+;; JR from TA667h: key up is pressed.
 TA6B2h	79......  y...	LD	A,C	
 TA6B3h	3203E5..  2...	LD	(TE503H),A
 TA6B6h	3A80E0..  :...	LD	A,(TE080H)	; Boots
 TA6B9h	110001..  ....	LD	DE,00100h
 TA6BCh	A7......  ....	AND	A	
-TA6BDh	2803....  (...	JR	Z,003h			; Jump to 0A6C2H
+TA6BDh	2803....  (...	JR	Z,003h			; Jump to 0A6C2H if we don't have item "Boots".
+;; We have item "Boots" (increases speed of heroes).
 TA6BFh	114001..  .@..	LD	DE,00140h
 TA6C2h	78......  x...	LD	A,B	
 TA6C3h	320CE5..  2...	LD	(TE50CH),A

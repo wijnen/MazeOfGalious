@@ -4884,24 +4884,25 @@ T8243h	DD7719..  .w..	LD	(IX+019h),A
 T8246h	C9......  ....	RET			
 
 T8247h	CDC382..  ....	CALL	T82C3H	
-T824Ah	DD7E01..  .~..	LD	A,(IX+001h)
+T824Ah	DD7E01..  .~..	LD	A,(IX+001h)		; ?IX typically 0xE800?
 T824Dh	FE04....  ....	CP	004h	
 T824Fh	3050....  0P..	JR	NC,050h			; Jump to 082A1H
-T8251h	115830..  .X0.	LD	DE,03058h
+; Fairy stuff
+T8251h	115830..  .X0.	LD	DE,03058h		; Fairy default location: Xmin = 0x30, Y = 0x58.
 T8254h	3A42E0..  :B..	LD	A,(RoomNumber)
-T8257h	FE6E....  .n..	CP	06Eh	
-T8259h	2809....  (...	JR	Z,009h			; Jump to 08264H
+T8257h	FE6E....  .n..	CP	06Eh			; Room 6E has a fairy.
+T8259h	2809....  (...	JR	Z,009h			; Jump to 08264H if room==0x6E
 T825Bh	115890..  .X..	LD	DE,09058h
-T825Eh	FE19....  ....	CP	019h	
-T8260h	2802....  (...	JR	Z,002h			; Jump to 08264H
-T8262h	1E78....  .x..	LD	E,078h	
-T8264h	3A07E5..  :...	LD	A,(TE507H)
-T8267h	82......  ....	ADD	A,D	
-T8268h	FEF0....  ....	CP	0F0h	
-T826Ah	382E....  8...	JR	C,02Eh			; Jump to 0829AH
-T826Ch	3A05E5..  :...	LD	A,(TE505H)
-T826Fh	BB......  ....	CP	E	
-T8270h	2028....  .(..	JR	NZ,028h			; Jump to 0829AH
+T825Eh	FE19....  ....	CP	019h			; Room 19 has a fairy.
+T8260h	2802....  (...	JR	Z,002h			; Jump to 08264H if room==0x19
+T8262h	1E78....  .x..	LD	E,078h			; E = 0x78
+T8264h	3A07E5..  :...	LD	A,(TE507H)		; A = X position of player
+T8267h	82......  ....	ADD	A,D			; A += D, with D either 0x30 (T8251h) or 0x90 (T825Bh)
+T8268h	FEF0....  ....	CP	0F0h			; Compute A - 0xF0 and set flags
+T826Ah	382E....  8...	JR	C,02Eh			; Jump to 0829AH if X position is too low.
+T826Ch	3A05E5..  :...	LD	A,(TE505H)		; A = Y position of player
+T826Fh	BB......  ....	CP	E			; Compute A - E and set flags. E == 0x78 (set at T8262h). Is player at height 0x78?
+T8270h	2028....  .(..	JR	NZ,028h			; Jump to 0829AH if A!=0x78, i.e. jump if not on correct fairy appear height
 T8272h	DD3518..  .5..	DEC	(IX+018h)
 T8275h	C24581..  .E..	JP	NZ,T8145H
 T8278h	3A3DE6..  :...	LD	A,(TE63DH)

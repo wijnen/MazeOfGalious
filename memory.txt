@@ -5,7 +5,45 @@ d000
 e000
 	e000	state
 	e001	substate
+	e009:
+		&0x01 (bit 0): Pressed key up
+		&0x02 (bit 1): Pressed key down
+		&0x04 (bit 2): Pressed key left
+		&0x08 (bit 3): Pressed key right
+		&0x10 (bit 4): Pressed space
+		&0x20 (bit 5): Pressed M
+		
+		CTRL, L, F1, F2 aren't in here. Seems purely related to controlling 
+		Popolon/Aphrodite.
+		
+		Some combinations of keys are off:
+		1	2	4	8
+		UP	DOWN	LEFT	RIGHT	Expected	Actual	Remark
+		No	Yes	Yes	Yes	0x0E		0x0C	No down key registered
+		
+		
+		(Some) code references:
+		0xa392 (page 1+2+3)
+		0x4c6b (page 1+2+3)
+		0x4C75: "read_controls": keyboard and joystick are read
+		0x4C68: "store_controls": write state of controls to 0xE009
+	e00e:	Involved in building Konami logo line by line
+	e00f:	Involved in building Konami logo line by line	
 	e041-e042: current world (1=castle) and current room
+	e058:
+		When F1 is pressed:
+			0: Aphrodite is dead and not choosable
+			1: Aphrodite is alive and choosable
+		During gameplay:
+			0: ?
+			1: ?Aphrodite is still alive?
+	e059:
+		When F1 is pressed:
+			0: Popolon is dead and not choosable
+			1: Popolon is alive and choosable
+		During gameplay:
+			0: ?
+			1: ?Popolon is still alive?
 	e070-e099: item inventory (see items.txt for individual item addresses)
 	e097: active shield (0 means no shield; 3 means gold)
 	e0b0-e0c7:
@@ -44,7 +82,108 @@ e000
 		d top limit position
 		e bottom limit room
 		f bottom limit position
+	e500:
+		0: Player is not jumping
+		1: Player is jumping
+	e501:
+		0: Playing as/with Aphrodite
+		1: Playing as/with Popolon
+	e502:
+		Direct redrawing when poking. Sprite index?
+		
+		It seemed bits at first, but when combining bits to, 
+		say, 0x0a (8+2), we see Popolon dying. So probably not 
+		bits after all.
+		
+		0x00: Player has feet together,             facing right
+		0x01: Player has feet apart (walking),      facing right
+		0x02: Player has feet together,             facing left
+		0x03: Player has feet apart (walking),      facing left
+		0x04: Player has feet off ground (jumping), facing right
+		0x05: Player has feet off ground (jumping), facing left
+		0x06: Player has feet off ground (jumping), facing right, swinging sword
+		0x07: Player has feet off ground (jumping), facing left,  swinging sword
+		0x08: Player has feet apart,                facing right, swinging sword
+		0x09: Player has feet apart,                facing left,  swinging sword
+		0x0A: Player is hit,                        facing right
+		0x0B: Player is dying,                      facing right
+		0x0C: Player is hit,                        facing left
+		0x0D: Player is dying,                      facing left
+		0x0E: Player is facing wall (climbing up),  left  foot down
+		0x0F: Player is facing wall (climbing up),  right foot down
+		0x10: Player is facing you (climbing down), right foot down
+		0x11: Player is facing you (climbing down), left foot down
+		0x12: Player is hit, no face,               "facing" right
+		0x13: Player is dying, no face,             "facing" right
+		0x14: ?Just some pixels?
+		0x15: ?Just some pixels?
+		0x16: ?Fireball going to right, trail type 1?
+		0x17: ?Fireball going to right, trail type 2?
+		0x18: Apparently same as 0x11
+		0x19: Apparently same as 0x10
+	e503:
+		0x00: Player is facing right
+		0x01: Player is facing left
+		0x02: Player is climbing a ladder
+	e504:
+		0x00: No boots?
+		0x40: Traversing ladder with boots?
+		0x80: Traversing ladder with boots?
+		0xC0: Traversing ladder with boots?
+	e505: Y. Height (of player's feet), measured in pixels
+		0x00: Top of screen, body and legs aren't visible.
+		0x20: On top of highest brick wall.
+		0x27: Climbing ladder up, changing to above room, lower half still on stairs/ladder.
+		0xB8: On lowest brick wall.
+		0xC2: Falling to the room below.
+	e507: X. X position of player.
+		0x0E:	Player leaves to the room to the left.
+		0x10:	Player just entered from the room to the left.
+		0xF7:	Player just entered from the room to the right.
+		0xF9:	Player leaves to the room to the right.
+	e508: Has something to do with traversing ladders.
+	e509: Has something to do with jumping.
+		0x00:	?Jump started? @0x29A?
+		0x01:	?Inc @0xa412 (pages 1+2+3)?
+		0x02:	?Inc @0xa412 (pages 1+2+3)? Feet already in the air, legs apart
+		0x03:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of a wall (1 character)
+		0x04:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 2 characters
+		0x05:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 2.5 characters
+		0x06:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 3.0 characters
+		0x07:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 4.0 characters
+		0x08:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 4.5 characters
+		0x09:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 5.0 characters
+		0x0A:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 5.0 characters
+		0x0B:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 5.5 characters
+		0x0C:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 5.5 characters
+		0x0D:	?Inc @0xa412 (pages 1+2+3)? Jumped the size of 6.0 characters
+		...
+		0x18:   ?Jump ended for Aphrodite?
+		0x0B:	?Jump ended for Popolon (lowest jump possible)?
+		0x18:   ?Jump ended for Aphrodite?
+		0x1A:	?Jump ended for Popolon (highest jump possible)?
+	e50a: Quite similar to e509, slightly different in values.
+	e50b: Starts counting when on a ladder.
+	e50c:
+		00: Not on ladder? Don't increment counter e50b?
+		01: On ladder, climbing up
+		02: On ladder, climbing down
 	e525: Has something to do with disappearing ladder. Used the ladder?
+	e52e:
+		00: No arrow pressed?
+		01: Up arrow pressed? Seems extra special because of jumping?
+		02: Down arrow pressed?
+		04: Left arrow pressed?
+		08: Right arrow pressed?
+		
+		(Some) code references:
+		0xA8F0 (pages 1+2+3)
+	e532:
+		(Some) code references:
+		0xA8F7 (pages 1+2+3)
+	e533:
+		(Some) code references:
+		0xA8F2 (pages 1+2+3)
 	e604: Counter. Starts counting from 0x00 upwards, upon entering a room.
 	e60c-e60d: address of some info about current room; 1 bit each.
 	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
@@ -55,6 +194,7 @@ e000
 	e620: number of enemies in this room
 	e621: used during enemy setup
 	e622: number of enemies to kill before special happens, or 0.
+	e623: 
 	e624: some enemy property set during setup (again for each enemy?)
 	e625: set to 80 if *e097 > 0 and correct enemy type is in room, otherwise set to 0 correct type taken from lists, see code at 659b @456
 	e635: maximum allowed number of enemies in this room
@@ -80,9 +220,13 @@ e000
 	e692: position of selector in shop
 	e740: item id that is in current room
 	e744-e745: appear location for world 10 door
-	e800-?: enemy info; 20 byte each
+	e800-?e99f?: enemy info; 20 byte each
 		00	enemy type
 		01	initial 0
+			Fairy Dust:
+				0x01	Fairy Dust is floating
+				0x03	Fairy Dust is floating
+				0x04	Fairy Dust was converted to Fairy. ?T824Dh?
 		02	Flags. Bit 7: active. Initial f0 (normal) or f8 (killall)
 		03	enemy number, if bits in *e60c are used for this enemy (room?).
 		04	initial 00
@@ -114,6 +258,8 @@ e000
 		1f	initial 00
 	eaa2: Y coordinate of trap wall
 	eaa3: X coordinate of trap wall
+	eac0: has something to do with disappearing wall in World 1, room 0x0c
+	eac2: has something to do with disappearing wall in World 1, room 0x0c
 	ec00-ec07: disappearing ladder
 								room 0d	room 13	room 15	room 3c	room 46	room 49	room 56	room 66	room 6a room 74	room 7c	room 85	room 88
 		ec00: non zero if disappearing ladder		01	02	03	04	05	06	07	08	09	0A	0B	0C	0D

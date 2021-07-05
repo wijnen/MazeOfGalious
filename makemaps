@@ -35,7 +35,7 @@ def getptr(address, page = None): # {{{
 
 # List reading helpers. {{{
 def read_A(N, addr, page, length = None, parse_record = None, parse_list = None): # {{{
-	'''Read a type A list from rom. If length is None, read  a type A0 list.
+	'''Read a type A list from rom. If length is None, read a type A0 list.
 	Return a list of bytes objects.
 	If parse_record is not None, the returned elements are passed through that function.'''
 	if parse_record is None:
@@ -80,7 +80,7 @@ def read_B(N, addr, page, length, parse_record = None, parse_list = None): # {{{
 # }}}
 
 def read_W(target, N, addr, page, lengths = (), **ka): # {{{
-	'''Read a type W* list from rom. If length is None, read  a type WA0 list.
+	'''Read a type W* list from rom. If length is None, read a type WA0 list.
 	Otherwise, lengths must be a list of 11 lengths. The default will be replaced by num_rooms.
 	target is called to read the contents. This is usually read_A or read_B.
 	this function is not meant to be called directly.
@@ -100,7 +100,7 @@ def read_W(target, N, addr, page, lengths = (), **ka): # {{{
 # }}}
 
 def read_WA(N, addr, page, lengths = (), **ka): # {{{
-	'''Read a type WA list from rom. If length is None, read  a type WA0 list.
+	'''Read a type WA list from rom. If length is None, read a type WA0 list.
 	Otherwise, lengths must be a list of 11 lengths. The default will be replaced by num_rooms.
 	Return a list of bytes objects.'''
 	return read_W(read_A, N, addr, page, lengths, **ka)
@@ -171,7 +171,7 @@ enemy_names = (None, "Gorilla", "Twinkle", "HorBlob", "Gate", "Fire Snake", "Thu
 		"Seahorse Demon", "Gas", "Armor>", "Armor's Dart", "Bally", "Rolling Rock", "DingDong", "Great Butterfly",
 		"VerBlob", "39", "Moai>", "Moai Head Projectile", "Trickster Ghost", "Star", "Flocking Bird", "3F",	# 3F is blocked by bronze shield
 		"Cyclop's Ghost", "41", "Maner", "Gero", "44", "45", "46", "47",	# 44 and 47 are blocked by bronze shield; 41, 45, 46 by silver shield
-		"Butterfly Poop", "Huge Bat", "Pea Shot", "4B", "Fuzzball", "4D", "Fairy Dust", "4F",	# 4A, 4B and 4D are blocked by silver shield
+		"Butterfly Poop", "Huge Bat", "Pea Shot", "4B", "Fuzzball", "4D", "Fairy Dust", "Fairy",	# 4A, 4B and 4D are blocked by silver shield
 		"<Moai", "<Armor", "Middle Bat", "Mini Bat", "Bone", "Small Bone", "Small Fireball", "57",
 		"Crab's Breath", "Seed", "5A", "Killed Item", "Spiral Ball ", "5D", "5E", "5F",
 		"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",	# 61 is blocked by silver shield
@@ -356,6 +356,14 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 		#print('Room %d:%02x unused enemies: %s' % (world_num, room_num + 1, ','.join('%02x' % e for e in unused_enemies)))
 		pass
 	# }}}
+	if extra['fairies'] is not None:
+		player_height = 2 * 8
+		xy=extra['fairies']
+		imt.rectangle(xy=[xy, (xy[0] + 0x0f, xy[1] - player_height)])
+		
+		# 'anchor' is only available for TrueType fonts :-/. 
+		# Manually make it anchor "ld" (left decender).
+		imt.text(xy=(xy[0], xy[1] - player_height - 8 - 3), text='Fairy')
 	return im
 # }}}
 
@@ -377,6 +385,7 @@ for w, world_tiles in enumerate(world_tile_data):
 	traps = {}
 	vertical_elevator = {}
 	horizontal_elevator = {}
+	fairies = {}
 	if w == 0: # Only in castle.
 		# Find shrines {{{
 		target = addr2rom(0x9dda, 2)
@@ -432,7 +441,7 @@ for w, world_tiles in enumerate(world_tile_data):
 				vertical_elevator[r - 1] = {'limit': None, 'path': [(x, -0x8), (x, 0x50), (x, 0x98)]}
 		sizes['vertical_elevator'] += 6 * 8
 		# }}}
-		# Find hotizontal elevators. {{{
+		# Find horizontal elevators. {{{
 		for e in range(0xf):
 			room = rom[addr2rom(0xba53 + 3 * e, 9)]
 			ptr = getptr(0xba53 + 3 * e + 1, 9)
@@ -478,6 +487,42 @@ for w, world_tiles in enumerate(world_tile_data):
 			enemies[room] = {}
 		for t, pos in e:
 			etype = t & 0x7f
+			
+			# 0x4E means "Fairy Dust", i.e. a Fairy can appear. Known 
+			# rooms: (1 based) 0x19, 0x5B, 0x6E
+			if etype == 0x4E:
+				# Code at 0x8251 (page 5) says:
+				# 115830   LD DE,03058h
+				Y    = rom[addr2rom(0x8251 + 1, 5)]
+				Xmin = rom[addr2rom(0x8251 + 2, 5)]
+				
+				if room == 0x6E - 1:
+					# no-op
+					pass
+				else:
+					# Code at 0x825B (page 5):
+					# 115890   LD DE,09058h
+					#Y = 0x58
+					#Xmin = 0x90
+					Y    = rom[addr2rom(0x825B + 1, 5)]
+					Xmin = rom[addr2rom(0x825B + 2, 5)]
+					
+					if room == 0x19 - 1:
+						# no-op
+						pass
+					else:
+						# Code at 0x8262 (page 5) says:
+                		                # 1E78   LD E,078h
+						#Y = 0x78
+						Y = rom[addr2rom(0x8262 + 1, 5)]
+				
+				# T8268h says:
+				# FEF0   CP 0F0h
+				X = 0xF0 - Xmin
+				
+				# Compensate for missing header.
+				Y -= 0x20
+				fairies[room] = (X, Y)
 			ey = pos & 0xf8
 			ex = ((pos << 5) | ((t & 0x80) >> 3)) & 0xf0
 			record = (etype, ex, ey, bool(t & 0x80))
@@ -525,6 +570,7 @@ for w, world_tiles in enumerate(world_tile_data):
 			'traps': traps.get(r),
 			'vertical_elevator': vertical_elevator.get(r),
 			'horizontal_elevator': horizontal_elevator.get(r),
+			'fairies': fairies.get(r),
 		}
 		#print('world %d room %x' % (w, r))
 		worldmap.append(makeimage(w, r, fullmap[r], charset_id[r] if w == 0 else 7, extra))
@@ -639,7 +685,7 @@ for w in range(11):
 				worldmap[w].paste(read_patterns.gods[god_id], (x, y))
 				textmap[w][ty][tx] = '[]'
 				continue
-		if 0 < sp <= num_rooms[w]: 
+		if 0 < sp <= num_rooms[w]:
 			debug_charset = False	# w == 0	# Use this to debug charsets castle.
 			worldmap[w].paste(out[w][sp - 1], (x, y, x + 256, y + 160))
 			textmap[w][ty][tx] = '%02x' % sp

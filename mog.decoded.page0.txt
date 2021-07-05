@@ -1834,9 +1834,37 @@ T4C73h	77......  w...	LD	(HL),A
 T4C74h	C9......  ....	RET			
 
 read_controls:
-T4C75h	1E8F....  ....	LD	E,08Fh	
-T4C77h	3E0F....  >...	LD	A,00Fh	
-T4C79h	CD9300..  ....	CALL	T0093H		; write psg
+;; From https://www.msx.org/wiki/Joystick_control:
+;; PSG register 15:
+;; -------------------------------------------------
+;; | b7  | b6  | b5  | b4 | b3  | b2  | b1  | b0   |
+;; -------------------------------------------------
+;;    |    |     |     |     |     |     |     |
+;;    |	   |     |     |     |     |     |     +--> 6th pin output/Joyport A (Default 1)
+;;    |    |     |     |     |     |     +--------> 7th pin output/Joyport A (Default 1)
+;;    |    |     |     |     |     +--------------> 6th pin output/Joyport B (Default 1)
+;;    |    |     |     |     +--------------------> 7th pin output/Joyport B (Default 1)
+;;    |    |     |     +--------------------------> 8th pin output/Joyport A (Default 0)
+;;    |    |     +--------------------------------> 8th pin output/Joyport B (Default 0)
+;;    |    |
+;;    |    +---> 0: b0-b5 of PSG register 14 to be connected to Joyport A
+;;    |          1: b0-b5 of PSG register 14 to be connected to Joyport B (Default)
+;;    |
+;;    +---------> 0: Arabic or kana mode display lamp on
+;;                1: Arabic or kana mode display lamp off
+;;
+;; E-0x8F, so apparently we want this:
+;; b0==1: 6th pin output/Joyport A
+;; b1==1: 7th pin output/Joyport A
+;; b2==1: 6th pin output/Joyport B
+;; b3==1: 7th pin output/Joyport B
+;; b4==0: NOT 8th pin output/Joyport A
+;; b5==0: NOT 8th pin output/Joyport B
+;; b6==0: b0-b5 of PSG register 14 to be connected to Joyport A
+;; b7==1: Arabic or kana mode display lamp off
+T4C75h	1E8F....  ....	LD	E,08Fh		; Data to write to PSG register
+T4C77h	3E0F....  >...	LD	A,00Fh		; PSG register number
+T4C79h	CD9300..  ....	CALL	T0093H		; BIOS call "WRTPSG" (Write Programmable Sound Generator)
 T4C7Ch	3E0E....  >...	LD	A,00Eh	
 T4C7Eh	F3......  ....	DI		
 T4C7Fh	CD9600..  ....	CALL	T0096H		; read joystick
