@@ -620,19 +620,22 @@ if __name__ == '__main__':
 	# }}}
 
 	# God messages (without context) {{{
+	combined = Image.new('RGB', (0x201, 0xa1 * 0x14 - 1))
 	for i in range(0x14):
 		im = Image.new('RGB', (0x201, 0xa0), (0, 0, 0x30))
 		make_god_bg(im)
 		make_god_bg(im, (0x101, 0))
 		write_god_message(i, im, (0x101, 0))
 		write_god_message(i + 0x20, im)
+		combined.paste(im, (0, 0xa1 * i))
 		im.save('/tmp/msg-%02x.png' % i)
+	combined.save('/tmp/mog-msg.png')
 	# }}}
 
-		# Write god screens to files. {{{
-		im = Image.new('RGB', (0x201, 0xa1 * len(godsimgs) - 1), (0, 0, 0x30, 0xff))
-		for k, g in enumerate(godsimgs):
-			for t, i in enumerate(g):
-				im.paste(i, (t * 0x101, k * 0xa1))
-		im.save('/tmp/god.png')
-		# }}}
+	# Write god screens to files. {{{
+	im = Image.new('RGB', (0x201, 0xa1 * len(godsimgs) - 1), (0, 0, 0x30, 0xff))
+	for k, g in enumerate(godsimgs):
+		for t, i in enumerate(g):
+			im.paste(i, (t * 0x101, k * 0xa1))
+	im.save('/tmp/god.png')
+	# }}}
