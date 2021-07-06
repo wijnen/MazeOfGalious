@@ -547,6 +547,9 @@ for w, world_tiles in enumerate(world_tile_data):
 		#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, w, room, item, x, y))
 		itemptr += 3
 	sizes['items'] += itemptr - start
+	# vase
+	items[0x28 - 1] = (0x1B, 0x80, 0x88 - 0x20)
+	++sizes['items']
 	# }}}
 	# Create all rooms in a world. (14x20 characters per room)
 	fullmap = numpy.zeros((num_rooms[w], 0x14, 0x20), dtype = numpy.uint8)

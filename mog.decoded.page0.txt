@@ -2722,9 +2722,9 @@ T52F9h	CD0A42..  ..B.	CALL	SetMapperE
 T52FCh	CD4142..  .AB.	CALL	SetMapperF	
 T52FFh	CDC676..  ..v.	CALL	T76C6H	
 T5302h	CDB279..  ..y.	CALL	T79B2H	
-T5305h	CD566C..  .Vl.	CALL	T6C56H	
+T5305h	CD566C..  .Vl.	CALL	T6C56H			; Draw item in screenbuf
 T5308h	CD956C..  ..l.	CALL	draw_world_door
-T530Bh	CDB773..  ..s.	CALL	T73B7H		; Draw shrine?
+T530Bh	CDB773..  ..s.	CALL	T73B7H			; Draw shrine?
 T530Eh	CDE371..  ..q.	CALL	T71E3H	
 T5311h	CDDD54..  ..T.	CALL	lock_e602
 T5314h	CDD673..  ..s.	CALL	T73D6H	
@@ -4257,23 +4257,32 @@ T5D83h	17......  ....	RLA
 T5D84h	17......  ....	RLA		; A = 21098...
 T5D85h	E6F8....  ....	AND	0F8h	
 T5D87h	5F......  _...	LD	E,A	; this is the X coordinate
+
+; We can be called from T4BC1h (page 0) to here.
+; We can be called from TA04Eh (pages 1+2+3) to here. (Called from Vase 
+; routine.) D = 0x88, E = 0x80, C = 0x1B
 T5D88h	7A......  z...	LD	A,D	
 T5D89h	B3......  ....	OR	E	
 T5D8Ah	C8......  ....	RET	Z		; If all 10 bits are zero, the item no longer exists.
 
-T5D8Bh	79......  y...	LD	A,C	
-T5D8Ch	FE2D....  .-..	CP	02Dh	
-T5D8Eh	301B....  0...	JR	NC,01Bh			; Respawning item (coins, key, arrows). Jump to 05DABH
-T5D90h	0600....  ....	LD	B,000h	
-T5D92h	216FE0..  !o..	LD	HL,0E06Fh
-T5D95h	09......  ....	ADD	HL,BC	
-T5D96h	7E......  ~...	LD	A,(HL)	
-T5D97h	B7......  ....	OR	A	
-T5D98h	C0......  ....	RET	NZ		; If non-respawning item is already owned, don't place it in the room
+T5D8Bh	79......  y...	LD	A,C		; A = item_number
+T5D8Ch	FE2D....  .-..	CP	02Dh		; Compute A - 0x2D and set flags.
+T5D8Eh	301B....  0...	JR	NC,01Bh		; Respawning item (coins, key, arrows). Jump to 05DABH
+; We didn't jump. Regular item, not arrow, not coins, not key. Perhaps 
+; vase only in practice.
+T5D90h	0600....  ....	LD	B,000h		; B = 0
+T5D92h	216FE0..  !o..	LD	HL,0E06Fh	; H = 0xE0, L = 0x6F
+T5D95h	09......  ....	ADD	HL,BC		; HL += BC (add item number to 0xE06F)
+; HL == 0xE08A for vase for instance.
+T5D96h	7E......  ~...	LD	A,(HL)		; A = do I have this item?
+T5D97h	B7......  ....	OR	A		; Test A
+T5D98h	C0......  ....	RET	NZ		; If non-respawning item is already owned, don't place it in the room.
 
-T5D99h	79......  y...	LD	A,C	
-T5D9Ah	FE0C....  ....	CP	00Ch			; World key
-T5D9Ch	200D....  ....	JR	NZ,00Dh			; Jump to 05DABH
+; Item not yet owned.
+T5D99h	79......  y...	LD	A,C		; A = C
+T5D9Ah	FE0C....  ....	CP	00Ch		; World key
+T5D9Ch	200D....  ....	JR	NZ,00Dh		; if(A is not world key) Jump to 05DABH
+; Code for world key only
 T5D9Eh	3A41E0..  :A..	LD	A,(WorldNumber)
 T5DA1h	2162E0..  !b..	LD	HL,0E062h
 T5DA4h	CD3641..  .6A.	CALL	HL+=A	
@@ -4286,18 +4295,18 @@ T5DAEh	7E......  ~...	LD	A,(HL)
 T5DAFh	B7......  ....	OR	A	
 T5DB0h	C0......  ....	RET	NZ		
 
-T5DB1h	71......  q...	LD	(HL),C	; record item as being in this screen
-T5DB2h	2C......  ,...	INC	L			;
-T5DB3h	2C......  ,...	INC	L			;
-T5DB4h	79......  y...	LD	A,C	
+T5DB1h	71......  q...	LD	(HL),C		; record item as being in this screen
+T5DB2h	2C......  ,...	INC	L		;
+T5DB3h	2C......  ,...	INC	L		;
+T5DB4h	79......  y...	LD	A,C		; A = item id
 T5DB5h	FE07....  ....	CP	007h	
-T5DB7h	3004....  0...	JR	NC,004h			; Not a weapon: Jump to 05DBDH
+T5DB7h	3004....  0...	JR	NC,004h		; Not a weapon: Jump to 05DBDH
 T5DB9h	7A......  z...	LD	A,D	
 T5DBAh	C608....  ....	ADD	A,008h	
 T5DBCh	57......  W...	LD	D,A		; If it is a weapon, add 8 to Y coordinate (because weapons are half height)
-T5DBDh	72......  r...	LD	(HL),D		; Store Y
-T5DBEh	2C......  ,...	INC	L			;
-T5DBFh	73......  s...	LD	(HL),E		; Store X
+T5DBDh	72......  r...	LD	(HL),D		; Store Y at 0xE742
+T5DBEh	2C......  ,...	INC	L		;
+T5DBFh	73......  s...	LD	(HL),E		; Store X at 0xE743
 T5DC0h	63......  c...	LD	H,E	
 T5DC1h	6A......  j...	LD	L,D	
 T5DC2h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y

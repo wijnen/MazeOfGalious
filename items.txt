@@ -14,7 +14,7 @@ e078	09	magic wand	; use no ammo during boss fight
 e079	0a	map		; see map of current world
 e07a	0b	cross		; defeat Galious
 e07b	0c	world key
-e07c	0d	Neclace		; enter world 7
+e07c	0d	Necklace	; enter world 7
 e07d	0e	Crown		; protect against 0x2a: white witches
 e07e	0f	White helmet	; protect against 0x28: plasma shots
 e07f	10	Oar		; Walk on water in two screens
@@ -46,7 +46,6 @@ e098	29	Water and bread	; Aphrodite can go through push doors
 e099	2a	Salt		; See death
 	2b	Silver shield
 	2c	Gold shield
-	2d	Arrows
-	2e	Coins
-	2f	Keys
-
+	2d	Arrow
+	2e	Coin
+	2f	Key

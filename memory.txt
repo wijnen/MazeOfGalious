@@ -5,6 +5,7 @@ d000
 e000
 	e000	state
 	e001	substate
+	e002	seen at T4E24h
 	e009:
 		&0x01 (bit 0): Pressed key up
 		&0x02 (bit 1): Pressed key down
@@ -44,6 +45,30 @@ e000
 		During gameplay:
 			0: ?
 			1: ?Popolon is still alive?
+	e063-e06c: World items
+		bit 0 / 0x01: world is open
+		bit 1 / 0x02: great key
+		bit 2 / 0x04: Beaten boss
+		bit 3 / 0x08: ?unused?
+		bit 4 / 0x10: map
+		bit 5 / 0x20: holy water
+		bit 6 / 0x40: cape
+		bit 7 / 0x80: magical rod
+		
+		e063: World 1
+		e064: World 2
+		e065: World 3
+		e066: World 4
+		e067: World 5
+		e068: World 6
+		e069: World 7
+		e06a: World 8
+		e06b: World 9
+		e06c: World 10
+
+	e06f:
+		Seen at T5D92h (page 0). Fake. Would have been 0xe070 if 
+		Konami used 0 based instead of 1 based.
 	e070-e099: item inventory (see items.txt for individual item addresses)
 	e097: active shield (0 means no shield; 3 means gold)
 	e0b0-e0c7:
@@ -65,6 +90,8 @@ e000
 		e0c2-e0c3: (ID 0A) room 0x74
 		e0c4-e0c5: (ID 0B) room 0x7c
 		e0c6-e0c7: (ID 0C) room 0x85
+	e106-e107: seen at 0x4F4E
+	e169-e170: seen at 0x4F47
 	e4a0-e4ff: vertical elevator info; 06 records:
 		0 elevator id
 		1 current room
@@ -184,6 +211,20 @@ e000
 	e533:
 		(Some) code references:
 		0xA8F2 (pages 1+2+3)
+	e536: VaseState (for room 0x28)
+		0: initial
+		1: Faced right and flung sword 1 time
+		2: Faced right and flung sword 2 times
+		3: Faced right and flung sword 3 times
+		4: Faced left and flung sword 1 time
+		5: Faced left and flung sword 2 times
+		6: Faced left and flung sword 3 times
+		7: Jumped 1 time
+		8: Jumped 2 times
+		9: Jumped 3 times (vase appears)
+	e539:
+		0: Vase is not visible (room 0x28)
+		1: Vase should become visible (room 0x28). Set to 1 at 0xA04B, after seeing VaseState==9.
 	e604: Counter. Starts counting from 0x00 upwards, upon entering a room.
 	e60c-e60d: address of some info about current room; 1 bit each.
 	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
@@ -219,7 +260,20 @@ e000
 	e691: shopping substate?
 	e692: position of selector in shop
 	e740: item id that is in current room
-	e744-e745: appear location for world 10 door
+
+	e742-e743: Y and X position of item, not a screenbuffer location 
+		like e744-e745. Example for vase:
+			Y=0x88 (@0xe742)
+			X=0x80 (@0xe743)
+		
+		(Some) code references:
+		0x5DBD (page 0)
+		0x5DBF (page 0)
+	e744-e745:
+		Appear location for world 10 door.
+		
+		Appear location of vase (and probably for all items), in 
+		screenbuffer. Top left. For example vase: 0xEF30
 	e800-?e99f?: enemy info; 20 byte each
 		00	enemy type
 		01	initial 0
@@ -298,5 +352,5 @@ e000
 			0e: 0
 			0f: maximum X
 	ec80-ecff: sprite attribute buffer.
-	ed00-eeff: screen buffer.
+	ed00-efff: screen buffer.
 f000

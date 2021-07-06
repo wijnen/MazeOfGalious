@@ -1882,32 +1882,48 @@ T6C52h	C1......  ....	POP	BC
 T6C53h	10EC....  ....	DJNZ	0ECh			; Jump to 06C41H
 T6C55h	C9......  ....	RET			
 
-T6C56h	3A40E7..  :@..	LD	A,(TE740H)
-T6C59h	B7......  ....	OR	A	
-T6C5Ah	C8......  ....	RET	Z		
+draw_item_in_screenbuf:
+T6C56h	3A40E7..  :@..	LD	A,(TE740H)		; A = item id
+T6C59h	B7......  ....	OR	A			;
+T6C5Ah	C8......  ....	RET	Z			; if(no item in room) return
 
-T6C5Bh	FE07....  ....	CP	007h	
-T6C5Dh	381D....  8...	JR	C,01Dh			; Jump to 06C7CH
-T6C5Fh	D62D....  .-..	SUB	02Dh	
-T6C61h	3013....  0...	JR	NC,013h			; Jump to 06C76H
-T6C63h	3E76....  >v..	LD	A,076h	
-T6C65h	2A44E7..  *D..	LD	HL,(TE744H)
-T6C68h	77......  w...	LD	(HL),A	
-T6C69h	3C......  <...	INC	A			;
-T6C6Ah	2C......  ,...	INC	L			;
-T6C6Bh	77......  w...	LD	(HL),A	
-T6C6Ch	011F00..  ....	LD	BC,0001Fh
-T6C6Fh	09......  ....	ADD	HL,BC	
-T6C70h	3C......  <...	INC	A			;
-T6C71h	77......  w...	LD	(HL),A	
-T6C72h	2C......  ,...	INC	L			;
-T6C73h	3C......  <...	INC	A			;
-T6C74h	77......  w...	LD	(HL),A	
+T6C5Bh	FE07....  ....	CP	007h			; Compute A - 7 and set flags.
+T6C5Dh	381D....  8...	JR	C,01Dh			; if(A<7) Jump to 06C7CH. i.e. jump if weapon, i.e. jump if half height
+; Not a weapon/not half height
+T6C5Fh	D62D....  .-..	SUB	02Dh			; A -= 0x2D
+T6C61h	3013....  0...	JR	NC,013h			; if (A >= 0) Jump to 06C76H. I.e jump if arrow/coin/key.
+; Just a normal item, full height (2x2 characters).
+T6C63h	3E76....  >v..	LD	A,076h			; A = 0x76
+
+; We can also come here from T6C7Ah, where A is set for arrow/key/coin.
+T6C65h	2A44E7..  *D..	LD	HL,(TE744H)		; HL = top left position of screenbuffer of item.
+T6C68h	77......  w...	LD	(HL),A			; Set top left to character 0x76
+T6C69h	3C......  <...	INC	A			; ++A, A from 0x76 to 0x77
+T6C6Ah	2C......  ,...	INC	L			; HL = top right position of screenbuffer of item.
+T6C6Bh	77......  w...	LD	(HL),A			; Set top right to character 0x77
+T6C6Ch	011F00..  ....	LD	BC,0001Fh		; BC = 0x1F (full line is 0x20)
+T6C6Fh	09......  ....	ADD	HL,BC			; HL = bottom left position of screenbuffer of item.
+T6C70h	3C......  <...	INC	A			; ++A, A from 0x77 to 0x78.
+T6C71h	77......  w...	LD	(HL),A			; Set bottom left to character 0x78.
+T6C72h	2C......  ,...	INC	L			; HL = bottom right position of screenbuffer of item.
+T6C73h	3C......  <...	INC	A			; ++A, A from 0x78 to 0x79.
+T6C74h	77......  w...	LD	(HL),A			; Set bottom right to character 0x79
 T6C75h	C9......  ....	RET			
 
-T6C76h	87......  ....	ADD	A,A	
-T6C77h	87......  ....	ADD	A,A	
-T6C78h	C660....  .`..	ADD	A,060h	
+; Draw arrow/key/coin.
+; A == 0: Arrow
+; A == 1: Coin
+; A == 2: Key
+
+; Compute: A = 0x60 + 4 * A
+; Results:
+; Arrow: A == 0x60
+; Coin:  A == 0x64
+; Key:   A == 0x68
+T6C76h	87......  ....	ADD	A,A			; A+=A
+T6C77h	87......  ....	ADD	A,A			; A+=A
+T6C78h	C660....  .`..	ADD	A,060h			; A+=0x60
+
 T6C7Ah	18E9....  ....	JR	0E9h			; Jump to 06C65H
 
 T6C7Ch	21876C..  !.l.	LD	HL,appear_locations - 2
@@ -9755,17 +9771,17 @@ T9FBEh	C313A0..  ....	JP	TA013H
 ; vase stuff.
 T9FC1h	3A8AE0..  :...	LD	A,(TE08AH)	; Vase
 T9FC4h	A7......  ....	AND	A	
-T9FC5h	C0......  ....	RET	NZ		; Already have it.
+T9FC5h	C0......  ....	RET	NZ		; Return if we already have the vase.
 
-T9FC6h	3A66E0..  :f..	LD	A,(TE066H)	; world 4 boss beaten?(?)
-T9FC9h	CB57....  .W..	BIT	2,A	
-T9FCBh	C8......  ....	RET	Z		; No.
+T9FC6h	3A66E0..  :f..	LD	A,(TE066H)	; 0xE066 holds the facts about world 4.
+T9FC9h	CB57....  .W..	BIT	2,A		; 1 means "World boss beaten".
+T9FCBh	C8......  ....	RET	Z		; Return if world 4 boss hasn't been beaten.
 
-T9FCCh	3A36E5..  :6..	LD	A,(VaseState)
-T9FCFh	FE09....  ....	CP	009h	
-T9FD1h	0E1B....  ....	LD	C,01Bh	
-T9FD3h	118088..  ....	LD	DE,08880h
-T9FD6h	CA49A0..  .I..	JP	Z,TA049H	
+T9FCCh	3A36E5..  :6..	LD	A,(VaseState)	;
+T9FCFh	FE09....  ....	CP	009h		; VaseState==9 means vase must appear
+T9FD1h	0E1B....  ....	LD	C,01Bh		; C = 0x1B Note: 0x1B is the item number of the vase.
+T9FD3h	118088..  ....	LD	DE,08880h	; DE = 0x8880
+T9FD6h	CA49A0..  .I..	JP	Z,TA049H	; if(VaseState==9) jump
 T9FD9h	FE06....  ....	CP	006h	
 T9FDBh	3017....  0...	JR	NC,017h			; Jump to 09FF4H
 T9FDDh	47......  G...	LD	B,A	
@@ -9841,10 +9857,11 @@ TA044h	AF......  ....	XOR	A			; Clear A and F
 TA045h	3236E5..  26..	LD	(VaseState),A
 TA048h	C9......  ....	RET			
 
-TA049h	3E01....  >...	LD	A,001h	
-TA04Bh	3239E5..  29..	LD	(TE539H),A
-TA04Eh	CD885D..  ..].	CALL	T5D88H	
-TA051h	3E2E....  >...	LD	A,02Eh	
+;; We can jump from T9FD6h to here.
+TA049h	3E01....  >...	LD	A,001h			; A = 1
+TA04Bh	3239E5..  29..	LD	(TE539H),A		; 0xE539 means "Is Vase Visible?"
+TA04Eh	CD885D..  ..].	CALL	T5D88H			; 
+TA051h	3E2E....  >...	LD	A,02Eh			; A = 0x2E
 TA053h	C31F4E..  ..N.	JP	T4E1FH		
 
 TA056h	08......  ....	EX	AF,AF'	
