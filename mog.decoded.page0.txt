@@ -559,7 +559,7 @@ T433Ch	78......  x...	LD	A,B
 T433Dh	CD4041..  .@A.	CALL	switch	
 defw 0x4348
 defw 0x437b
-defw 0x43b4
+defw 0x43b4	; intro story
 defw 0x43c5
 
 T4348h	CD1E4D..  ..M.	CALL	T4D1EH	
@@ -615,8 +615,9 @@ T43ACh	3E20....  >...	LD	A,020h
 T43AEh	3204E0..  2...	LD	(delay),A
 T43B1h	C34244..  .BD.	JP	clear_substate		
 
+; Intro story.
 T43B4h	CD4142..  .AB.	CALL	SetMapperF	
-T43B7h	CDDC6A..  ..j.	CALL	T6ADCH	
+T43B7h	CDDC6A..  ..j.	CALL	T6ADCH		; Scroll text.
 T43BAh	CD1542..  ..B.	CALL	SetMapper3	
 T43BDh	3A2EE0..  :...	LD	A,(TE02EH)
 T43C0h	B7......  ....	OR	A	

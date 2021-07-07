@@ -457,6 +457,31 @@ setup_killall (6562 @456) is called. It sets *e621 if all enemies need to be kil
 
 }}}
 
+Scrolling text (title and end screen) {{{
+Code is at 6adc @1
+Data for intro is at ae28 @f with currently unknown encoding.
+
+0d 05 2f 31 27 2d 3b
+0d 05 2e 30 26 2c 3a
+02 1c 29 27 29 27 21 27 25 00 
+
+At 4b49:
+read byte (0d)
+check for special:
+fb: do something, then start over with next byte (cannot be fb again)
+	4e34: save mapping, set to @de.; call 4e6b; restore mapping; return
+	4e6b: do something to characters?
+fd: *f023 = next byte, f022 = 1, store hl, return.
+fe: skip next and return
+ff: clear e02e and return
+
+otherwise: indent; length; bytes.
+
+Implemented reader for title text in findtext.py. Next step: find all addresses
+that are used (proabably 2).
+
+}}}
+
 ####### Code block 0 {{{
 if not(ix[2] & 0x80): return
 if ix[9] & 0x80:

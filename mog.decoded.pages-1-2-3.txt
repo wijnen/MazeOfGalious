@@ -1674,24 +1674,31 @@ T6AD7h	3C......  <...	INC	A			;
 T6AD8h	322BF0..  2+..	LD	(TF02BH),A
 T6ADBh	C9......  ....	RET			
 
+; Called from intro story and end demo (also story).
+; Mapper is set to @12f
+; This seems to be the code for scrolling the text over the screen.
 T6ADCh	3A03E0..  :...	LD	A,(TE003H)
-T6ADFh	CB47....  .G..	BIT	0,A	
+T6ADFh	CB47....  .G..	BIT	0,A	; slow scrolling: move only once per 3 frames. (E003 increments only on non-moving frames.)
 T6AE1h	C8......  ....	RET	Z		
 
 T6AE2h	3A22F0..  :"..	LD	A,(TF022H)
 T6AE5h	B7......  ....	OR	A	
-T6AE6h	C2806B..  ..k.	JP	NZ,T6B80H
+T6AE6h	C2806B..  ..k.	JP	NZ,T6B80H	; if 1, scrolling has stopped.
 T6AE9h	CD8A6B..  ..k.	CALL	T6B8AH	
-T6AECh	3A2BF0..  :+..	LD	A,(TF02BH)
+T6AECh	3A2BF0..  :+..	LD	A,(TF02BH)	; text position.
 T6AEFh	E607....  ....	AND	007h	
-T6AF1h	201D....  ....	JR	NZ,01Dh			; Jump to 06B10H
-T6AF3h	3A1FF0..  :...	LD	A,(TF01FH)
+T6AF1h	201D....  ....	JR	NZ,01Dh			; Jump to 06B10H if not on character boundary.
+T6AF3h	3A1FF0..  :...	LD	A,(TF01FH)	; flips between 0 and 1 for even and odd lines.
 T6AF6h	B7......  ....	OR	A	
 T6AF7h	201F....  ....	JR	NZ,01Fh			; Jump to 06B18H
+
+;"even" line
 T6AF9h	2160ED..  !`..	LD	HL,0ED60h
 T6AFCh	1120ED..  ....	LD	DE,0ED20h
-T6AFFh	CD266B..  .&k.	CALL	T6B26H	
+T6AFFh	CD266B..  .&k.	CALL	T6B26H		; move even or odd lines 2 lines up
 T6B02h	11E0EF..  ....	LD	DE,0EFE0h
+
+; "even" and "odd" paths combine here again.
 T6B05h	CD406B..  .@k.	CALL	T6B40H	
 T6B08h	3A1FF0..  :...	LD	A,(TF01FH)
 T6B0Bh	EE01....  ....	XOR	001h	
@@ -1701,9 +1708,10 @@ T6B13h	212BF0..  !+..	LD	HL,0F02Bh
 T6B16h	34......  4...	INC	(HL)			;
 T6B17h	C9......  ....	RET			
 
+; "odd" line
 T6B18h	2140ED..  !@..	LD	HL,0ED40h
 T6B1Bh	1100ED..  ....	LD	DE,0ED00h
-T6B1Eh	CD266B..  .&k.	CALL	T6B26H	
+T6B1Eh	CD266B..  .&k.	CALL	T6B26H		; move even or odd lines 2 lines up
 T6B21h	11C0EF..  ....	LD	DE,0EFC0h
 T6B24h	18DF....  ....	JR	0DFh			; Jump to 06B05H
 
@@ -1724,10 +1732,11 @@ T6B3Ch	C1......  ....	POP	BC
 T6B3Dh	10E9....  ....	DJNZ	0E9h			; Jump to 06B28H
 T6B3Fh	C9......  ....	RET			
 
+; Called during scroll, at new line, no matter if odd or even.
 T6B40h	D5......  ....	PUSH	DE	
 T6B41h	AF......  ....	XOR	A			; Clear A and F
 T6B42h	0620....  ....	LD	B,020h	
-T6B44h	12......  ....	LD	(DE),A	
+T6B44h	12......  ....	LD	(DE),A		; Make line empty
 T6B45h	13......  ....	INC	DE			;
 T6B46h	10FC....  ....	DJNZ	0FCh			; Jump to 06B44H
 T6B48h	D1......  ....	POP	DE	
@@ -1736,16 +1745,18 @@ T6B4Ch	7E......  ~...	LD	A,(HL)
 T6B4Dh	23......  #...	INC	HL			;
 T6B4Eh	FEFB....  ....	CP	0FBh	
 T6B50h	2007....  ....	JR	NZ,007h			; Jump to 06B59H
+; code is fb
 T6B52h	3EFF....  >...	LD	A,0FFh	
 T6B54h	CD344E..  .4N.	CALL	T4E34H	
 T6B57h	7E......  ~...	LD	A,(HL)	
 T6B58h	23......  #...	INC	HL			;
+; fall through
 T6B59h	FEFD....  ....	CP	0FDh	
 T6B5Bh	2815....  (...	JR	Z,015h			; Jump to 06B72H
 T6B5Dh	FEFE....  ....	CP	0FEh	
-T6B5Fh	280D....  (...	JR	Z,00Dh			; Jump to 06B6EH
+T6B5Fh	280D....  (...	JR	Z,00Dh			; Jump to 06B6EH: store hl and return
 T6B61h	FEFF....  ....	CP	0FFh	
-T6B63h	2846....  (F..	JR	Z,046h			; Jump to 06BABH
+T6B63h	2846....  (F..	JR	Z,046h			; Jump to 06BABH: clear e02e and return
 T6B65h	CD3B41..  .;A.	CALL	DE+=A
 T6B68h	4E......  N...	LD	C,(HL)	
 T6B69h	0600....  ....	LD	B,000h	
@@ -1754,6 +1765,7 @@ T6B6Ch	EDB0....  ....	LDIR
 T6B6Eh	2220F0..  "...	LD	(TF020H),HL
 T6B71h	C9......  ....	RET			
 
+; code is fd
 T6B72h	7E......  ~...	LD	A,(HL)	
 T6B73h	3223F0..  2#..	LD	(TF023H),A
 T6B76h	23......  #...	INC	HL			;
@@ -1787,6 +1799,7 @@ T6BA2h	211020..  !...	LD	HL,02010h
 T6BA5h	1100E8..  ....	LD	DE,0E800h
 T6BA8h	C3D85B..  ..[.	JP	send_vram_3_times		
 
+; code is ff
 T6BABh	AF......  ....	XOR	A			; Clear A and F
 T6BACh	322EE0..  2...	LD	(TE02EH),A
 T6BAFh	C9......  ....	RET			
