@@ -9873,9 +9873,9 @@ TA048h	C9......  ....	RET
 ;; We can jump from T9FD6h to here.
 TA049h	3E01....  >...	LD	A,001h			; A = 1
 TA04Bh	3239E5..  29..	LD	(TE539H),A		; 0xE539 means "Is Vase Visible?"
-TA04Eh	CD885D..  ..].	CALL	T5D88H			; 
+TA04Eh	CD885D..  ..].	CALL	T5D88H			; draw_item_in_vram_buffer
 TA051h	3E2E....  >...	LD	A,02Eh			; A = 0x2E
-TA053h	C31F4E..  ..N.	JP	T4E1FH		
+TA053h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2E
 
 TA056h	08......  ....	EX	AF,AF'	
 TA057h	02......  ....	LD	(BC),A	

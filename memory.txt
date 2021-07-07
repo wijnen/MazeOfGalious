@@ -91,7 +91,14 @@ e000
 		e0c4-e0c5: (ID 0B) room 0x7c
 		e0c6-e0c7: (ID 0C) room 0x85
 	e106-e107: seen at 0x4F4E
+		vase: "A5 64" (0x64A5)
+	e10c: sound/tune/melody related timer
+	e15d-e177: seen at 0x4F39
 	e169-e170: seen at 0x4F47
+		vase: "7D 7C" (0x7C7D)
+	e1b0: seen at 0x4F18
+	e1c3: seen at 0x4F13
+	e1c7: ?last/previous sound?
 	e4a0-e4ff: vertical elevator info; 06 records:
 		0 elevator id
 		1 current room
