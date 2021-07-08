@@ -9757,11 +9757,11 @@ T9F8Dh	FE30....  .0..	CP	030h		; room 48: robe
 T9F8Fh	CAA79F..  ....	JP	Z,T9FA7H	
 T9F92h	FE4B....  .K..	CP	04Bh		; room 75: candle
 T9F94h	CAB49F..  ....	JP	Z,T9FB4H	
-T9F97h	FE28....  .(..	CP	028h		; room 40: vase
+T9F97h	FE28....  .(..	CP	028h		; room 0x28/40: vase
 T9F99h	CAC19F..  ....	JP	Z,T9FC1H	
-T9F9Ch	FE18....  ....	CP	018h		; room 24: sabre
+T9F9Ch	FE18....  ....	CP	018h		; room 0x18/24: sabre
 T9F9Eh	CA03A0..  ....	JP	Z,TA003H	
-T9FA1h	FE2B....  .+..	CP	02Bh		; room 43: dagger
+T9FA1h	FE2B....  .+..	CP	02Bh		; room 0x2B/43: dagger
 T9FA3h	CA1AA0..  ....	JP	Z,TA01AH	
 T9FA6h	C9......  ....	RET			
 
@@ -9782,7 +9782,7 @@ T9FBBh	1120A8..  ....	LD	DE,0A820h
 T9FBEh	C313A0..  ....	JP	TA013H		
 
 ; vase stuff.
-T9FC1h	3A8AE0..  :...	LD	A,(TE08AH)	; Vase
+T9FC1h	3A8AE0..  :...	LD	A,(TE08AH)	; Item: Vase
 T9FC4h	A7......  ....	AND	A	
 T9FC5h	C0......  ....	RET	NZ		; Return if we already have the vase.
 
@@ -9793,51 +9793,74 @@ T9FCBh	C8......  ....	RET	Z		; Return if world 4 boss hasn't been beaten.
 T9FCCh	3A36E5..  :6..	LD	A,(VaseState)	;
 T9FCFh	FE09....  ....	CP	009h		; VaseState==9 means vase must appear
 T9FD1h	0E1B....  ....	LD	C,01Bh		; C = 0x1B Note: 0x1B is the item number of the vase.
-T9FD3h	118088..  ....	LD	DE,08880h	; DE = 0x8880
-T9FD6h	CA49A0..  .I..	JP	Z,TA049H	; if(VaseState==9) jump
-T9FD9h	FE06....  ....	CP	006h	
-T9FDBh	3017....  0...	JR	NC,017h			; Jump to 09FF4H
-T9FDDh	47......  G...	LD	B,A	
-T9FDEh	3A38E5..  :8..	LD	A,(TE538H)
-T9FE1h	A7......  ....	AND	A	
-T9FE2h	C8......  ....	RET	Z		
+T9FD3h	118088..  ....	LD	DE,08880h	; DE = 0x8880, Vase appears at Y=D=0x88 X=E=0x80
+T9FD6h	CA49A0..  .I..	JP	Z,TA049H	; if(VaseState==9) jump to 0xA049 (appear_item)
+; 0 -> 1: player needs to face right and swing sword
+; 1 -> 2: player needs to face right and swing sword again
+; 2 -> 3: player needs to face right and swing sword again
+; 3 -> 4: player needs to face left  and swing sword
+; 4 -> 5: player needs to face left  and swing sword again
+; 5 -> 6: player needs to face left  and swing sword again
+; 6 -> 7: player needs to jump
+; 7 -> 8: player needs to jump again
+; 8 -> 8: player needs to jump again
+T9FD9h	FE06....  ....	CP	006h		; Compute VaseState - 6 and set flags.
+T9FDBh	3017....  0...	JR	NC,017h		; if(VaseState>=6) Jump to 0x9FF4
+; We are in VaseState 0, 1, 2, 3, 4, 5: a sword fling is needed to advance.
+T9FDDh	47......  G...	LD	B,A		; Save A in B.
+T9FDEh	3A38E5..  :8..	LD	A,(TE538H)	; 0: Sword not flinging, 1: sword flings ?for 1 frame?
+T9FE1h	A7......  ....	AND	A		;
+T9FE2h	C8......  ....	RET	Z		; Sword not flinging: no reset
 
-T9FE3h	78......  x...	LD	A,B	
-T9FE4h	FE03....  ....	CP	003h	
-T9FE6h	3F......  ?...	CCF		
-T9FE7h	3A03E5..  :...	LD	A,(TE503H)
-T9FEAh	3803....  8...	JR	C,003h			; Jump to 09FEFH
-T9FECh	A7......  ....	AND	A	
-T9FEDh	1801....  ....	JR	001h			; Jump to 09FF0H
+T9FE3h	78......  x...	LD	A,B		; A = VaseState
+T9FE4h	FE03....  ....	CP	003h		; Compute A - 3 and set flags, C is set for A <= 2
+T9FE6h	3F......  ?...	CCF			; Flip carry bit ("Complement Carry Flag"), NC for A <= 2, C is set for A >= 3.
+T9FE7h	3A03E5..  :...	LD	A,(TE503H)	; 0: facing right, 1: facing left, 2: climbing
+T9FEAh	3803....  8...	JR	C,003h		; if(VaseState > 3) jump to 0x9FEF.
+T9FECh	A7......  ....	AND	A		; Set Z flag if facing right. (VaseState <= 2)
+T9FEDh	1801....  ....	JR	001h		; Jump to 09FF0H unconditionally.
 
-T9FEFh	3D......  ....	DEC	A	
-T9FF0h	2052....  .R..	JR	NZ,052h			; Jump to 0A044H
-T9FF2h	184B....  .K..	JR	04Bh			; Jump to 0A03FH
+; We can only jump from T9FEAh to here, in which case the following hold: VaseState >= 3
+T9FEFh	3D......  ....	DEC	A		; --A. New meaning: 0==facing left (Z), 1==climbing (NZ)
 
-T9FF4h	3A38E5..  :8..	LD	A,(TE538H)
-T9FF7h	A7......  ....	AND	A	
-T9FF8h	C244A0..  .D..	JP	NZ,reset_vase
-T9FFBh	3A37E5..  :7..	LD	A,(TE537H)
+; We can also jump from T9FEDh to here.
+; Jumped from T9FEDh:		Z flag is set if facing right, NZ if not facing right. VaseState: 0 or 1 or 2
+; Fallthrough from T9FEFh:	Z flag is set if facing left,  NZ if not facing left.  VaseState: 3 or 4 or 5
+T9FF0h	2052....  .R..	JR	NZ,052h		; if(not facing to correct side) Jump to 0A044H: reset_vase
+T9FF2h	184B....  .K..	JR	04Bh		; Jump to 0xA03F: increase_vase_state (we are facing correct side)
+
+; We can only get here by a jump from T9FDBh, VaseState is 6, 7 or 8.
+; Player needs to jump, not fling sword.
+T9FF4h	3A38E5..  :8..	LD	A,(TE538H)		; 0: no sword fling, 1: sword flings
+T9FF7h	A7......  ....	AND	A			;
+T9FF8h	C244A0..  .D..	JP	NZ,reset_vase		; if(sword flings) jump to reset_vase
+
+T9FFBh	3A37E5..  :7..	LD	A,(TE537H)		; 0: no jump, 1: ?jump (but 1 only for 1 frame?)?
 T9FFEh	A7......  ....	AND	A	
-T9FFFh	C8......  ....	RET	Z		
+T9FFFh	C8......  ....	RET	Z			; if(!jumping) return (and don't reset state)
 
-TA000h	C33FA0..  .?..	JP	TA03FH		
 
+TA000h	C33FA0..  .?..	JP	TA03FH			; Jump to 0xA03D: increase_vase_state
+
+# {{{ Sabre checks. Return on fail. Jump to 0xA049 on pass.
+; We can get here by jumping from T9F9Eh, which means we are in the 
+; castle, in room==0x18 (the sabre room).
 TA003h	3A94E0..  :...	LD	A,(TE094H)	; Sabre
-TA006h	A7......  ....	AND	A	
-TA007h	C0......  ....	RET	NZ		
+TA006h	A7......  ....	AND	A		;
+TA007h	C0......  ....	RET	NZ		; Return if we already have the sabre.
 
-TA008h	3A68E0..  :h..	LD	A,(TE068H)
-TA00Bh	CB57....  .W..	BIT	2,A	
-TA00Dh	C8......  ....	RET	Z		
+TA008h	3A68E0..  :h..	LD	A,(TE068H)	; 0xE068 is info bits about World 6
+TA00Bh	CB57....  .W..	BIT	2,A		; Bit 2 is set when boss is beaten.
+TA00Dh	C8......  ....	RET	Z		; Return if Boss in World 6 is not yet beaten/dead.
 
-TA00Eh	0E25....  .%..	LD	C,025h	
-TA010h	11D068..  ..h.	LD	DE,068D0h
-TA013h	3A1CE6..  :...	LD	A,(TE61CH)
-TA016h	A7......  ....	AND	A	
-TA017h	C8......  ....	RET	Z		
+TA00Eh	0E25....  .%..	LD	C,025h		; C = 0x25, item number of the sabre
+TA010h	11D068..  ..h.	LD	DE,068D0h	; Appear location: Y=0x68, X=D0
+TA013h	3A1CE6..  :...	LD	A,(TE61CH)	;
+TA016h	A7......  ....	AND	A		;
+TA017h	C8......  ....	RET	Z		; ?Return if sabre must not be drawn?
 
-TA018h	182F....  ./..	JR	02Fh			; Jump to 0A049H
+TA018h	182F....  ./..	JR	02Fh		; Jump to 0A049H
+# }}}
 
 TA01Ah	3A95E0..  :...	LD	A,(TE095H)	; Dagger
 TA01Dh	A7......  ....	AND	A	
@@ -9850,19 +9873,26 @@ TA023h	0604....  ....	LD	B,004h
 TA025h	2156A0..  !V..	LD	HL,0A056h
 TA028h	0E26....  .&..	LD	C,026h	
 TA02Ah	116028..  .`(.	LD	DE,02860h
-TA02Dh	3A36E5..  :6..	LD	A,(VaseState)
-TA030h	B8......  ....	CP	B	
-TA031h	2816....  (...	JR	Z,016h			; Jump to 0A049H
+TA02Dh	3A36E5..  :6..	LD	A,(DaggerSabreVaseState)
+TA030h	B8......  ....	CP	B			; Compute A - B and set flags
+TA031h	2816....  (...	JR	Z,016h			; if(A==4) Jump to 0A049H
 TA033h	CD5541..  .UA.	CALL	A=HL[A]	
 TA036h	57......  W...	LD	D,A	
 TA037h	3A08E0..  :...	LD	A,(pressed_controls)
 TA03Ah	A7......  ....	AND	A	
 TA03Bh	C8......  ....	RET	Z		
 
+; Known jumps to this location:
+; * 0xA03F
 TA03Ch	A2......  ....	AND	D	
-TA03Dh	2805....  (...	JR	Z,005h			; Jump to 0A044H
+TA03Dh	2805....  (...	JR	Z,005h			; Jump to 0A044H if wrong button was pressed.
+
+increase_vase_state:
+; We can also get here by jumps. Known jumps:
+; * T9FF2h
+; * TA000h
 TA03Fh	2136E5..  !6..	LD	HL,0E536h
-TA042h	34......  4...	INC	(HL)			;
+TA042h	34......  4...	INC	(HL)			; Increase VaseState
 TA043h	C9......  ....	RET			
 
 reset_vase:
@@ -9870,18 +9900,30 @@ TA044h	AF......  ....	XOR	A			; Clear A and F
 TA045h	3236E5..  26..	LD	(VaseState),A
 TA048h	C9......  ....	RET			
 
-;; We can jump from T9FD6h to here.
+; We can jump from multiple locations to here:
+; * T9FD6h: vase
+; * TA031h: vase
+; * TA018h: sabre
+; * more?
+; 
+; D and E must be set to the Y and X location of the item to appear.
 TA049h	3E01....  >...	LD	A,001h			; A = 1
-TA04Bh	3239E5..  29..	LD	(TE539H),A		; 0xE539 means "Is Vase Visible?"
+TA04Bh	3239E5..  29..	LD	(TE539H),A		; 0xE539 means "Is item visible?"
 TA04Eh	CD885D..  ..].	CALL	T5D88H			; draw_item_in_vram_buffer
 TA051h	3E2E....  >...	LD	A,02Eh			; A = 0x2E
-TA053h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2E
+TA053h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2E ("item appeared" sound).
 
-TA056h	08......  ....	EX	AF,AF'	
-TA057h	02......  ....	LD	(BC),A	
-TA058h	04......  ....	INC	B			;
-TA059h	012180..  .!..	LD	BC,08021h
-TA05Ch	ED22....  ."..
+; Vase: needed keypresses?
+; Code references to this list:
+; * TA025h
+defb 0x08	; TA056h
+defb 0x02	; TA057h
+defb 0x01	; TA058h
+defb 0x01	; TA059h
+defb 0x21	; TA05Ah
+defb 0x80	; TA06Bh
+defb 0xED	; TA05Ch
+defb 0x22	; TA06Dh
 TA05Eh	AA......  ....	XOR	D	
 TA05Fh	E621....  .!..	AND	021h	
 TA061h	14......  ....	INC	D			;

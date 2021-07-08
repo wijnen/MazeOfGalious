@@ -1690,11 +1690,11 @@ T4B8Bh	C35E43..  .^C.	JP	inc_substate
 T4B8Eh	103A....  .:..	DJNZ	03Ah			; Jump to 04BCAH
 state_13_2:
 T4B90h	3A41E0..  :A..	LD	A,(WorldNumber)
-T4B93h	FE0B....  ....	CP	00Bh	
-T4B95h	280B....  (...	JR	Z,00Bh			; Jump to 04BA2H
+T4B93h	FE0B....  ....	CP	00Bh
+T4B95h	280B....  (...	JR	Z,00Bh			; if(world 10) Jump to 04BA2H
 T4B97h	CDD358..  ..X.	CALL	T58D3H	
 T4B9Ah	CDA94B..  ..K.	CALL	T4BA9H	
-T4B9Dh	3E05....  >...	LD	A,005h		; state 5: normal gameplay
+T4B9Dh	3E05....  >...	LD	A,005h			; state 5: normal gameplay
 T4B9Fh	C3A943..  ..C.	JP	set_new_state		
 
 T4BA2h	3E06....  >...	LD	A,006h	
@@ -1703,36 +1703,43 @@ T4BA7h	18F4....  ....	JR	0F4h			; Jump to 04B9DH
 
 T4BA9h	3A41E0..  :A..	LD	A,(WorldNumber)
 T4BACh	21CD4B..  !.K.	LD	HL,04BCDh
-T4BAFh	CD5541..  .UA.	CALL	A=HL[A]	
+T4BAFh	CD5541..  .UA.	CALL	A=HL[A]
+# {{{ Register A now contains the compressed location of the world key. Decompress Y into reg D.
 T4BB2h	E6F0....  ....	AND	0F0h	
 T4BB4h	D608....  ....	SUB	008h	
 T4BB6h	57......  W...	LD	D,A	
+# }}}
 T4BB7h	7E......  ~...	LD	A,(HL)	
-T4BB8h	07......  ....	RLCA		
-T4BB9h	07......  ....	RLCA		
-T4BBAh	07......  ....	RLCA		
-T4BBBh	07......  ....	RLCA		
-T4BBCh	E6F0....  ....	AND	0F0h	
-T4BBEh	5F......  _...	LD	E,A	
-T4BBFh	0E0C....  ....	LD	C,00Ch	
-T4BC1h	CD885D..  ..].	CALL	T5D88H	
-T4BC4h	3E01....  >...	LD	A,001h	
-T4BC6h	32D4E0..  2...	LD	(TE0D4H),A
+# {{{ Register A now contains the compressed location of the world key. Decompress X into reg E.
+T4BB8h	07......  ....	RLCA				; A<<=1, but carry is shifted in.
+T4BB9h	07......  ....	RLCA				; A<<=1, but carry is shifted in.
+T4BBAh	07......  ....	RLCA				; A<<=1, but carry is shifted in.
+T4BBBh	07......  ....	RLCA				; A<<=1, but carry is shifted in.
+T4BBCh	E6F0....  ....	AND	0F0h			; Remove bit shifted in from carry.
+T4BBEh	5F......  _...	LD	E,A			; E = A
+# }}}
+T4BBFh	0E0C....  ....	LD	C,00Ch			; Item number 0x0c: World key
+T4BC1h	CD885D..  ..].	CALL	T5D88H			; draw_item_in_vram_buffer(item_number=C, Y=D, X=E)
+T4BC4h	3E01....  >...	LD	A,001h			; A = 1
+T4BC6h	32D4E0..  2...	LD	(TE0D4H),A		; *(0xE0D4) = 1
 T4BC9h	C9......  ....	RET			
 
 state_13_0:
 T4BCAh	CD3543..  .5C.	CALL	T4335H	
 T4BCDh	18BC....  ....	JR	0BCh			; Jump to 04B8BH
 
-T4BCFh	98......  ....	SBC	A,B	
-T4BD0h	78......  x...	LD	A,B	
-T4BD1h	78......  x...	LD	A,B	
-T4BD2h	98......  ....	SBC	A,B	
-T4BD3h	97......  ....	SUB	A	
-T4BD4h	B6......  ....	OR	(HL)	
-T4BD5h	B8......  ....	CP	B	
-T4BD6h	78......  x...	LD	A,B	
-T4BD7h	B8......  ....	CP	B	
+# {{{ data, see T4BACh
+;defb 0xbc	; T4BCEh/index 1; Part of JR instruction at T4BCDh.
+defb 0x98	; T4BCFh/index 2: World 1	Y=0x88 = (0x98&0xF0) - 8	X=0x80 = (0x98<<4)&0xF0
+defb 0x78	; T4BD0h/index 3: World 2	Y=0x68 = (0x78&0xF0) - 8	X=0x80 = (0x78<<4)&0xF0
+defb 0x78	; T4BD1h/index 4: World 3	Y=0x68 = (0x78&0xF0) - 8	X=0x80 = (0x78<<4)&0xF0
+defb 0x98	; T4BD2h/index 5: World 4	Y=0x88 = (0x98&0xF0) - 8	X=0x80 = (0x98<<4)&0xF0
+defb 0x97	; T4BD3h/index 6: World 5	Y=0x88 = (0x97&0xF0) - 8	X=0x70 = (0x97<<4)&0xF0
+defb 0xB6	; T4BD4h/index 7: World 6	Y=0xA8 = (0xB6&0xF0) - 8	X=0x60 = (0xB6<<4)&0xF0
+defb 0xB8	; T4BD5h/index 8: World 7	Y=0xA8 = (0xB8&0xF0) - 8	X=0x80 = (0xB8<<4)&0xF0
+defb 0x78	; T4BD6h/index 9: World 8	Y=0x68 = (0x78&0xF0) - 8	X=0x80 = (0x78<<4)&0xF0
+defb 0xB8	; T4BD7h/index A: World 9	Y=0xA8 = (0xB8&0xF0) - 8	X=0x80 = (0xB8<<4)&0xF0
+; There is no great key in World 10.
 
 state_14:	; boss victory after key pickup
 T4BD8h	1016....  ....	DJNZ	016h			; Jump to 04BF0H

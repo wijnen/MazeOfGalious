@@ -45,7 +45,7 @@ e000
 		During gameplay:
 			0: ?
 			1: ?Popolon is still alive?
-	e063-e06c: World items
+	e063-e06c: World bits/items
 		bit 0 / 0x01: world is open
 		bit 1 / 0x02: great key
 		bit 2 / 0x04: Beaten boss
@@ -90,6 +90,8 @@ e000
 		e0c2-e0c3: (ID 0A) room 0x74
 		e0c4-e0c5: (ID 0B) room 0x7c
 		e0c6-e0c7: (ID 0C) room 0x85
+	e0d4: seen at 0x4BC6
+		?world key is visible?
 	e106-e107: seen at 0x4F4E
 		vase: "A5 64" (0x64A5)
 	e10c: sound/tune/melody related timer
@@ -218,7 +220,24 @@ e000
 	e533:
 		(Some) code references:
 		0xA8F2 (pages 1+2+3)
-	e536: VaseState (for room 0x28)
+	e536:
+		Multiple uses:
+			DaggerState (for room 0x2B)
+			SabreState (for room 0x18)
+			VaseState (for room 0x28)
+		
+		Meaning as DaggerState:
+		0: initial
+		1: Pressed right
+		2: Pressed down
+		3: Pressed left
+		4: Pressed up, appears
+		
+		Meaning as SabreState:
+		0: initial
+		1: Sabre appears (after killing all bats, and beaten world 6 boss)
+		
+		Meaning as VaseState:
 		0: initial
 		1: Faced right and flung sword 1 time
 		2: Faced right and flung sword 2 times
@@ -229,6 +248,14 @@ e000
 		7: Jumped 1 time
 		8: Jumped 2 times
 		9: Jumped 3 times (vase appears)
+	e537:
+		0: not jumping
+		1: jumping
+		Seems to be 1 shorter than 0xe1b0 and far shorter than 0xe500
+		vase related? Seen at 0x9FFB (pages 1+2+3)
+	e538:
+		0: Sword not flinging
+		1: Sword flinging (changes back to 0 even if space is still pressed)
 	e539:
 		0: Vase is not visible (room 0x28)
 		1: Vase should become visible (room 0x28). Set to 1 at 0xA04B, after seeing VaseState==9.
@@ -239,6 +266,7 @@ e000
 	e612: some room property set up during room enter (to 0 if room not in list from 60ee, 1 if it is on the list).
 	e613: enemy counter during room setup, to index bits (for show/hide) in *e60c.
 	e614: some room property based on table (2 bits per room) at ba2e. Can be 0, 1 or 2.
+	e61c: ?Sabre visible/appeared in sabre room?
 	e620: number of enemies in this room
 	e621: used during enemy setup
 	e622: number of enemies to kill before special happens, or 0.
