@@ -15,8 +15,12 @@ def addr2rom(address, page): # {{{
 	'Convert address and page to an address in the rom file. page may be any of the 3 pages (so 6000,4 is the same as 6000,5)'
 	if page is None:
 		return address
-	base = address - 0x6000	# address from start of (changed) mappings.
-	firstpage = ((page - 1) // 3) * 3 + 1	# First page of the set of 3.
+	if page == 0:
+		base = address - 0x4000
+		firstpage = 0
+	else:
+		base = address - 0x6000	# address from start of (changed) mappings.
+		firstpage = ((page - 1) // 3) * 3 + 1	# First page of the set of 3.
 	return base + firstpage * 0x2000
 # }}}
 
@@ -189,7 +193,9 @@ def makeimage(world_num, room_num, roomdata, charset_id, extra): # {{{
 		item_item, item_x, item_y = extra['item']
 		itemimg = read_patterns.items[item_item]
 		# Special handling for items in destructible walls.
-		if extra['traps'] is not None and any((item_x & 0xe0) == x and (item_y & 0xe0) == y for x, y, traptype in extra['traps'] if (traptype & 0xf) == 7):
+		if item_x == 0 or item_y == -20:
+			print('world={:x}, room_num={:02x} item {:02x} is at bogus location ({:02x}, {:02x})'.format(world_num, room_num, item_item, item_x, item_y))
+		elif extra['traps'] is not None and any((item_x & 0xe0) == x and (item_y & 0xe0) == y for x, y, traptype in extra['traps'] if (traptype & 0xf) == 7):
 			t = Image.eval(itemimg.convert('L'), lambda p: 0xc0 if p == 0 else 255)
 			im.paste(itemimg, (item_x, item_y, item_x + itemimg.size[0], item_y + itemimg.size[1]), t)
 		elif extra['boulder'] is not None and (item_x, item_y) in extra['boulder']:
@@ -544,13 +550,46 @@ if __name__ == '__main__':
 			# Weapons are half height.
 			if item < 7:
 				y += 8
+			if x == 0 and y == 0:
+				#print('Overwriting location of item {:#04x} in room {:#04x} in World {:#04x}'.format(item, room, w))
+				# The actual location of this item is 
+				# hidden elsewhere in the ROM.
+				if item == 0x13: # Robe
+					assert w == 0
+					assert room == 0x30
+					x = rom[addr2rom(0x9faf, 1)]
+					y = rom[addr2rom(0x9fb0, 1)]
+				elif item == 0x16: # Candle
+					assert w == 0
+					assert room == 0x4b
+					x = rom[addr2rom(0x9fbc, 1)]
+					y = rom[addr2rom(0x9fbd, 1)]
+				elif item == 0x1b: # Vase
+					assert w == 0
+					assert room == 0x28
+					x = rom[addr2rom(0x9fd4, 1)]
+					y = rom[addr2rom(0x9fd5, 1)]
+				elif item == 0x25: # Sabre
+					assert w == 0
+					assert room == 0x18
+					x = rom[addr2rom(0xa011, 1)]
+					y = rom[addr2rom(0xa012, 1)]
+				elif item == 0x26: # Dagger
+					assert w == 0
+					assert room == 0x2b
+					x = rom[addr2rom(0xa02b, 1)]
+					y = rom[addr2rom(0xa02c, 1)]
+				elif item == 0x0c:
+					assert w >= 1
+					assert w <= 9
+					greatkeyptr = addr2rom(0x4bce, 0)
+					location = rom[greatkeyptr + w]
+					x = (location << 4) & 0xf0	# T4BB8h to T4BBCh.
+					y = (location & 0xf0) - 8	# T4BB2h and T4BB4h.
 			items[room - 1] = (item, x, y - 0x20)
 			#print('item found @%x: world %x room %x item %x x %x y %x' % (itemptr, w, room, item, x, y))
 			itemptr += 3
 		sizes['items'] += itemptr - start
-		# vase
-		items[0x28 - 1] = (0x1B, 0x80, 0x88 - 0x20)
-		++sizes['items']
 		# }}}
 		# Create all rooms in a world. (14x20 characters per room)
 		fullmap = numpy.zeros((num_rooms[w], 0x14, 0x20), dtype = numpy.uint8)

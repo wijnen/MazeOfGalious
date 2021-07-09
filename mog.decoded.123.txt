@@ -9753,9 +9753,9 @@ T9F8Ah	2D......  -...	DEC	L
 T9F8Bh	C0......  ....	RET	NZ		
 
 T9F8Ch	7C......  |...	LD	A,H	
-T9F8Dh	FE30....  .0..	CP	030h		; room 48: robe
+T9F8Dh	FE30....  .0..	CP	030h		; room 0x30/48: robe
 T9F8Fh	CAA79F..  ....	JP	Z,T9FA7H	
-T9F92h	FE4B....  .K..	CP	04Bh		; room 75: candle
+T9F92h	FE4B....  .K..	CP	04Bh		; room 0x4B/75: candle
 T9F94h	CAB49F..  ....	JP	Z,T9FB4H	
 T9F97h	FE28....  .(..	CP	028h		; room 0x28/40: vase
 T9F99h	CAC19F..  ....	JP	Z,T9FC1H	
@@ -9766,19 +9766,19 @@ T9FA3h	CA1AA0..  ....	JP	Z,TA01AH
 T9FA6h	C9......  ....	RET			
 
 T9FA7h	3A82E0..  :...	LD	A,(TE082H)	; Robe
-T9FAAh	A7......  ....	AND	A	
-T9FABh	C0......  ....	RET	NZ		
+T9FAAh	A7......  ....	AND	A		;
+T9FABh	C0......  ....	RET	NZ		; Return if we already have the robe.
 
 T9FACh	0E13....  ....	LD	C,013h		; Item number (robe)
-T9FAEh	115028..  .P(.	LD	DE,02850h
+T9FAEh	115028..  .P(.	LD	DE,02850h	; Appear location of robe: Y=0x28, X=0x50 (Castle, room 0x30)
 T9FB1h	C313A0..  ....	JP	TA013H		
 
-T9FB4h	3A85E0..  :...	LD	A,(TE085H)
-T9FB7h	A7......  ....	AND	A	
-T9FB8h	C0......  ....	RET	NZ		
+T9FB4h	3A85E0..  :...	LD	A,(TE085H)	; Candle
+T9FB7h	A7......  ....	AND	A		;
+T9FB8h	C0......  ....	RET	NZ		; Return if we already have the candle.
 
 T9FB9h	0E16....  ....	LD	C,016h		; Item number (candle)
-T9FBBh	1120A8..  ....	LD	DE,0A820h
+T9FBBh	1120A8..  ....	LD	DE,0A820h	; Appear location of candle: Y=0xA8, X=0x20 (Castle, room 0x4b)
 T9FBEh	C313A0..  ....	JP	TA013H		
 
 ; vase stuff.
@@ -9793,7 +9793,7 @@ T9FCBh	C8......  ....	RET	Z		; Return if world 4 boss hasn't been beaten.
 T9FCCh	3A36E5..  :6..	LD	A,(VaseState)	;
 T9FCFh	FE09....  ....	CP	009h		; VaseState==9 means vase must appear
 T9FD1h	0E1B....  ....	LD	C,01Bh		; C = 0x1B Note: 0x1B is the item number of the vase.
-T9FD3h	118088..  ....	LD	DE,08880h	; DE = 0x8880, Vase appears at Y=D=0x88 X=E=0x80
+T9FD3h	118088..  ....	LD	DE,08880h	; DE = 0x8880, Vase appears at Y=D=0x88 X=E=0x80 (Castle, room 0x2b)
 T9FD6h	CA49A0..  .I..	JP	Z,TA049H	; if(VaseState==9) jump to 0xA049 (appear_item)
 ; 0 -> 1: player needs to face right and swing sword
 ; 1 -> 2: player needs to face right and swing sword again
@@ -9854,7 +9854,7 @@ TA00Bh	CB57....  .W..	BIT	2,A		; Bit 2 is set when boss is beaten.
 TA00Dh	C8......  ....	RET	Z		; Return if Boss in World 6 is not yet beaten/dead.
 
 TA00Eh	0E25....  .%..	LD	C,025h		; C = 0x25, item number of the sabre
-TA010h	11D068..  ..h.	LD	DE,068D0h	; Appear location: Y=0x68, X=D0
+TA010h	11D068..  ..h.	LD	DE,068D0h	; Appear location of sabre: Y=0x68, X=0xD0 (Castle, room 0x18)
 TA013h	3A1CE6..  :...	LD	A,(TE61CH)	;
 TA016h	A7......  ....	AND	A		;
 TA017h	C8......  ....	RET	Z		; ?Return if sabre must not be drawn?
@@ -9872,7 +9872,7 @@ TA022h	C8......  ....	RET	Z
 TA023h	0604....  ....	LD	B,004h	
 TA025h	2156A0..  !V..	LD	HL,0A056h
 TA028h	0E26....  .&..	LD	C,026h	
-TA02Ah	116028..  .`(.	LD	DE,02860h
+TA02Ah	116028..  .`(.	LD	DE,02860h		; Appear location of dagger: Y=0x28, X=0x60 (Castle, room 0x2b)
 TA02Dh	3A36E5..  :6..	LD	A,(DaggerSabreVaseState)
 TA030h	B8......  ....	CP	B			; Compute A - B and set flags
 TA031h	2816....  (...	JR	Z,016h			; if(A==4) Jump to 0A049H
@@ -9881,16 +9881,13 @@ TA036h	57......  W...	LD	D,A
 TA037h	3A08E0..  :...	LD	A,(pressed_controls)
 TA03Ah	A7......  ....	AND	A	
 TA03Bh	C8......  ....	RET	Z		
-
-; Known jumps to this location:
-; * 0xA03F
 TA03Ch	A2......  ....	AND	D	
 TA03Dh	2805....  (...	JR	Z,005h			; Jump to 0A044H if wrong button was pressed.
 
 increase_vase_state:
 ; We can also get here by jumps. Known jumps:
-; * T9FF2h
-; * TA000h
+; * T9FF2h (vase related)
+; * TA000h (vase related)
 TA03Fh	2136E5..  !6..	LD	HL,0E536h
 TA042h	34......  4...	INC	(HL)			; Increase VaseState
 TA043h	C9......  ....	RET			
@@ -9913,17 +9910,26 @@ TA04Eh	CD885D..  ..].	CALL	T5D88H			; draw_item_in_vram_buffer
 TA051h	3E2E....  >...	LD	A,02Eh			; A = 0x2E
 TA053h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2E ("item appeared" sound).
 
-; Vase: needed keypresses?
+; Dagger: needed keypresses
 ; Code references to this list:
-; * TA025h
-defb 0x08	; TA056h
-defb 0x02	; TA057h
-defb 0x01	; TA058h
-defb 0x01	; TA059h
-defb 0x21	; TA05Ah
-defb 0x80	; TA06Bh
-defb 0xED	; TA05Ch
-defb 0x22	; TA06Dh
+; * TA025h (dagger)
+defb 0x08	; TA056h; 0x08 means "pressed right"
+defb 0x02	; TA057h; 0x02 means "pressed down"
+defb 0x04	; TA058h; 0x04 means "pressed left"
+defb 0x01	; TA059h; 0x01 means "pressed up"
+
+; Disassembler didn't know the above 4 bytes where data. It thought it 
+; was code. Manually disassembling yields:
+;TA05Ah	2180ED..  !...	LD	HL,0ED80h
+;TA05Dh	22AAE6..  "...	LD	(TE6AAH),HL
+;TA060h	211420..  !. .	LD	HL,02014h
+;TA063h	22ACE6..  "...	LD	(TE6ACH),HL
+;TA066h 210A0A..  !...	LD	HL,00A0Ah
+;TA069h 22AEE6..  "...	LD	(TE6AEH),HL
+;TA06Ch	C9......  ....	RET
+
+TA059h  012180..  .!..  LD	BC,08021h
+TA05Ch  ED22....  ."..					; ??data??
 TA05Eh	AA......  ....	XOR	D	
 TA05Fh	E621....  .!..	AND	021h	
 TA061h	14......  ....	INC	D			;
@@ -9933,7 +9939,7 @@ TA065h	E621....  .!..	AND	021h
 TA067h	0A......  ....	LD	A,(BC)	
 TA068h	0A......  ....	LD	A,(BC)	
 TA069h	22AEE6..  "...	LD	(TE6AEH),HL
-TA06Ch	C9......  ....	RET			
+TA06Ch	C9......  ....	RET
 
 TA06Dh	21AFE6..  !...	LD	HL,0E6AFh
 TA070h	35......  5...	DEC	(HL)	
