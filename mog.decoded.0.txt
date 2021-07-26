@@ -460,7 +460,7 @@ T4285h	E5......  ....	PUSH	HL
 T4286h	ED4B00E0  .K..	LD	BC,(state)
 T428Ah	79......  y...	LD	A,C	
 T428Bh	CD4041..  .@A.	CALL	switch		
-defw 0x42B8	; 0: konami logo
+defw 0x42B8	; 0: Konami logo
 defw 0x430C	; 1: MoG logo
 defw 0x433c	; 2: demo (substate 1 = game; 2 = story)
 defw 0x43F0	; 3: "game start" blinking
@@ -469,7 +469,7 @@ defw 0x4462	; 5: normal steady state
 defw 0x44F2	; 6: "[hero] out" screen wipe
 defw 0x454F	; 7: "game over" screen wipe
 defw 0x4599	; 8: entering world
-defw 0x473A	; 9: pauze
+defw 0x473A	; 9: pause
 defw 0x4769	; a: goto new room
 defw 0x47CF	; b: item screen
 defw 0x484F	; c: use magnifier
