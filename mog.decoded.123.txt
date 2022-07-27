@@ -217,8 +217,8 @@ T614Eh	3A1EE6..  :...	LD	A,(TE61EH)
 T6151h	B7......  ....	OR	A	
 T6152h	C0......  ....	RET	NZ		
 
-T6153h	3E29....  >)..	LD	A,029h	
-T6155h	C31F4E..  ..N.	JP	T4E1FH		
+T6153h	3E29....  >)..	LD	A,029h			; A = 0x29
+T6155h	C31F4E..  ..N.	JP	T4E1FH			; play sound id 0x29 (?touched fairy?)
 
 T6158h	57......  W...	LD	D,A	
 T6159h	1E00....  ....	LD	E,000h	
@@ -1310,7 +1310,7 @@ T6869h	71......  q...	LD	(HL),C			; *(HL) = C
 ;; T6879h jumps here, unconditionally.
 ;; T6883h jumps here, unconditionally.
 T686Ah	3E2C....  >,..	LD	A,02Ch			; A = 0x2C
-T686Ch	C31F4E..  ..N.	JP	T4E1FH			; Non-conditional jump.
+T686Ch	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2C (in F1 or shrine when pushing up/down/left/right)
 
 select_person_or_weapon: {{{
 T686Fh	214CE0..  !L..	LD	HL,am_selecting_weapon	; HL = 0xe04c
@@ -4947,8 +4947,8 @@ T7DF9h	B7......  ....	OR	A
 T7DFAh	2808....  (...	JR	Z,008h			; Jump to 07E04H
 T7DFCh	35......  5...	DEC	(HL)	
 T7DFDh	2005....  ....	JR	NZ,005h			; Jump to 07E04H
-T7DFFh	3EFF....  >...	LD	A,0FFh	
-T7E01h	CD1F4E..  ..N.	CALL	T4E1FH	
+T7DFFh	3EFF....  >...	LD	A,0FFh			; A = 0xFF
+T7E01h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFF
 T7E04h	3A1AE0..  :...	LD	A,(TE01AH)
 T7E07h	A7......  ....	AND	A	
 T7E08h	C8......  ....	RET	Z		
@@ -5150,14 +5150,14 @@ defw 0x8815
 
 T7F56h	34......  4...	INC	(HL)			;
 T7F57h	2C......  ,...	INC	L			;
-T7F58h	7E......  ~...	LD	A,(HL)	
-T7F59h	3200E7..  2...	LD	(TE700H),A
-T7F5Ch	21977F..  !...	LD	HL,07F97h
-T7F5Fh	CD5541..  .UA.	CALL	A=HL[A]	
-T7F62h	47......  G...	LD	B,A	
-T7F63h	3A76E0..  :v..	LD	A,(TE076H)
-T7F66h	B7......  ....	OR	A	
-T7F67h	78......  x...	LD	A,B	
+T7F58h	7E......  ~...	LD	A,(HL)			;
+T7F59h	3200E7..  2...	LD	(TE700H),A		;
+T7F5Ch	21977F..  !...	LD	HL,07F97h		; Some sound related table?
+T7F5Fh	CD5541..  .UA.	CALL	A=HL[A]			;
+T7F62h	47......  G...	LD	B,A			;
+T7F63h	3A76E0..  :v..	LD	A,(TE076H)		;
+T7F66h	B7......  ....	OR	A			;
+T7F67h	78......  x...	LD	A,B			;
 T7F68h	2802....  (...	JR	Z,002h			; Jump to 07F6CH
 T7F6Ah	CB3F....  .?..	SRL	A	
 T7F6Ch	3210E7..  2...	LD	(TE710H),A
@@ -5167,18 +5167,23 @@ T7F77h	DD3602F0  .6..	LD	(IX+002h),0F0h
 T7F7Bh	3A00E7..  :...	LD	A,(TE700H)
 T7F7Eh	3D......  ....	DEC	A	
 T7F7Fh	CD4041..  .@A.	CALL	switch	
-defw 0x8013
-defw 0x8279
-defw 0x8384
-defw 0x846e
-defw 0x8002
-defw 0x895c
-defw 0x8627
-defw 0x8a7a
-defw 0x8cdd
-defw 0x84f0
-defw 0x87e6
 
+defw 0x8013	;; T7F82h
+defw 0x8279	;; T7F84h
+defw 0x8384	;; T7F86h
+defw 0x846e	;; T7F88h
+defw 0x8002	;; T7F8Ah
+defw 0x895c	;; T7F8Ch
+defw 0x8627	;; T7F8Eh
+defw 0x8a7a	;; T7F90h
+defw 0x8cdd	;; T7F92h
+defw 0x84f0	;; T7F94h
+defw 0x87e6	;; T7F96h
+
+;; Some table. Probably sound related. 1 byte per record.
+;; 
+;; Referenced by:
+;; TBCA8h
 T7F98h	1840....  .@..	JR	040h			; Jump to 07FDAH
 
 T7F9Ah	3828....  8(..	JR	C,028h			; Jump to 07FC4H
@@ -5322,8 +5327,8 @@ T809Ch	DD36083C  .6.<	LD	(IX+008h),03Ch
 T80A0h	DD360102  .6..	LD	(IX+001h),002h
 T80A4h	CD7587..  .u..	CALL	T8775H	
 T80A7h	CD1A87..  ....	CALL	T871AH	
-T80AAh	3E21....  >!..	LD	A,021h	
-T80ACh	C31F4E..  ..N.	JP	T4E1FH		
+T80AAh	3E21....  >!..	LD	A,021h			; A = 0x21
+T80ACh	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x21
 
 T80AFh	DD3508..  .5..	DEC	(IX+008h)
 T80B2h	C0......  ....	RET	NZ		
@@ -5355,8 +5360,8 @@ T80E9h	3E54....  >T..	LD	A,054h
 T80EBh	CD7D40..  .}@.	CALL	T407DH	
 T80EEh	C1......  ....	POP	BC	
 T80EFh	10F0....  ....	DJNZ	0F0h			; Jump to 080E1H
-T80F1h	3E11....  >...	LD	A,011h	
-T80F3h	C35940..  .Y@.	JP	T4059H		
+T80F1h	3E11....  >...	LD	A,011h			; A = 0x11
+T80F3h	C35940..  .Y@.	JP	T4059H			; Play sound id 0x11 (sound for???) (hook)
 
 T80F6h	ED5F....  ._..	LD	A,R	
 T80F8h	E61F....  ....	AND	01Fh	
@@ -5415,8 +5420,8 @@ T8156h	3A04E6..  :...	LD	A,(TE604H)
 T8159h	E60F....  ....	AND	00Fh	
 T815Bh	C0......  ....	RET	NZ		
 
-T815Ch	3E0A....  >...	LD	A,00Ah	
-T815Eh	C31F4E..  ..N.	JP	T4E1FH		
+T815Ch	3E0A....  >...	LD	A,00Ah			; A = 0x0A
+T815Eh	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x0a
 
 T8161h	3A04E6..  :...	LD	A,(TE604H)
 T8164h	E607....  ....	AND	007h	
@@ -5762,7 +5767,8 @@ T8401h	3A1FE7..  :...	LD	A,(TE71FH)
 T8404h	E60F....  ....	AND	00Fh	
 T8406h	C0......  ....	RET	NZ		
 
-T8407h	0606....  ....	LD	B,006h	
+T8407h	0606....  ....	LD	B,006h			; B = 0x06
+;; Start of DJNZ loop
 T8409h	C5......  ....	PUSH	BC	
 T840Ah	3A07E7..  :...	LD	A,(TE707H)
 T840Dh	C620....  ....	ADD	A,020h	
@@ -5775,8 +5781,8 @@ T8417h	3E58....  >X..	LD	A,058h
 T8419h	CD7D40..  .}@.	CALL	T407DH	
 T841Ch	C1......  ....	POP	BC	
 T841Dh	10EA....  ....	DJNZ	0EAh			; Jump to 08409H
-T841Fh	3E12....  >...	LD	A,012h	
-T8421h	C31F4E..  ..N.	JP	T4E1FH		
+T841Fh	3E12....  >...	LD	A,012h			; A = 0x12
+T8421h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x12
 
 T8424h	DD3501..  .5..	DEC	(IX+001h)
 T8427h	DDCB02E6  ....	SET	4,(IX+002h)
@@ -5863,8 +5869,8 @@ T84C5h	D608....  ....	SUB	008h
 T84C7h	57......  W...	LD	D,A	
 T84C8h	3E59....  >Y..	LD	A,059h	
 T84CAh	CD7D40..  .}@.	CALL	T407DH	
-T84CDh	3E12....  >...	LD	A,012h	
-T84CFh	C35940..  .Y@.	JP	T4059H		
+T84CDh	3E12....  >...	LD	A,012h			; A = 0x12
+T84CFh	C35940..  .Y@.	JP	T4059H			; Play sound id 0x12 (sound for???) (hook)
 
 T84D2h	DD360A11  .6..	LD	(IX+00Ah),011h
 T84D6h	DD360814  .6..	LD	(IX+008h),014h
@@ -6130,8 +6136,8 @@ T8745h	57......  W...	LD	D,A
 T8746h	0600....  ....	LD	B,000h	
 T8748h	3E65....  >e..	LD	A,065h	
 T874Ah	CD7D40..  .}@.	CALL	T407DH	
-T874Dh	3E11....  >...	LD	A,011h	
-T874Fh	C35940..  .Y@.	JP	T4059H		
+T874Dh	3E11....  >...	LD	A,011h			; A = 0x11
+T874Fh	C35940..  .Y@.	JP	T4059H			; Play sound id 0x11 (sound for???) (hook)
 
 T8752h	3A22E7..  :"..	LD	A,(TE722H)
 T8755h	B7......  ....	OR	A	
@@ -6321,8 +6327,8 @@ T88FDh	110000..  ....	LD	DE,00000h
 T8900h	CDA37F..  ....	CALL	T7FA3H	
 T8903h	110000..  ....	LD	DE,00000h
 T8906h	CDB57F..  ....	CALL	T7FB5H	
-T8909h	3E1A....  >...	LD	A,01Ah	
-T890Bh	C35940..  .Y@.	JP	T4059H		
+T8909h	3E1A....  >...	LD	A,01Ah			; A = 0x1A
+T890Bh	C35940..  .Y@.	JP	T4059H			; Play sound id 0x11 (sound for???) (hook)
 
 T890Eh	DD3508..  .5..	DEC	(IX+008h)
 T8911h	C0......  ....	RET	NZ		
@@ -6666,16 +6672,16 @@ T8BFFh	C9......  ....	RET
 
 T8C00h	DD351D..  .5..	DEC	(IX+01Dh)
 T8C03h	283D....  (...	JR	Z,03Dh			; Jump to 08C42H
-T8C05h	3A1DE7..  :...	LD	A,(TE71DH)
-T8C08h	FE20....  ....	CP	020h	
-T8C0Ah	2004....  ....	JR	NZ,004h			; Jump to 08C10H
+T8C05h	3A1DE7..  :...	LD	A,(TE71DH)		; A = *(0xe71d)
+T8C08h	FE20....  ....	CP	020h			;
+T8C0Ah	2004....  ....	JR	NZ,004h			; if (A != 0x20) Jump to 08C10H
 T8C0Ch	DD360A27  .6.'	LD	(IX+00Ah),027h
 T8C10h	FE10....  ....	CP	010h	
-T8C12h	300C....  0...	JR	NC,00Ch			; Jump to 08C20H
+T8C12h	300C....  0...	JR	NC,00Ch			; if (A >= 0x10) Jump to 08C20H
 T8C14h	DD360A24  .6.$	LD	(IX+00Ah),024h
 T8C18h	FE09....  ....	CP	009h	
-T8C1Ah	3E1B....  >...	LD	A,01Bh	
-T8C1Ch	CA1F4E..  ..N.	JP	Z,T4E1FH	
+T8C1Ah	3E1B....  >...	LD	A,01Bh			; A = 0x1B
+T8C1Ch	CA1F4E..  ..N.	JP	Z,T4E1FH		; if (*(0xe71d) == 0x09) play sound id 0x1B
 T8C1Fh	C9......  ....	RET			
 
 T8C20h	FE16....  ....	CP	016h	
@@ -7253,8 +7259,8 @@ T90A5h	1A......  ....	LD	A,(DE)
 T90A6h	1D......  ....	DEC	E	
 T90A7h	12......  ....	LD	(DE),A	
 T90A8h	CD4D60..  .M`.	CALL	SetupStatusBar
-T90ABh	3E30....  >0..	LD	A,030h	
-T90ADh	CD1F4E..  ..N.	CALL	T4E1FH	
+T90ABh	3E30....  >0..	LD	A,030h			; A = 0x30
+T90ADh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x30
 T90B0h	3EB4....  >...	LD	A,0B4h	
 T90B2h	3294E6..  2...	LD	(TE694H),A
 T90B5h	3E05....  >...	LD	A,005h	
@@ -7391,21 +7397,21 @@ T91AEh	3866....  8f..	JR	C,066h			; Jump to 09216H
 T91B0h	D5......  ....	PUSH	DE	
 T91B1h	CD2B92..  .+..	CALL	T922BH	
 T91B4h	D1......  ....	POP	DE	
-T91B5h	216FE0..  !o..	LD	HL,0E06Fh
+T91B5h	216FE0..  !o..	LD	HL,0E06Fh		; 0xe070 is the start of the item inventory
 T91B8h	7A......  z...	LD	A,D	
-T91B9h	FE2C....  .,..	CP	02Ch	
+T91B9h	FE2C....  .,..	CP	02Ch			; 0x2C == Gold shield
 T91BBh	282D....  (-..	JR	Z,02Dh			; Jump to 091EAH
-T91BDh	FE2B....  .+..	CP	02Bh	
+T91BDh	FE2B....  .+..	CP	02Bh			; 0x2B == Silver shield
 T91BFh	2829....  ()..	JR	Z,029h			; Jump to 091EAH
-T91C1h	FE2D....  .-..	CP	02Dh	
+T91C1h	FE2D....  .-..	CP	02Dh			; 0x2D == Arrow
 T91C3h	283E....  (>..	JR	Z,03Eh			; Jump to 09203H
-T91C5h	FE2F....  ./..	CP	02Fh	
+T91C5h	FE2F....  ./..	CP	02Fh			; 0x2F == Key
 T91C7h	2846....  (F..	JR	Z,046h			; Jump to 0920FH
 T91C9h	CD3641..  .6A.	CALL	HL+=A	
 T91CCh	3E01....  >...	LD	A,001h	
 T91CEh	77......  w...	LD	(HL),A	
-T91CFh	3E2D....  >-..	LD	A,02Dh	
-T91D1h	CD1F4E..  ..N.	CALL	T4E1FH	
+T91CFh	3E2D....  >-..	LD	A,02Dh			; A = 0x2D
+T91D1h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2D ?Pickup coin/item sound?
 T91D4h	CDBD92..  ....	CALL	T92BDH	
 T91D7h	3E01....  >...	LD	A,001h	
 T91D9h	3295E6..  2...	LD	(TE695H),A
@@ -7447,8 +7453,8 @@ T9216h	0E02....  ....	LD	C,002h
 T9218h	CD7C93..  .|..	CALL	T937CH	
 T921Bh	3E12....  >...	LD	A,012h			; coins are not enough
 T921Dh	CDEF94..  ....	CALL	show_god_message	
-T9220h	3E2F....  >/..	LD	A,02Fh	
-T9222h	CD1F4E..  ..N.	CALL	T4E1FH	
+T9220h	3E2F....  >/..	LD	A,02Fh			; A = 0x2F
+T9222h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2F
 T9225h	2191E6..  !...	LD	HL,0E691h
 T9228h	35......  5...	DEC	(HL)	
 T9229h	C9......  ....	RET			
@@ -7651,8 +7657,8 @@ T9345h	3A95E6..  :...	LD	A,(TE695H)
 T9348h	B7......  ....	OR	A	
 T9349h	C0......  ....	RET	NZ		
 
-T934Ah	3E2C....  >,..	LD	A,02Ch	
-T934Ch	CD1F4E..  ..N.	CALL	T4E1FH	
+T934Ah	3E2C....  >,..	LD	A,02Ch			; A = 0x2C
+T934Ch	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2C: (In F1 or shrine) push up/down/left/right
 T934Fh	37......  7...	SCF		
 T9350h	C9......  ....	RET			
 
@@ -8755,8 +8761,8 @@ T9A19h	D0......  ....	RET	NC
 
 T9A1Ah	210106..  !...	LD	HL,00601h
 T9A1Dh	228DE6..  "...	LD	(TE68DH),HL
-T9A20h	3E22....  >"..	LD	A,022h	
-T9A22h	C31F4E..  ..N.	JP	T4E1FH		
+T9A20h	3E22....  >"..	LD	A,022h			; A = 0x22
+T9A22h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x22: Open a world door with great key, in castle
 
 T9A25h	3A01E5..  :...	LD	A,(am_I_Popolon)
 T9A28h	47......  G...	LD	B,A	
@@ -9034,16 +9040,16 @@ T9BD6h	3E06....  >...	LD	A,006h
 T9BD8h	CD4101..  .A..	CALL	T0141H	
 T9BDBh	2F......  /...	CPL		
 T9BDCh	E602....  ....	AND	002h	
-T9BDEh	C8......  ....	RET	Z		; return if ctrl is not pressed.
+T9BDEh	C8......  ....	RET	Z			; return if ctrl is not pressed.
 
 T9BDFh	210196..  !...	LD	HL,09601h
 T9BE2h	22D5E0..  "...	LD	(TE0D5H),HL
 T9BE5h	2131E5..  !1..	LD	HL,0E531h
 T9BE8h	34......  4...	INC	(HL)			;
-T9BE9h	3EFB....  >...	LD	A,0FBh	
-T9BEBh	C31F4E..  ..N.	JP	T4E1FH		
+T9BE9h	3EFB....  >...	LD	A,0FBh			; A = 0xFB
+T9BEBh	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0xFB (bible is in use, enemies are frozen for a while)
 
-T9BEEh	3A95E0..  :...	LD	A,(TE095H)	; Dagger
+T9BEEh	3A95E0..  :...	LD	A,(TE095H)		; Dagger
 T9BF1h	B7......  ....	OR	A	
 T9BF2h	C8......  ....	RET	Z		
 
@@ -9576,8 +9582,8 @@ T9E51h	3207E5..  2...	LD	(TE507H),A
 T9E54h	32D1E0..  2...	LD	(TE0D1H),A
 T9E57h	3E0E....  >...	LD	A,00Eh	
 T9E59h	3202E5..  2...	LD	(TE502H),A
-T9E5Ch	3E82....  >...	LD	A,082h	
-T9E5Eh	CD1F4E..  ..N.	CALL	T4E1FH	
+T9E5Ch	3E82....  >...	LD	A,082h			; A = 0x82
+T9E5Eh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x82: enter/leave shrine, enter world, start game
 T9E61h	21801F..  !...	LD	HL,01F80h
 T9E64h	116A9E..  .j..	LD	DE,09E6Ah
 T9E67h	C3465C..  .F\.	JP	send_vram		; sprite patterns = 1800-2000
@@ -10240,8 +10246,8 @@ TA297h	3209E5..  2...	LD	(TE509H),A
 TA29Ah	320AE5..  2...	LD	(TE50AH),A
 TA29Dh	3C......  <...	INC	A			;
 TA29Eh	3200E5..  2...	LD	(TE500H),A
-TA2A1h	3E01....  >...	LD	A,001h	
-TA2A3h	C31F4E..  ..N.	JP	T4E1FH		
+TA2A1h	3E01....  >...	LD	A,001h			; A = 0x01
+TA2A3h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x01: jump sound
 
 TA2A6h	3A08E0..  :...	LD	A,(pressed_controls)
 TA2A9h	E602....  ....	AND	002h	
@@ -10391,10 +10397,10 @@ TA3C1h	17......  ....	RLA
 TA3C2h	17......  ....	RLA		
 TA3C3h	E60C....  ....	AND	00Ch	
 TA3C5h	322EE5..  2...	LD	(TE52EH),A
-TA3C8h	3A00E5..  :...	LD	A,(TE500H)
+TA3C8h	3A00E5..  :...	LD	A,(TE500H)		; 1: player is jumping
 TA3CBh	3D......  ....	DEC	A	
-TA3CCh	3E02....  >...	LD	A,002h	
-TA3CEh	C41F4E..  ..N.	CALL	NZ,T4E1FH
+TA3CCh	3E02....  >...	LD	A,002h			; A = 0x02
+TA3CEh	C41F4E..  ..N.	CALL	NZ,T4E1FH		; if (?player landed?) play sound id 0x02 (land on ground sound)
 TA3D1h	AF......  ....	XOR	A			; Clear A and F
 TA3D2h	3200E5..  2...	LD	(TE500H),A
 TA3D5h	320EE5..  2...	LD	(TE50EH),A
@@ -10574,8 +10580,8 @@ TA524h	060B....  ....	LD	B,00Bh
 TA526h	CD11A9..  ....	CALL	TA911H	
 TA529h	3E04....  >...	LD	A,004h	
 TA52Bh	320FE5..  2...	LD	(TE50FH),A
-TA52Eh	3E02....  >...	LD	A,002h	
-TA530h	CD1F4E..  ..N.	CALL	T4E1FH	
+TA52Eh	3E02....  >...	LD	A,002h			; A = 0x02
+TA530h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x02 (land on ground sound)
 TA533h	C3A3A4..  ....	JP	TA4A3H		
 
 TA536h	2115E5..  !...	LD	HL,0E515h
@@ -10612,8 +10618,8 @@ TA577h	2810....  (...	JR	Z,010h			; Jump to 0A589H
 TA579h	F29FA5..  ....	JP	P,TA59FH	
 TA57Ch	3604....  6...	LD	(HL),004h
 TA57Eh	CDC95C..  ..\.	CALL	T5CC9H	
-TA581h	3E94....  >...	LD	A,094h	
-TA583h	CD1F4E..  ..N.	CALL	T4E1FH	
+TA581h	3E94....  >...	LD	A,094h			; A == 0x94
+TA583h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x94 (sound for???)
 TA586h	C3A3A4..  ....	JP	TA4A3H		
 
 TA589h	35......  5...	DEC	(HL)	
@@ -10714,15 +10720,15 @@ TA625h	210CE5..  !...	LD	HL,0E50Ch
 TA628h	BE......  ....	CP	(HL)	
 TA629h	200A....  ....	JR	NZ,00Ah			; Jump to 0A635H
 TA62Bh	3E01....  >...	LD	A,001h	
-TA62Dh	3207EC..  2...	LD	(TEC07H),A
-TA630h	3E2E....  >...	LD	A,02Eh	
-TA632h	CD1F4E..  ..N.	CALL	T4E1FH	
+TA62Dh	3207EC..  2...	LD	(TEC07H),A		; Mark ladder as disappered.
+TA630h	3E2E....  >...	LD	A,02Eh			; A = 0x2E
+TA632h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2E (ladder disappeared sound?)
 TA635h	AF......  ....	XOR	A			; Clear A and F
-TA636h	320CE5..  2...	LD	(TE50CH),A
-TA639h	320BE5..  2...	LD	(TE50BH),A
-TA63Ch	3200E5..  2...	LD	(TE500H),A
+TA636h	320CE5..  2...	LD	(TE50CH),A		; Mark that player is not on a ladder.
+TA639h	320BE5..  2...	LD	(TE50BH),A		; Clear some sort of how long am I on this ladder counter.
+TA63Ch	3200E5..  2...	LD	(TE500H),A		; Mark that player isn't jumping.
 TA63Fh	3A16E5..  :...	LD	A,(TE516H)
-TA642h	3203E5..  2...	LD	(TE503H),A
+TA642h	3203E5..  2...	LD	(TE503H),A		;
 TA645h	CD60A5..  .`..	CALL	TA560H	
 TA648h	3A0DE5..  :...	LD	A,(TE50DH)
 TA64Bh	C312A9..  ....	JP	TA912H		
@@ -10893,8 +10899,8 @@ TA760h	77......  w...	LD	(HL),A
 TA761h	321BE5..  2...	LD	(TE51BH),A
 TA764h	3226E5..  2&..	LD	(TE526H),A
 TA767h	3238E5..  28..	LD	(TE538H),A
-TA76Ah	3E13....  >...	LD	A,013h	
-TA76Ch	C31F4E..  ..N.	JP	T4E1FH		
+TA76Ah	3E13....  >...	LD	A,013h			; A = 0x13
+TA76Ch	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x13 (fling sword sound)
 
 TA76Fh	AF......  ....	XOR	A			; Clear A and F
 TA770h	3223E5..  2#..	LD	(TE523H),A
@@ -11338,8 +11344,8 @@ TAA81h	FD7E00..  .~..	LD	A,(IY+000h)
 TAA84h	3D......  ....	DEC	A	
 TAA85h	3E15....  >...	LD	A,015h	
 TAA87h	2002....  ....	JR	NZ,002h			; Jump to 0AA8BH
-TAA89h	3E14....  >...	LD	A,014h	
-TAA8Bh	CD1F4E..  ..N.	CALL	T4E1FH	
+TAA89h	3E14....  >...	LD	A,014h			; A = 0x14
+TAA8Bh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x14 (fire arrow sound)
 TAA8Eh	3AD2E0..  :...	LD	A,(TE0D2H)
 TAA91h	B7......  ....	OR	A	
 TAA92h	2805....  (...	JR	Z,005h			; Jump to 0AA99H
@@ -11347,7 +11353,7 @@ TAA94h	3A78E0..  :x..	LD	A,(TE078H)
 TAA97h	B7......  ....	OR	A	
 TAA98h	C0......  ....	RET	NZ		
 
-TAA99h	2146E0..  !F..	LD	HL,0E046h		; [BD] Coins
+TAA99h	2146E0..  !F..	LD	HL,0E046h		; Coins
 TAA9Ch	010100..  ....	LD	BC,00001h
 TAA9Fh	CD3492..  .4..	CALL	T9234H	
 TAAA2h	C3795F..  .y_.	JP	WriteArrows		
@@ -11598,8 +11604,8 @@ TACCAh	FD3401..  .4..	INC	(IY+001h)		;
 TACCDh	110F54..  ..T.	LD	DE,0540Fh
 TACD0h	FD720A..  .r..	LD	(IY+00Ah),D
 TACD3h	FD730B..  .s..	LD	(IY+00Bh),E
-TACD6h	3E16....  >...	LD	A,016h	
-TACD8h	CD1F4E..  ..N.	CALL	T4E1FH	
+TACD6h	3E16....  >...	LD	A,016h			; A = 0x16
+TACD8h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x16 (sound for???)
 TACDBh	C38EAA..  ....	JP	TAA8EH		
 
 TACDEh	3D......  ....	DEC	A	
@@ -11810,8 +11816,8 @@ TAE58h	FD7705..  .w..	LD	(IY+005h),A
 TAE5Bh	FD7E07..  .~..	LD	A,(IY+007h)
 TAE5Eh	D608....  ....	SUB	008h	
 TAE60h	FD7707..  .w..	LD	(IY+007h),A
-TAE63h	3E26....  >&..	LD	A,026h	
-TAE65h	C31F4E..  ..N.	JP	T4E1FH		
+TAE63h	3E26....  >&..	LD	A,026h			; A = 0x26
+TAE65h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x26 (sound for???)
 
 TAE68h	FDCB02CE  ....	SET	1,(IY+002h)
 TAE6Ch	FDCB0286  ....	RES	0,(IY+002h)
@@ -11823,8 +11829,8 @@ TAE7Ch	FD720F..  .r..	LD	(IY+00Fh),D
 TAE7Fh	1100F8..  ....	LD	DE,0F800h
 TAE82h	FD730C..  .s..	LD	(IY+00Ch),E
 TAE85h	FD720D..  .r..	LD	(IY+00Dh),D
-TAE88h	3E1D....  >...	LD	A,01Dh	
-TAE8Ah	C31F4E..  ..N.	JP	T4E1FH		
+TAE88h	3E1D....  >...	LD	A,01Dh			; A = 0x1D
+TAE8Ah	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x1D (sound for???)
 
 TAE8Dh	3A2AE5..  :*..	LD	A,(TE52AH)
 TAE90h	A7......  ....	AND	A	
@@ -12106,10 +12112,10 @@ TB05Ah	3211E5..  2...	LD	(TE511H),A
 TB05Dh	2130F0..  !0..	LD	HL,0F030h
 TB060h	BE......  ....	CP	(HL)	
 TB061h	2805....  (...	JR	Z,005h			; Jump to 0B068H
-TB063h	3E24....  >$..	LD	A,024h	
-TB065h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB063h	3E24....  >$..	LD	A,024h			; A = 0x24
+TB065h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x24 (sound for???)
 TB068h	CDEA44..  ..D.	CALL	T44EAH	
-TB06Bh	3F......  ?...	CCF		
+TB06Bh	3F......  ?...	CCF				; Complement Carry Flag, i.e. flip C / invert C / C=!C
 TB06Ch	D0......  ....	RET	NC		
 
 TB06Dh	3A01E5..  :...	LD	A,(am_I_Popolon)
@@ -12129,8 +12135,8 @@ TB085h	300C....  0...	JR	NC,00Ch			; Jump to 0B093H
 TB087h	3600....  6...	LD	(HL),000h
 TB089h	3EFF....  >...	LD	A,0FFh	
 TB08Bh	CD2C61..  .,a.	CALL	T612CH	
-TB08Eh	3E25....  >%..	LD	A,025h	
-TB090h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB08Eh	3E25....  >%..	LD	A,025h			; A = 0x25
+TB090h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x25 (got hit by enemy sound)
 TB093h	AF......  ....	XOR	A			; Clear A and F
 TB094h	C9......  ....	RET			
 
@@ -12416,8 +12422,8 @@ TB27Fh	CD86B3..  ....	CALL	TB386H
 TB282h	CD9AB3..  ....	CALL	TB39AH	
 TB285h	DDCB0376  ...v	BIT	6,(IX+003h)
 TB289h	C45742..  .WB.	CALL	NZ,T4257H
-TB28Ch	3E25....  >%..	LD	A,025h	
-TB28Eh	C31F4E..  ..N.	JP	T4E1FH		
+TB28Ch	3E25....  >%..	LD	A,025h			; A = 0x25
+TB28Eh	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x25 (got hit by enemy sound)
 
 TB291h	CD16B9..  ....	CALL	TB916H	
 TB294h	18A8....  ....	JR	0A8h			; Jump to 0B23EH
@@ -12457,8 +12463,8 @@ TB2CAh	C9......  ....	RET
 
 TB2CBh	F5......  ....	PUSH	AF	
 TB2CCh	CD5742..  .WB.	CALL	T4257H	
-TB2CFh	3E2D....  >-..	LD	A,02Dh	
-TB2D1h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB2CFh	3E2D....  >-..	LD	A,02Dh			; A = 0x2D
+TB2D1h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2d (pickup item sound)
 TB2D4h	F1......  ....	POP	AF	
 TB2D5h	3D......  ....	DEC	A	
 TB2D6h	DD7E18..  .~..	LD	A,(IX+018h)
@@ -12589,8 +12595,8 @@ TB3D5h	2802....  (...	JR	Z,002h			; Jump to 0B3D9H
 TB3D7h	2E56....  .V..	LD	L,056h	
 TB3D9h	7E......  ~...	LD	A,(HL)	
 TB3DAh	FE06....  ....	CP	006h	
-TB3DCh	3E2A....  >*..	LD	A,02Ah	
-TB3DEh	DC1F4E..  ..N.	CALL	C,T4E1FH
+TB3DCh	3E2A....  >*..	LD	A,02Ah			; A = 0x2A
+TB3DEh	DC1F4E..  ..N.	CALL	C,T4E1FH		; if (carry is set) play sound id 0x2A (sound for???)
 TB3E1h	78......  x...	LD	A,B	
 TB3E2h	ED44....  .D..	NEG		
 TB3E4h	C32C61..  .,a.	JP	T612CH		
@@ -12616,9 +12622,9 @@ TB401h	1802....  ....	JR	002h			; Jump to 0B405H
 TB403h	B7......  ....	OR	A	
 TB404h	C0......  ....	RET	NZ		
 
-TB405h	3E1D....  >...	LD	A,01Dh	
-TB407h	CD1F4E..  ..N.	CALL	T4E1FH	
-TB40Ah	37......  7...	SCF		
+TB405h	3E1D....  >...	LD	A,01Dh			; A = 0x1D
+TB407h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x1D
+TB40Ah	37......  7...	SCF				; Set carry flag.
 TB40Bh	C9......  ....	RET			
 
 TB40Ch	3A18E5..  :...	LD	A,(TE518H)
@@ -12832,11 +12838,11 @@ TB571h	F1......  ....	POP	AF
 TB572h	C476AD..  .v..	CALL	NZ,TAD76H
 TB575h	CD92B5..  ....	CALL	TB592H	
 TB578h	CCA7B5..  ....	CALL	Z,TB5A7H
-TB57Bh	3E1E....  >...	LD	A,01Eh	
-TB57Dh	CD1F4E..  ..N.	CALL	T4E1FH	
+TB57Bh	3E1E....  >...	LD	A,01Eh			; A = 0x1E
+TB57Dh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x1E (hit something with sword sound?)
 TB580h	DD3510..  .5..	DEC	(IX+010h)
 TB583h	CA04B6..  ....	JP	Z,TB604H	
-TB586h	3A94E0..  :...	LD	A,(TE094H)	; Sabre
+TB586h	3A94E0..  :...	LD	A,(TE094H)		; Sabre
 TB589h	B7......  ....	OR	A	
 TB58Ah	C8......  ....	RET	Z		
 
@@ -12893,8 +12899,8 @@ TB5DEh	C0......  ....	RET	NZ
 TB5DFh	C304B6..  ....	JP	TB604H		
 
 TB5E2h	CD4BAE..  .K..	CALL	TAE4BH	
-TB5E5h	3E1E....  >...	LD	A,01Eh	
-TB5E7h	C31F4E..  ..N.	JP	T4E1FH		
+TB5E5h	3E1E....  >...	LD	A,01Eh			; A = 0x1E
+TB5E7h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x1E (hit something with sword sound?)
 
 TB5EAh	DD2100E8  .!..	LD	IX,0E800h
 TB5EEh	3A35E6..  :5..	LD	A,(TE635H)
@@ -12909,8 +12915,8 @@ TB600h	3D......  ....	DEC	A
 TB601h	20EE....  ....	JR	NZ,0EEh			; Jump to 0B5F1H
 TB603h	C9......  ....	RET			
 
-TB604h	3E20....  >...	LD	A,020h	
-TB606h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB604h	3E20....  >...	LD	A,020h			; A = 0x20
+TB606h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x20 (final blow to boulder/enemy sound)
 TB609h	DD7E00..  .~..	LD	A,(IX+000h)
 TB60Ch	FE5C....  .\..	CP	05Ch	
 TB60Eh	CA9BB6..  ....	JP	Z,TB69BH	
@@ -13095,8 +13101,8 @@ TB75Dh	CBC6....  ....	SET	0,(HL)
 TB75Fh	79......  y...	LD	A,C	
 TB760h	FE0C....  ....	CP	00Ch	
 TB762h	2805....  (...	JR	Z,005h			; Jump to 0B769H
-TB764h	3E2D....  >-..	LD	A,02Dh	
-TB766h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB764h	3E2D....  >-..	LD	A,02Dh			; A = 0x2D
+TB766h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2D (pickup item sound)
 TB769h	2161E0..  !a..	LD	HL,0E061h
 TB76Ch	3A41E0..  :A..	LD	A,(WorldNumber)
 TB76Fh	CD3641..  .6A.	CALL	HL+=A	
@@ -13126,10 +13132,10 @@ TB78Eh	C0......  ....	RET	NZ
 
 TB78Fh	2C......  ,...	INC	L			;
 TB790h	CBCE....  ....	SET	1,(HL)	
-TB792h	3EFC....  >...	LD	A,0FCh	
-TB794h	CD1F4E..  ..N.	CALL	T4E1FH	
-TB797h	3E85....  >...	LD	A,085h	
-TB799h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB792h	3EFC....  >...	LD	A,0FCh			; A = 0xFC
+TB794h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFC (pickup Great Key in castle sound)
+TB797h	3E85....  >...	LD	A,085h			; A = 0x85
+TB799h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x85 (sound for???)
 TB79Ch	3A41E0..  :A..	LD	A,(WorldNumber)
 TB79Fh	3D......  ....	DEC	A	
 TB7A0h	2003....  ....	JR	NZ,003h			; Jump to 0B7A5H
@@ -13222,21 +13228,21 @@ TB836h	FE05....  ....	CP	005h
 TB838h	C8......  ....	RET	Z		
 
 TB839h	CD76AD..  .v..	CALL	TAD76H	
-TB83Ch	3E1E....  >...	LD	A,01Eh	
-TB83Eh	CD1F4E..  ..N.	CALL	T4E1FH	
-TB841h	218EE0..  !...	LD	HL,0E08Eh	; Ring
+TB83Ch	3E1E....  >...	LD	A,01Eh			; A = 0x1E
+TB83Eh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x1E (hit something with sword sound)
+TB841h	218EE0..  !...	LD	HL,0E08Eh		; Ring
 TB844h	CDDB4D..  ..M.	CALL	is_(HL)_nz	
 TB847h	0601....  ....	LD	B,001h	
 TB849h	2802....  (...	JR	Z,002h			; Jump to 0B84DH
-TB84Bh	0605....  ....	LD	B,005h		; each hit counts for 5
+TB84Bh	0605....  ....	LD	B,005h			; Each hit counts for 5.
 TB84Dh	DD7E06..  .~..	LD	A,(IX+006h)
 TB850h	90......  ....	SUB	B	
 TB851h	DD7706..  .w..	LD	(IX+006h),A
 TB854h	2801....  (...	JR	Z,001h			; Jump to 0B857H
 TB856h	D0......  ....	RET	NC		
 
-TB857h	3E20....  >...	LD	A,020h	
-TB859h	CD1F4E..  ..N.	CALL	T4E1FH	
+TB857h	3E20....  >...	LD	A,020h			; A = 0x20
+TB859h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x20 (final blow to boulder/enemy sound)
 TB85Ch	DD360101  .6..	LD	(IX+001h),001h
 TB860h	DD36060A  .6..	LD	(IX+006h),00Ah
 TB864h	DD7E07..  .~..	LD	A,(IX+007h)
@@ -13925,27 +13931,27 @@ TBC8Fh	AF......  ....	XOR	A			; Clear A and F
 TBC90h	CDC1BC..  ....	CALL	TBCC1H	
 TBC93h	D8......  ....	RET	C		
 
-TBC94h	3E27....  >'..	LD	A,027h	
-TBC96h	CD1F4E..  ..N.	CALL	T4E1FH	
-TBC99h	DD3510..  .5..	DEC	(IX+010h)
-TBC9Ch	CA32BD..  .2..	JP	Z,TBD32H	
-TBC9Fh	3A10E7..  :...	LD	A,(TE710H)
-TBCA2h	47......  G...	LD	B,A	
-TBCA3h	0E00....  ....	LD	C,000h	
-TBCA5h	3A00E7..  :...	LD	A,(TE700H)
-TBCA8h	21977F..  !...	LD	HL,07F97h
+TBC94h	3E27....  >'..	LD	A,027h			; A = 0x27
+TBC96h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x27 (sound for???)
+TBC99h	DD3510..  .5..	DEC	(IX+010h)		; --IX[10]
+TBC9Ch	CA32BD..  .2..	JP	Z,TBD32H		;
+TBC9Fh	3A10E7..  :...	LD	A,(TE710H)		; A = *(0xe710)
+TBCA2h	47......  G...	LD	B,A			; B = A == *(0xe710)
+TBCA3h	0E00....  ....	LD	C,000h			; C = 0
+TBCA5h	3A00E7..  :...	LD	A,(TE700H)		; A = *(0xe700). Offset/HL[A].
+TBCA8h	21977F..  !...	LD	HL,07F97h		; HL = 0x7F97. Some lookup table. Actual start is at 0x7F98 though.
 TBCABh	CD5541..  .UA.	CALL	A=HL[A]	
 TBCAEh	CB3F....  .?..	SRL	A	
 TBCB0h	CB3F....  .?..	SRL	A	
 TBCB2h	B8......  ....	CP	B	
-TBCB3h	3807....  8...	JR	C,007h			; Jump to 0BCBCH
+TBCB3h	3807....  8...	JR	C,007h			; if ((HL[A] / 4) < B) Jump to 0BCBCH: *0xe1c5 = 0
 TBCB5h	0C......  ....	INC	C			;
-TBCB6h	CB3F....  .?..	SRL	A	
-TBCB8h	B8......  ....	CP	B	
-TBCB9h	3801....  8...	JR	C,001h			; Jump to 0BCBCH
-TBCBBh	0C......  ....	INC	C			;
-TBCBCh	79......  y...	LD	A,C	
-TBCBDh	32C5E1..  2...	LD	(TE1C5H),A
+TBCB6h	CB3F....  .?..	SRL	A			;
+TBCB8h	B8......  ....	CP	B			;
+TBCB9h	3801....  8...	JR	C,001h			; if ((HL[A] / 8) < B) Jump to 0BCBCH: *0xe1c5 = 1 (else *0xe1c5 = 2)
+TBCBBh	0C......  ....	INC	C			; C = 2
+TBCBCh	79......  y...	LD	A,C			;
+TBCBDh	32C5E1..  2...	LD	(TE1C5H),A		; ???Set channel???
 TBCC0h	C9......  ....	RET			
 
 TBCC1h	B7......  ....	OR	A	
@@ -13977,9 +13983,9 @@ TBCF0h	FE05....  ....	CP	005h
 TBCF2h	37......  7...	SCF		
 TBCF3h	C8......  ....	RET	Z		
 
-TBCF4h	3E1D....  >...	LD	A,01Dh	
-TBCF6h	CD1F4E..  ..N.	CALL	T4E1FH	
-TBCF9h	37......  7...	SCF		
+TBCF4h	3E1D....  >...	LD	A,01Dh			; A = 0x1D
+TBCF6h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x1D (sound for???)
+TBCF9h	37......  7...	SCF				; Set carry flag
 TBCFAh	C9......  ....	RET			
 
 TBCFBh	3A00E7..  :...	LD	A,(TE700H)
@@ -14014,8 +14020,8 @@ TBD32h	AF......  ....	XOR	A			; Clear A and F
 TBD33h	32C5E1..  2...	LD	(TE1C5H),A
 TBD36h	3C......  <...	INC	A			;
 TBD37h	322CE0..  2,..	LD	(TE02CH),A
-TBD3Ah	3E84....  >...	LD	A,084h	
-TBD3Ch	CD1F4E..  ..N.	CALL	T4E1FH	
+TBD3Ah	3E84....  >...	LD	A,084h			; A = 0x84
+TBD3Ch	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x84 (sound for???)
 TBD3Fh	3A41E0..  :A..	LD	A,(WorldNumber)
 TBD42h	FE0B....  ....	CP	00Bh	
 TBD44h	3E91....  >...	LD	A,091h	
@@ -14024,8 +14030,8 @@ TBD48h	3E8B....  >...	LD	A,08Bh
 TBD4Ah	C3125D..  ..].	JP	T5D12H		
 
 TBD4Dh	CD4BAE..  .K..	CALL	TAE4BH	
-TBD50h	3E27....  >'..	LD	A,027h	
-TBD52h	C31F4E..  ..N.	JP	T4E1FH		
+TBD50h	3E27....  >'..	LD	A,027h			; A = 0x27
+TBD52h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x27 (sound for???)
 
 TBD55h	3A1BE5..  :...	LD	A,(TE51BH)
 TBD58h	B7......  ....	OR	A	

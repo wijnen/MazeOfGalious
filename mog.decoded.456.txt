@@ -27,19 +27,19 @@ T601Eh	05......  ....	DEC	B		; decrement room counter
 T601Fh	C21460..  ..`.	JP	NZ,T6014H
 ; found current room
 
-; Loop over all enemies
-T6022h	7E......  ~...	LD	A,(HL)	
-T6023h	47......  G...	LD	B,A	
-T6024h	E67F....  ....	AND	07Fh	
-T6026h	C8......  ....	RET	Z		; end of list.
+; Loop over all enemies.
+T6022h	7E......  ~...	LD	A,(HL)		;
+T6023h	47......  G...	LD	B,A		;
+T6024h	E67F....  ....	AND	07Fh		;
+T6026h	C8......  ....	RET	Z		; End of list.
 
-T6027h	3200F0..  2...	LD	(TF000H),A	; save enemy type.
-T602Ah	23......  #...	INC	HL			;
-T602Bh	23......  #...	INC	HL			; next enemy, to the continue will have it set right.
-T602Ch	CD7860..  .x`.	CALL	is_enemy_shown		; check for e612 marker (room is in 60ee-list)
-T602Fh	20F1....  ....	JR	NZ,0F1h			; Jump to 06022H: continue loop
+T6027h	3200F0..  2...	LD	(TF000H),A	; Save enemy type.
+T602Ah	23......  #...	INC	HL		;
+T602Bh	23......  #...	INC	HL		; Next enemy, to the continue will have it set right.
+T602Ch	CD7860..  .x`.	CALL	is_enemy_shown	; Check for e612 marker (room is in 60ee-list)
+T602Fh	20F1....  ....	JR	NZ,0F1h		; Jump to 06022H: continue loop
 
-T6031h	2B......  +...	DEC	HL		; set pointer back to current enemy (second byte: location).
+T6031h	2B......  +...	DEC	HL		; Set pointer back to current enemy (second byte: location).
 T6032h	7E......  ~...	LD	A,(HL)	
 T6033h	E6F8....  ....	AND	0F8h	
 T6035h	57......  W...	LD	D,A	
@@ -2580,8 +2580,8 @@ T701Dh	C33EB1..  .>..	JP	TB13EH
 T7020h	CD6270..  .bp.	CALL	T7062H	
 T7023h	CD3E70..  .>p.	CALL	T703EH	
 T7026h	3005....  0...	JR	NC,005h			; Jump to 0702DH
-T7028h	3E09....  >...	LD	A,009h	
-T702Ah	C35940..  .Y@.	JP	T4059H		
+T7028h	3E09....  >...	LD	A,009h			; A = 0x09
+T702Ah	C35940..  .Y@.	JP	T4059H			; Play sound id 0x09 (sound for???) (hook)
 
 T702Dh	DD7E0D..  .~..	LD	A,(IX+00Dh)
 T7030h	B7......  ....	OR	A	
@@ -2868,8 +2868,8 @@ T726Fh	DDCB02FE  ....	SET	7,(IX+002h)
 T7273h	DD360AA0  .6..	LD	(IX+00Ah),0A0h
 T7277h	DD361F00  .6..	LD	(IX+01Fh),000h
 T727Bh	DD360806  .6..	LD	(IX+008h),006h
-T727Fh	3E08....  >...	LD	A,008h	
-T7281h	CD5940..  .Y@.	CALL	T4059H	
+T727Fh	3E08....  >...	LD	A,008h			; A = 0x08
+T7281h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x08 (sound for ???) (hook)
 T7284h	184B....  .K..	JR	04Bh			; Jump to 072D1H
 
 T7286h	DD3508..  .5..	DEC	(IX+008h)
@@ -2940,8 +2940,8 @@ T7311h	DD360AA8  .6..	LD	(IX+00Ah),0A8h
 T7315h	DD360806  .6..	LD	(IX+008h),006h
 T7319h	DD360B0E  .6..	LD	(IX+00Bh),00Eh
 T731Dh	DD361F02  .6..	LD	(IX+01Fh),002h
-T7321h	3E08....  >...	LD	A,008h	
-T7323h	CD5940..  .Y@.	CALL	T4059H	
+T7321h	3E08....  >...	LD	A,008h			; A = 0x08
+T7323h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x08 (sound for ???) (hook)
 T7326h	18A9....  ....	JR	0A9h			; Jump to 072D1H
 
 T7328h	DD3508..  .5..	DEC	(IX+008h)
@@ -3379,8 +3379,8 @@ T76BCh	DD7E05..  .~..	LD	A,(IX+005h)
 T76BFh	DD7712..  .w..	LD	(IX+012h),A
 T76C2h	DD7E07..  .~..	LD	A,(IX+007h)
 T76C5h	DD7713..  .w..	LD	(IX+013h),A
-T76C8h	3E07....  >...	LD	A,007h	
-T76CAh	C35940..  .Y@.	JP	T4059H		
+T76C8h	3E07....  >...	LD	A,007h			; A = 0x07
+T76CAh	C35940..  .Y@.	JP	T4059H			; Play sound id 0x07 (sound for ???) (hook)
 
 T76CDh	CDCF77..  ..w.	CALL	T77CFH	
 T76D0h	21E276..  !.v.	LD	HL,076E2h
@@ -3446,8 +3446,8 @@ T774Fh	DD360830  .6.0	LD	(IX+008h),030h
 T7753h	DD360AB4  .6..	LD	(IX+00Ah),0B4h
 T7757h	DD360B08  .6..	LD	(IX+00Bh),008h
 T775Bh	DD3605A8  .6..	LD	(IX+005h),0A8h
-T775Fh	3E1C....  >...	LD	A,01Ch	
-T7761h	CD5940..  .Y@.	CALL	T4059H	
+T775Fh	3E1C....  >...	LD	A,01Ch			; A = 0x1C
+T7761h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x1C (sound for ???) (hook)
 T7764h	C3079A..  ....	JP	T9A07H		
 
 T7767h	CDE577..  ..w.	CALL	T77E5H	
@@ -3666,8 +3666,8 @@ T78BFh	DD7E00..  .~..	LD	A,(IX+000h)
 T78C2h	FE30....  .0..	CP	030h	
 T78C4h	3E24....  >$..	LD	A,024h	
 T78C6h	2802....  (...	JR	Z,002h			; Jump to 078CAH
-T78C8h	3E0D....  >...	LD	A,00Dh	
-T78CAh	C35940..  .Y@.	JP	T4059H		
+T78C8h	3E0D....  >...	LD	A,00Dh			; A = 0x0D
+T78CAh	C35940..  .Y@.	JP	T4059H			; Play sound id 0x0D (sound for ???) (hook)
 
 T78CDh	CD4CB1..  .L..	CALL	TB14CH	
 T78D0h	DD560D..  .V..	LD	D,(IX+00Dh)
@@ -3850,8 +3850,8 @@ T7A28h	DD770A..  .w..	LD	(IX+00Ah),A
 T7A2Bh	DD361101  .6..	LD	(IX+011h),001h
 T7A2Fh	CD716B..  .qk.	CALL	T6B71H	
 T7A32h	CD767A..  .vz.	CALL	T7A76H	
-T7A35h	3E21....  >!..	LD	A,021h	
-T7A37h	CD5940..  .Y@.	CALL	T4059H	
+T7A35h	3E21....  >!..	LD	A,021h			; A = 0x21
+T7A37h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x21 (sound for ???) (hook)
 T7A3Ah	DD3401..  .4..	INC	(IX+001h)		;
 T7A3Dh	DD7E09..  .~..	LD	A,(IX+009h)
 T7A40h	EE03....  ....	XOR	003h	
@@ -4694,11 +4694,11 @@ T80C8h	C9......  ....	RET
 T80C9h	11400C..  .@..	LD	DE,00C40h
 T80CCh	0600....  ....	LD	B,000h	
 T80CEh	CDD6B0..  ....	CALL	TB0D6H	
-T80D1h	DD7E0A..  .~..	LD	A,(IX+00Ah)
+T80D1h	DD7E0A..  .~..	LD	A,(IX+00Ah)		; A = IX[0x0A]
 T80D4h	2007....  ....	JR	NZ,007h			; Jump to 080DDH
-T80D6h	FEC8....  ....	CP	0C8h	
-T80D8h	3E0F....  >...	LD	A,00Fh	
-T80DAh	CC5940..  .Y@.	CALL	Z,T4059H
+T80D6h	FEC8....  ....	CP	0C8h			; Computer A - 0xC8 and set flags
+T80D8h	3E0F....  >...	LD	A,00Fh			; A = 0x0F
+T80DAh	CC5940..  .Y@.	CALL	Z,T4059H		; if (IX[0x0A] == 0xC8) Play sound id 0x0F (sound for ???) (hook)
 T80DDh	DD3515..  .5..	DEC	(IX+015h)
 T80E0h	C24581..  .E..	JP	NZ,T8145H
 T80E3h	DD361504  .6..	LD	(IX+015h),004h
@@ -4908,11 +4908,11 @@ T8275h	C24581..  .E..	JP	NZ,T8145H
 T8278h	3A3DE6..  :...	LD	A,(TE63DH)
 T827Bh	A7......  ....	AND	A	
 T827Ch	200F....  ....	JR	NZ,00Fh			; Jump to 0828DH
-T827Eh	3E83....  >...	LD	A,083h	
-T8280h	CD5940..  .Y@.	CALL	T4059H	
-T8283h	3E88....  >...	LD	A,088h	
+T827Eh	3E83....  >...	LD	A,083h			; A = 0x83
+T8280h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x83 (sound for when fair appears) (hook)
+T8283h	3E88....  >...	LD	A,088h			; A = 0x88
 T8285h	CD8640..  ..@.	CALL	T4086H	
-T8288h	3E01....  >...	LD	A,001h	
+T8288h	3E01....  >...	LD	A,001h			; A = 0x01
 T828Ah	323DE6..  2...	LD	(TE63DH),A
 T828Dh	DD360104  .6..	LD	(IX+001h),004h
 T8291h	218070..  !.p.	LD	HL,07080h
@@ -5138,8 +5138,8 @@ T845Bh	E6FA....  ....	AND	0FAh
 T845Dh	DD7709..  .w..	LD	(IX+009h),A
 T8460h	DD3616A0  .6..	LD	(IX+016h),0A0h
 T8464h	DD361500  .6..	LD	(IX+015h),000h
-T8468h	3E17....  >...	LD	A,017h	
-T846Ah	CD5940..  .Y@.	CALL	T4059H	
+T8468h	3E17....  >...	LD	A,017h			; A = 0x17
+T846Ah	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x17 (sound for ???) (hook)
 T846Dh	2100FC..  !...	LD	HL,0FC00h
 T8470h	110000..  ....	LD	DE,00000h
 T8473h	C333B1..  .3..	JP	TB133H		
@@ -5190,8 +5190,8 @@ T84C5h	CD426C..  .Bl.	CALL	T6C42H
 T84C8h	3E40....  >@..	LD	A,040h	
 T84CAh	CD8FB1..  ....	CALL	TB18FH	
 T84CDh	CD33B1..  .3..	CALL	TB133H	
-T84D0h	3E0F....  >...	LD	A,00Fh	
-T84D2h	C35940..  .Y@.	JP	T4059H		
+T84D0h	3E0F....  >...	LD	A,00Fh			; A = 0x0F
+T84D2h	C35940..  .Y@.	JP	T4059H			; Play sound id 0x0F (sound for ???) (hook)
 
 T84D5h	3E01....  >...	LD	A,001h	
 T84D7h	3203E6..  2...	LD	(TE603H),A
@@ -5277,8 +5277,8 @@ T8587h	3D......  ....	DEC	A
 T8588h	2873....  (s..	JR	Z,073h			; Jump to 085FDH
 T858Ah	3D......  ....	DEC	A	
 T858Bh	CA0B86..  ....	JP	Z,T860BH	
-T858Eh	3E17....  >...	LD	A,017h	
-T8590h	CD5940..  .Y@.	CALL	T4059H	
+T858Eh	3E17....  >...	LD	A,017h			; A = 0x17
+T8590h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x17 (sound for???) (hook)
 T8593h	DD3401..  .4..	INC	(IX+001h)		;
 T8596h	DD361800  .6..	LD	(IX+018h),000h
 T859Ah	DD361900  .6..	LD	(IX+019h),000h
@@ -5447,8 +5447,8 @@ T86FBh	C31CB4..  ....	JP	TB41CH
 T86FEh	DD7E1D..  .~..	LD	A,(IX+01Dh)
 T8701h	A7......  ....	AND	A	
 T8702h	28E4....  (...	JR	Z,0E4h			; Jump to 086E8H
-T8704h	3E0B....  >...	LD	A,00Bh	
-T8706h	CD5940..  .Y@.	CALL	T4059H	
+T8704h	3E0B....  >...	LD	A,00Bh			; A = 0x0B
+T8706h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x0B (sound for ???) (hook)
 T8709h	CD24B1..  .$..	CALL	TB124H	
 T870Ch	CD1CB4..  ....	CALL	TB41CH	
 T870Fh	DD341B..  .4..	INC	(IX+01Bh)		;
@@ -5753,8 +5753,8 @@ T8941h	C9......  ....	RET
 T8942h	3A03E0..  :...	LD	A,(TE003H)
 T8945h	E63F....  .?..	AND	03Fh	
 T8947h	2005....  ....	JR	NZ,005h			; Jump to 0894EH
-T8949h	3E06....  >...	LD	A,006h	
-T894Bh	CD5940..  .Y@.	CALL	T4059H	
+T8949h	3E06....  >...	LD	A,006h			; A = 0x06
+T894Bh	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x06 (sound for ???) (hook)
 T894Eh	3EC4....  >...	LD	A,0C4h	
 T8950h	DDBE0A..  ....	CP	(IX+00Ah)
 T8953h	200E....  ....	JR	NZ,00Eh			; Jump to 08963H
@@ -5935,8 +5935,8 @@ T8ADFh	C624....  .$..	ADD	A,024h
 T8AE1h	DDBE07..  ....	CP	(IX+007h)
 T8AE4h	D8......  ....	RET	C		
 
-T8AE5h	3E0C....  >...	LD	A,00Ch	
-T8AE7h	CD5940..  .Y@.	CALL	T4059H	
+T8AE5h	3E0C....  >...	LD	A,00Ch			; A = 0x0C
+T8AE7h	CD5940..  .Y@.	CALL	T4059H			; Play sound id 0x0C (sound for ???) (hook)
 T8AEAh	AF......  ....	XOR	A			; Clear A and F
 T8AEBh	DD7701..  .w..	LD	(IX+001h),A
 T8AEEh	57......  W...	LD	D,A	

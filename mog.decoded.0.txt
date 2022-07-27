@@ -4,33 +4,39 @@
 ;Initial Address: 4000h
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic		Comments
+
 # {{{ Cartridge header: Start at 0x4095
-defb 0x41, 0x42
-defw 0x4095
-defs *
+defm "AB"	; 0x4000 ID. Must be "AB" for cartridge
+defw 0x4095	; 0x4002 INIT. Entry point.
+defw 0x0000	; 0x4004 STATEMENT.			Not used, so zeroed.
+defw 0x0000	; 0x4006 DEVICE.			Not used, so zeroed.
+defw 0x0000	; 0x4008 TEXT.				Not used, so zeroed.
+defw 0x0000	; 0x400A RESERVED FOR FUTURE USE.	Not used, so zeroed.
+defw 0x0000	; 0x400C RESERVED FOR FUTURE USE.	Not used, so zeroed.
+defw 0x0000	; 0x400E RESERVED FOR FUTURE USE.	Not used, so zeroed.
 # }}}
 # {{{ Konami header: used by Game Master
 org 0x4010
-defb 0x43, 0x44
+defm "CD"
 defb 0x07, 0x49, 0xfe, 0x00, 0xe0, 0x04
 defs *
 
 org 0x4030	; table of some addresses; use unknown.
 defw 0xe1c6
-defw 0xe1c7
-defw 0xe1c7
-defw 0xe1c7
-defw 0xe10c
-defw 0xe10d
-defw 0xe127
-defw 0xe128
-defw 0xe142
-defw 0xe143
+defw 0xe1c7	; RAM address of last/previous/current sound ID.
+defw 0xe1c7	; RAM address of last/previous/current sound ID.
+defw 0xe1c7	; RAM address of last/previous/current sound ID.
+defw 0xe10c	; RAM address, sound channel A related: L
+defw 0xe10d	; RAM address, sound channel A related: H, HL points to sound code.
+defw 0xe127	; RAM address, sound channel B related: L
+defw 0xe128	; RAM address, sound channel B related: H, HL points to sound code.
+defw 0xe142	; RAM address, sound channel C related: L
+defw 0xe143	; RAM address, sound channel C related: H, HL points to sound code.
 defw 0xe1ca
 defw 0xe1c9
 defw 0xe1c8
 defw 0xe1b0
-defw 0xe169
+defw 0xe169	; RAM address, possible related to VASE.
 defw 0xe16a
 
 switch_hook:
@@ -39,12 +45,13 @@ T4050h	C34041..  .@A.	JP	switch
 DE=*(HL+2*A)_hook:
 T4053h	C34C41..  .LA.	JP	DE=*(HL+2*A)
 
-HL=ED00+H_as_X+L_as_Y_hook
+HL=ED00+H_as_X+L_as_Y_hook:
 T4056h	C3A14D..  ..M.	JP	HL=ED00+H_as_X+L_as_Y
 
-T4059h	C31F4E..  ..N.	JP	T4E1FH		
+play_sound_id_in_regA_hook:
+T4059h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id regA
 
-HL=-HL_hook
+HL=-HL_hook:
 T405Ch	C36441..  .dA.	JP	HL=-HL		
 
 T405Fh	C3B54D..  ..M.	JP	T4DB5H		
@@ -91,13 +98,13 @@ T4092h	C36942..  .iB.	JP	T4269H
 # }}}
 
 # {{{ Initialization
-T4095h	F3......  ....	DI			; Program starts here.
-T4096h	ED56....  .V..	IM	1	
+T4095h	F3......  ....	DI			; Program starts here. Disable interrupts.
+T4096h	ED56....  .V..	IM	1		; Set the interrupt mode.
 T4098h	CDD340..  ..@.	CALL	PreInit		; get slot and subslot in A: ; bit 7: is_expanded; bit 2-3: subslot; bit 0-1: slot
 T409Bh	2680....  &...	LD	H,080h	
 T409Dh	CD2400..  .$..	CALL	T0024H		; switch to that slot in page 2
-T40A0h	3EC3....  >...	LD	A,0C3h	
-T40A2h	329AFD..  2...	LD	(TFD9AH),A
+T40A0h	3EC3....  >...	LD	A,0C3h		; 0xC3 is the opcode for "JP".
+T40A2h	329AFD..  2...	LD	(TFD9AH),A	; 0xFD9A is the start of H.KEYI hook.
 T40A5h	21EF40..  !.@.	LD	HL,040EFh	; Set vdp interrupt hook.
 T40A8h	229BFD..  "...	LD	(TFD9BH),HL
 T40ABh	31F0F0..  1...	LD	SP,0F0F0h
@@ -146,22 +153,22 @@ T40EEh	C9......  ....	RET
 
 Interrupt_hook:	; {{{ This is where everything happens.
 T40EFh	CD3E01..  .>..	CALL	T013EH		; read VDP status register; clears interrupt.
-T40F2h	F3......  ....	DI		
+T40F2h	F3......  ....	DI			; Disable interupts.
 T40F3h	2106E0..  !...	LD	HL,0E006h	; lock for preventing simultaneous stuff.
 T40F6h	7E......  ~...	LD	A,(HL)	
 T40F7h	A7......  ....	AND	A	
 T40F8h	3601....  6...	LD	(HL),001h
 T40FAh	C23141..  .1A.	JP	NZ,T4131H	; Ignore everything if the previous interrupt isn't handled.
 T40FDh	CD3554..  .5T.	CALL	PossiblyFillSpriteAttributeTable		; Switch (*e000)
-T4100h	F3......  ....	DI		
+T4100h	F3......  ....	DI			; Disable interrupts.
 T4101h	3E0D....  >...	LD	A,00Dh	
 T4103h	320060..  2.`.	LD	(T6000H),A	; Set mapper page D
 T4106h	3C......  <...	INC	A		;
 T4107h	320080..  2...	LD	(T8000H),A	; set mapper Page E
-T410Ah	CD0460..  ..`.	CALL	SoundHandling		
+T410Ah	CD0460..  ..`.	CALL	T6004h		; Call SoundHandling
 T410Dh	AF......  ....	XOR	A		; Clear A and F
 T410Eh	3206E0..  2...	LD	(TE006H),A
-T4111h	F3......  ....	DI		
+T4111h	F3......  ....	DI			; Disable interrupts.
 T4112h	3AF1F0..  :...	LD	A,(mapping_1)
 T4115h	320060..  2.`.	LD	(T6000H),A	; Restore mapper page
 T4118h	3AF2F0..  :...	LD	A,(mapping_2)
@@ -172,7 +179,7 @@ T4124h	7E......  ~...	LD	A,(HL)
 T4125h	B7......  ....	OR	A	
 T4126h	2009....  ....	JR	NZ,009h		; Jump to 04131H: skip bottom half
 T4128h	34......  4...	INC	(HL)		;
-T4129h	FB......  ....	EI		
+T4129h	FB......  ....	EI			; Enable interrupts.
 T412Ah	CD7742..  .wB.	CALL	InterruptBottomHalf
 T412Dh	AF......  ....	XOR	A		; Clear A and F
 T412Eh	3205E0..  2...	LD	(TE005H),A
@@ -504,23 +511,23 @@ T42CCh	35......  5...	DEC	(HL)
 T42CDh	C0......  ....	RET	NZ		
 
 T42CEh	CDF142..  ..B.	CALL	T42F1H	
-T42D1h	AF......  ....	XOR	A		; Clear A and F
+T42D1h	AF......  ....	XOR	A			; Clear A and F
 T42D2h	C33B44..  .;D.	JP	T443BH		
 
 state_0_0:
-T42D5h	CD4A4C..  .JL.	CALL	T4C4AH		; setup vdp
+T42D5h	CD4A4C..  .JL.	CALL	T4C4AH			; Setup vdp.
 T42D8h	CDB55B..  ..[.	CALL	clear_screen	
 T42DBh	CD345E..  .4^.	CALL	load_text_characters_title	
 T42DEh	CD2B42..  .+B.	CALL	SetMapper9	
-T42E1h	CD5769..  .Wi.	CALL	T6957H		; setup vram patterns and name table
+T42E1h	CD5769..  .Wi.	CALL	T6957H			; Setup vram patterns and name table.
 T42E4h	CD1542..  ..B.	CALL	SetMapper3	
-T42E7h	AF......  ....	XOR	A		; Clear A and F
-T42E8h	CD1F4E..  ..N.	CALL	T4E1FH		; Play sound/music.
+T42E7h	AF......  ....	XOR	A			; A = 0, F = 0
+T42E8h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x00 (silence?)
 T42EBh	CDC95C..  ..\.	CALL	T5CC9H	
 T42EEh	C35E43..  .^C.	JP	inc_substate
 
 T42F1h	CDE654..  ..T.	CALL	T54E6H	
-T42F4h	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	; this hides all sprites.
+T42F4h	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0	; This hides all sprites.
 T42F7h	CD345E..  .4^.	CALL	load_text_characters_title	
 T42FAh	CD0A42..  ..B.	CALL	SetMapperE	
 T42FDh	CD4142..  .AB.	CALL	SetMapperF	
@@ -642,7 +649,7 @@ T43D8h	210DE0..  !...	LD	HL,0E00Dh
 T43DBh	7E......  ~...	LD	A,(HL)	
 T43DCh	EE01....  ....	XOR	001h	
 T43DEh	77......  w...	LD	(HL),A	
-T43DFh	200B....  ....	JR	NZ,00Bh		; Jump to 043ECH
+T43DFh	200B....  ....	JR	NZ,00Bh			; Jump to 043ECH
 T43E1h	3A33E0..  :3..	LD	A,(TE033H)
 T43E4h	B7......  ....	OR	A	
 T43E5h	C8......  ....	RET	Z		
@@ -650,17 +657,17 @@ T43E5h	C8......  ....	RET	Z
 T43E6h	CD1A5D..  ..].	CALL	T5D1AH	
 T43E9h	C3AF5C..  ..\.	JP	T5CAFH		
 
-T43ECh	AF......  ....	XOR	A		; Clear A and F
-T43EDh	C31F4E..  ..N.	JP	T4E1FH		
+T43ECh	AF......  ....	XOR	A			; A = 0, F = 0
+T43EDh	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x00 (silence?)
 
 state_3:	; "Game Start" blinking and starting game
-T43F0h	1012....  ....	DJNZ	012h		; Jump to 04404H
+T43F0h	1012....  ....	DJNZ	012h			; Jump to 04404H
 state_3_1:
 T43F2h	2104E0..  !...	LD	HL,delay
 T43F5h	35......  5...	DEC	(HL)	
 T43F6h	CA5E43..  .^C.	JP	Z,inc_substate
 T43F9h	CB56....  .V..	BIT	2,(HL)	
-T43FBh	11717D..  .q}.	LD	DE,07D71h	; PLAY START
+T43FBh	11717D..  .q}.	LD	DE,07D71h		; PLAY START
 T43FEh	CA255C..  .%\.	JP	Z,WriteStringToVRAM	
 T4401h	C33C5C..  .<\.	JP	T5C3CH		
 
@@ -764,14 +771,14 @@ T44B9h	FE05....  ....	CP	005h
 T44BBh	C8......  ....	RET	Z		
 
 T44BCh	CDCEA8..  ....	CALL	TA8CEH	
-T44BFh	2804....  (...	JR	Z,004h		; Jump to 044C5H
+T44BFh	2804....  (...	JR	Z,004h			; Jump to 044C5H
 T44C1h	211DE6..  !...	LD	HL,0E61Dh
-T44C4h	34......  4...	INC	(HL)		;
-T44C5h	3EFD....  >...	LD	A,0FDh	
-T44C7h	CD1F4E..  ..N.	CALL	T4E1FH	
+T44C4h	34......  4...	INC	(HL)			;
+T44C5h	3EFD....  >...	LD	A,0FDh			; A = 0xFD
+T44C7h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFD (sound for???)
 T44CAh	CD1759..  ..Y.	CALL	setup_sprite_patterns
 T44CDh	CD26BE..  .&..	CALL	TBE26H	
-T44D0h	3E09....  >...	LD	A,009h		; state 9: pauze
+T44D0h	3E09....  >...	LD	A,009h			; state 9: pause
 T44D2h	C3A943..  ..C.	JP	set_new_state		
 
 T44D5h	CDEA44..  ..D.	CALL	T44EAH	
@@ -780,8 +787,8 @@ T44D8h	D8......  ....	RET	C
 T44D9h	CD219E..  .!..	CALL	check_F1	
 T44DCh	D0......  ....	RET	NC		
 
-T44DDh	3E2B....  >+..	LD	A,02Bh	
-T44DFh	CD1F4E..  ..N.	CALL	T4E1FH	
+T44DDh	3E2B....  >+..	LD	A,02Bh			; A = 0x2B
+T44DFh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x2B (pressed F1 sound)
 T44E2h	CD8052..  ..R.	CALL	clear_ec80
 T44E5h	3E0B....  >...	LD	A,00Bh		; state b: item screen
 T44E7h	C3A943..  ..C.	JP	set_new_state		
@@ -834,21 +841,21 @@ T452Bh	CD3845..  .8E.	CALL	T4538H
 T452Eh	3A01E5..  :...	LD	A,(am_I_Popolon)
 T4531h	EE01....  ....	XOR	001h	
 T4533h	3201E5..  2...	LD	(am_I_Popolon),A
-T4536h	18E4....  ....	JR	0E4h		; Jump to 0451CH
+T4536h	18E4....  ....	JR	0E4h			; Jump to 0451CH
 
 T4538h	3A01E5..  :...	LD	A,(am_I_Popolon)
 T453Bh	B7......  ....	OR	A	
-T453Ch	11F67C..  ..|.	LD	DE,07CF6h	; APHRODITE OUT
-T453Fh	2803....  (...	JR	Z,003h		; Jump to 04544H
-T4541h	11067D..  ..}.	LD	DE,07D06h	; POPOLON OUT
+T453Ch	11F67C..  ..|.	LD	DE,07CF6h		; APHRODITE OUT
+T453Fh	2803....  (...	JR	Z,003h			; Jump to 04544H
+T4541h	11067D..  ..}.	LD	DE,07D06h		; POPOLON OUT
 T4544h	C3255C..  .%\.	JP	WriteStringToVRAM		
 
-T4547h	3E95....  >...	LD	A,095h	
-T4549h	CD1F4E..  ..N.	CALL	T4E1FH	
+T4547h	3E95....  >...	LD	A,095h			; A = 0x95
+T4549h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x95 (sound for???)
 T454Ch	C33944..  .9D.	JP	T4439H		
 
 state_7:	; game over screen wipe
-T454Fh	1031....  .1..	DJNZ	031h		; Jump to 04582H
+T454Fh	1031....  .1..	DJNZ	031h			; Jump to 04582H
 state_7_1:
 T4551h	CD8C7E..  ..~.	CALL	T7E8CH	
 T4554h	CDF550..  ..P.	CALL	T50F5H	
@@ -915,29 +922,29 @@ T45C4h	F5......  ....	PUSH	AF
 T45C5h	DC954D..  ..M.	CALL	C,WriteNumberToVRAM
 T45C8h	F1......  ....	POP	AF	
 T45C9h	D4894D..  ..M.	CALL	NC,T4D89H
-T45CCh	2C......  ,...	INC	L		;
+T45CCh	2C......  ,...	INC	L			;
 T45CDh	3E28....  >(..	LD	A,028h	
 T45CFh	CD4D00..  .M..	CALL	wrtvrm	
 T45D2h	CD5A46..  .ZF.	CALL	T465AH	
 T45D5h	CD1446..  ..F.	CALL	T4614H	
 T45D8h	CD4646..  .FF.	CALL	T4646H	
 T45DBh	CD1F46..  ..F.	CALL	T461FH	
-T45DEh	3E8E....  >...	LD	A,08Eh	
-T45E0h	CD1F4E..  ..N.	CALL	T4E1FH	
+T45DEh	3E8E....  >...	LD	A,08Eh			; A = 0x8E
+T45E0h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x8E
 T45E3h	3E60....  >`..	LD	A,060h	
 T45E5h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
-T45E8h	1019....  ....	DJNZ	019h		; Jump to 04603H
+T45E8h	1019....  ....	DJNZ	019h			; Jump to 04603H
 state_8_2:
 T45EAh	2104E0..  !...	LD	HL,delay
 T45EDh	35......  5...	DEC	(HL)	
 T45EEh	C0......  ....	RET	NZ		
 
-T45EFh	CD8E52..  ..R.	CALL	T528EH		; Special actions for items perhaps?
+T45EFh	CD8E52..  ..R.	CALL	T528EH			; Special actions for items perhaps?
 T45F2h	CDCD51..  ..Q.	CALL	PrepareNewRoom	
 T45F5h	3E8A....  >...	LD	A,08Ah	
 T45F7h	CDC45C..  ..\.	CALL	T5CC4H	
-T45FAh	AF......  ....	XOR	A		; Clear A and F
+T45FAh	AF......  ....	XOR	A			; Clear A and F
 T45FBh	321FE0..  2...	LD	(TE01FH),A
 T45FEh	3E05....  >...	LD	A,005h		; state 5: normal gameplay
 T4600h	C3A943..  ..C.	JP	set_new_state		
@@ -1103,11 +1110,11 @@ T4716h	CD3C5C..  .<\.	CALL	T5C3CH
 T4719h	CD2A47..  .*G.	CALL	T472AH	
 T471Ch	CD3047..  .0G.	CALL	T4730H	
 T471Fh	CD0B52..  ..R.	CALL	T520BH	
-T4722h	3EFA....  >...	LD	A,0FAh	
-T4724h	CD1F4E..  ..N.	CALL	T4E1FH	
+T4722h	3EFA....  >...	LD	A,0FAh			; A = 0xFA
+T4724h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFA (enter room with boss sound)
 T4727h	C35E43..  .^C.	JP	inc_substate
 
-T472Ah	111D7D..  ..}.	LD	DE,07D1Dh	; CASTLE!!
+T472Ah	111D7D..  ..}.	LD	DE,07D1Dh		; CASTLE!!
 T472Dh	C3255C..  .%\.	JP	WriteStringToVRAM		
 
 T4730h	210000..  !...	LD	HL,00000h
@@ -1133,8 +1140,8 @@ T4755h	CD577E..  .W~.	CALL	check_ZEUS
 T4758h	CD7454..  .tT.	CALL	T5474H	
 T475Bh	C32354..  .#T.	JP	T5423H		
 
-T475Eh	3EFE....  >...	LD	A,0FEh	
-T4760h	CD1F4E..  ..N.	CALL	T4E1FH	
+T475Eh	3EFE....  >...	LD	A,0FEh			; A = 0xFE
+T4760h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFE (sound for???)
 T4763h	CD8052..  ..R.	CALL	clear_ec80
 T4766h	C35E43..  .^C.	JP	inc_substate
 
@@ -1199,8 +1206,8 @@ T47C4h	D8......  ....	RET	C
 T47C5h	3600....  6...	LD	(HL),000h
 T47C7h	2C......  ,...	INC	L			;
 T47C8h	3601....  6...	LD	(HL),001h
-T47CAh	3E2E....  >...	LD	A,02Eh		; ?Land on ground sound?
-T47CCh	C31F4E..  ..N.	JP	T4E1FH		; Play sound/music
+T47CAh	3E2E....  >...	LD	A,02Eh			; A = 0x2E
+T47CCh	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2E (land on ground sound?)
 ; }}}
 
 state_b: ; {{{ itemscreen
@@ -1209,10 +1216,10 @@ state_b_1:
 T47D1h	AF......  ....	XOR	A			; Clear A and F
 T47D2h	3200F0..  2...	LD	(TF000H),A
 T47D5h	CD999A..  ....	CALL	try_feather
-T47D8h	3A00F0..  :...	LD	A,(TF000H)	; set to 1 if feather was used.
+T47D8h	3A00F0..  :...	LD	A,(TF000H)		; set to 1 if feather was used.
 T47DBh	A7......  ....	AND	A	
 T47DCh	202F....  ./..	JR	NZ,02Fh			; Jump to 0480DH: use_feather
-T47DEh	CDC99A..  ....	CALL	try_halo	; set carry if halo was used.
+T47DEh	CDC99A..  ....	CALL	try_halo		; set carry if halo was used.
 T47E1h	303B....  0;..	JR	NC,03Bh			; Jump to 0481EH: normal_item_screen
 ; Halo is used; see if we are in a world (so "CASTLE!" must be printed).
 T47E3h	3A41E0..  :A..	LD	A,(WorldNumber)
@@ -1223,8 +1230,8 @@ T47ECh	CD384D..  .8M.	CALL	set_sprite_0_y_to_0xd0
 T47EFh	CD474D..  .GM.	CALL	clear_sprites_04_to_10h
 T47F2h	CD8052..  ..R.	CALL	clear_ec80
 T47F5h	CD2A47..  .*G.	CALL	T472AH	
-T47F8h	3EFA....  >...	LD	A,0FAh	
-T47FAh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound/music.
+T47F8h	3EFA....  >...	LD	A,0FAh			; A = 0xFA
+T47FAh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFA (enter room with boss sound)
 T47FDh	3E78....  >x..	LD	A,078h	
 T47FFh	3204E0..  2...	LD	(delay),A
 T4802h	3E02....  >...	LD	A,002h	
@@ -1441,8 +1448,8 @@ T499Bh	AF......  ....	XOR	A			; Clear A and F
 T499Ch	3215E6..  2...	LD	(TE615H),A
 T499Fh	3220E0..  2...	LD	(TE020H),A
 T49A2h	CDB049..  ..I.	CALL	screenlock
-T49A5h	3E81....  >...	LD	A,081h	
-T49A7h	CD1F4E..  ..N.	CALL	T4E1FH	
+T49A5h	3E81....  >...	LD	A,081h			; A = 0x81
+T49A7h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x81 (flicker screen when boss appears sound)
 T49AAh	CD619F..  .a..	CALL	T9F61H	
 T49ADh	C35E43..  .^C.	JP	inc_substate
 
@@ -1455,11 +1462,19 @@ T49B9h	C9......  ....	RET
 state_11:	; end demo
 T49BAh	78......  x...	LD	A,B	
 T49BBh	CD4041..  .@A.	CALL	switch	
-defw 0x49d0, 0x49da, 0x49e5, 0x49f0, 0x49f9, 0x4a1e, 0x4a35, 0x4a51, 0x4a62
+defw 0x49d0	;; T49BE
+defw 0x49da	;; T49C0
+defw 0x49e5	;; T49C2
+defw 0x49f0	;; T49C4
+defw 0x49f9	;; T49C6
+defw 0x4a1e	;; T49C8
+defw 0x4a35	;; T49CA
+defw 0x4a51	;; T49CC
+defw 0x4a62	;; T49CE
 
 state_11_0:
-T49D0h	3EFF....  >...	LD	A,0FFh	
-T49D2h	CD1F4E..  ..N.	CALL	T4E1FH	
+T49D0h	3EFF....  >...	LD	A,0FFh			; A = 0xFF
+T49D2h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xff (fadeout???)
 T49D5h	3E28....  >(..	LD	A,028h	
 T49D7h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
@@ -1794,8 +1809,8 @@ T4C2Ah	CB47....  .G..	BIT	0,A
 T4C2Ch	CCCB43..  ..C.	CALL	Z,T43CBH
 T4C2Fh	2125E0..  !%..	LD	HL,0E025h
 T4C32h	34......  4...	INC	(HL)			;
-T4C33h	AF......  ....	XOR	A			; Clear A and F
-T4C34h	CD1F4E..  ..N.	CALL	T4E1FH	
+T4C33h	AF......  ....	XOR	A			; A = 0, F = 0
+T4C34h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x00 (silence?)
 T4C37h	CDC95C..  ..\.	CALL	T5CC9H	
 T4C3Ah	C3F142..  ..B.	JP	T42F1H		
 ; }}}
@@ -1861,7 +1876,7 @@ read_controls:
 ;;    +---------> 0: Arabic or kana mode display lamp on
 ;;                1: Arabic or kana mode display lamp off
 ;;
-;; E-0x8F, so apparently we want this:
+;; E==0x8F, so apparently we want this:
 ;; b0==1: 6th pin output/Joyport A
 ;; b1==1: 7th pin output/Joyport A
 ;; b2==1: 6th pin output/Joyport B
@@ -1951,12 +1966,12 @@ T4CFEh	C9......  ....	RET
 
 ; Q-Bert in other slot: 
 T4CFFh	210001..  !...	LD	HL,00100h
-T4D02h	2246E0..  "F..	LD	(BCDarrows),HL		; [BD] Coins
+T4D02h	2246E0..  "F..	LD	(BCDarrows),HL		;
 T4D05h	224AE0..  "J..	LD	(BCDkeys),HL
 T4D08h	2248E0..  "H..	LD	(BCDcoins),HL
 T4D0Bh	213030..  !00.	LD	HL,03030h
-T4D0Eh	2252E0..  "R..	LD	(TE052H),HL		; max life
-T4D11h	2256E0..  "V..	LD	(TE056H),HL		; max life
+T4D0Eh	2252E0..  "R..	LD	(TE052H),HL		; Max vitality (VIT) for Aphrodite.
+T4D11h	2256E0..  "V..	LD	(TE056H),HL		; Max vitality (VIT) for Popolon.
 T4D14h	C9......  ....	RET			
 
 ; Knightmare in other slot: 
@@ -2112,7 +2127,7 @@ T4DECh	C9......  ....	RET
 
 # {{{ Part of init1: reset some variables.
 T4DEDh	3EBC....  >...	LD	A,0BCh	
-T4DEFh	32B1E1..  2...	LD	(TE1B1H),A
+T4DEFh	32B1E1..  2...	LD	(TE1B1H),A		; *(0xe1b1) = 0xbc. Enable tone for channel A and C, disable noise.
 T4DF2h	AF......  ....	XOR	A			; Clear A and F
 T4DF3h	32C0E1..  2...	LD	(TE1C0H),A
 T4DF6h	32C1E1..  2...	LD	(TE1C1H),A
@@ -2139,34 +2154,38 @@ T4DFFh	32C5E1..  2...	LD	(TE1C5H),A
 ; 0xE106 = 75
 ; 0xE107 = 60
 T4E02h	AF......  ....	XOR	A			; Clear A and F
-T4E03h	32C7E1..  2...	LD	(TE1C7H),A
-T4E06h	32B0E1..  2...	LD	(TE1B0H),A
-T4E09h	32B2E1..  2...	LD	(TE1B2H),A
-T4E0Ch	32C3E1..  2...	LD	(TE1C3H),A
+T4E03h	32C7E1..  2...	LD	(TE1C7H),A		; 0xe1c7 = 0
+T4E06h	32B0E1..  2...	LD	(TE1B0H),A		; 0xe1b0 = 0
+T4E09h	32B2E1..  2...	LD	(TE1B2H),A		; 0xe1b2 = 0
+T4E0Ch	32C3E1..  2...	LD	(TE1C3H),A		; 0xe1b3 = 0
 T4E0Fh	217560..  !u`.	LD	HL,06075h
-T4E12h	2200E1..  "...	LD	(TE100H),HL
-T4E15h	2202E1..  "...	LD	(TE102H),HL
-T4E18h	2204E1..  "...	LD	(TE104H),HL
-T4E1Bh	2206E1..  "...	LD	(TE106H),HL
+T4E12h	2200E1..  "...	LD	(TE100H),HL		; 0xe100 = 0x6075 (e100 as word)
+T4E15h	2202E1..  "...	LD	(TE102H),HL		; 0xe102 = 0x6075 (e102 as word)
+T4E18h	2204E1..  "...	LD	(TE104H),HL		; 0xe104 = 0x6075 (e104 as word)
+T4E1Bh	2206E1..  "...	LD	(TE106H),HL		; 0xe106 = 0x6075 (e106 as word)
 T4E1Eh	C9......  ....	RET			
 # }}}
 
 ;; This function is sometimes called and sometimes jumped to.
 ;;
-;; It is sound related. SOmething like: play sound id in reg(A).
+;; It is sound related. Something like: play sound id in reg(A).
 T4E1Fh	B7......  ....	OR	A			; Test A
-T4E20h	F2344E..  .4N.	JP	P,T4E34H		; if (A has even number of bits) goto 0x4e34
+T4E20h	F2344E..  .4N.	JP	P,T4E34H		; "jump if plus". if (A & 0x80 == 0) goto 0x4e34. Equivalently: if (A < 0x80) goto 0x4e34.
+;; A >= 0x80: This is a special sound!
 T4E23h	E5......  ....	PUSH	HL			; Save current HL
 T4E24h	2102E0..  !...	LD	HL,0E002h		; HL = 0xe002
 T4E27h	CB76....  .v..	BIT	6,(HL)			; *(0xe002) & 0b01000000
 T4E29h	E1......  ....	POP	HL			;
-T4E2Ah	2008....  ....	JR	NZ,008h			; Jump to 04E34H
+T4E2Ah	2008....  ....	JR	NZ,008h			; if (*(0xe002) & 0x40) Jump to 04E34H
 T4E2Ch	E5......  ....	PUSH	HL			; Save current HL
 T4E2Dh	210DE0..  !...	LD	HL,0E00Dh		; HL = 0xe00d
 T4E30h	CB46....  .F..	BIT	0,(HL)			; *(0xe00d) & 0b00000001
-T4E32h	E1......  ....	POP	HL	
-T4E33h	C0......  ....	RET	NZ		
+T4E32h	E1......  ....	POP	HL			;
+T4E33h	C0......  ....	RET	NZ			; if (*(0xe00d) & 0x01) return. Don't play a sound.
 
+; We can also get here from:
+; T4E20h (jump, when A < 0x80)
+; T4E2Ah (jump, when *(0xe002) & 0x40)
 T4E34h	F3......  ....	DI				; Disable maskable interrupts.
 T4E35h	E5......  ....	PUSH	HL	
 T4E36h	D5......  ....	PUSH	DE	
@@ -2176,13 +2195,13 @@ T4E39h	3AF1F0..  :...	LD	A,(mapping_1)
 T4E3Ch	32F4F0..  2...	LD	(mapping_1_copy),A
 T4E3Fh	3AF2F0..  :...	LD	A,(mapping_2)
 T4E42h	32F5F0..  2...	LD	(mapping_2_copy),A
-T4E45h	3E0D....  >...	LD	A,00Dh	
+T4E45h	3E0D....  >...	LD	A,00Dh			; A = 0xD (D is a sound related page)
 T4E47h	320060..  2.`.	LD	(T6000H),A
-T4E4Ah	3C......  <...	INC	A			;
+T4E4Ah	3C......  <...	INC	A			; A = 0xE (E is a sound related page)
 T4E4Bh	320080..  2...	LD	(T8000H),A
 T4E4Eh	F1......  ....	POP	AF	
 T4E4Fh	F5......  ....	PUSH	AF	
-T4E50h	CD6B4E..  .kN.	CALL	T4E6BH	
+T4E50h	CD6B4E..  .kN.	CALL	T4E6BH			; play_sound_id_in_reg_A
 T4E53h	3AF4F0..  :...	LD	A,(mapping_1_copy)
 T4E56h	32F1F0..  2...	LD	(mapping_1),A
 T4E59h	320060..  2.`.	LD	(T6000H),A
@@ -2194,7 +2213,7 @@ T4E66h	C1......  ....	POP	BC
 T4E67h	D1......  ....	POP	DE	
 T4E68h	E1......  ....	POP	HL	
 T4E69h	FB......  ....	EI				; Enable interrupts.
-T4E6Ah	C9......  ....	RET			
+T4E6Ah	C9......  ....	RET				; Return, unconditionally.
 
 
 
@@ -2204,7 +2223,7 @@ T4E6Ah	C9......  ....	RET
 ; registers and mappers saved and restored.
 ;
 ; Mappers are forced to pages 0xD (13) and 0xE (14) for this call. Those 
-; are (probably) the music data pages.
+; are the music/sound data pages.
 ;
 ; register A: sound to play (0x00 means no sound)
 
@@ -2268,17 +2287,23 @@ T4E84h	1804....  ....	JR	004h		; Jump to 04E8AH
 T4E86h	AF......  ....	XOR	A		; Clear A and F
 T4E87h	32CBE1..  2...	LD	(TE1CBH),A	; *(0xE1CB) = 0x00
 ; We can also get here by a jump from T4E7Dh (with A==0x01).
-T4E8Ah	3AC7E1..  :...	LD	A,(TE1C7H)	; A = *(0xE1C7) ?get (previous?) sound id?
+T4E8Ah	3AC7E1..  :...	LD	A,(TE1C7H)	; A = *(0xE1C7) ?get (previous?current?) sound id?
+# {{{ Initialize channel A memory: Copy 0x1B bytes from 0x4EF7 to 0xE10C.
 T4E8Dh	110CE1..  ....	LD	DE,0E10Ch
 T4E90h	21F74E..  !.N.	LD	HL,04EF7h
 T4E93h	011B00..  ....	LD	BC,0001Bh
-T4E96h	EDB0....  ....	LDIR			; Copy 0x1B bytes from 0x4EF7 to 0xE10C. Channel A?
+T4E96h	EDB0....  ....	LDIR
+# }}}
+# {{{ Initialize channel B memory: Copy 0x1B bytes from 0x4EF7 to 0xE127.
 T4E98h	21F74E..  !.N.	LD	HL,04EF7h
 T4E9Bh	011B00..  ....	LD	BC,0001Bh
-T4E9Eh	EDB0....  ....	LDIR			; Copy 0x1B bytes from 0x4EF7 to 0xE127. Channel B?
+T4E9Eh	EDB0....  ....	LDIR
+# }}}
+# {{{ Initialize channel C memory: Copy 0x1B bytes from 0x4EF7 to 0xE142.
 T4EA0h	21F74E..  !.N.	LD	HL,04EF7h
 T4EA3h	011B00..  ....	LD	BC,0001Bh
-T4EA6h	EDB0....  ....	LDIR			; Copy 0x1B bytes from 0x4EF7 to 0xE142. Channel C?
+T4EA6h	EDB0....  ....	LDIR
+# }}}
 T4EA8h	E67F....  ....	AND	07Fh		; Remove bit 7 (remove most significant bit).
 T4EAAh	07......  ....	RLCA			; A *= 2 (?since carry is zero?)
 T4EABh	5F......  _...	LD	E,A		; E = A
@@ -2314,13 +2339,16 @@ T4EC8h	56......  V...	LD	D,(HL)
 T4EC9h	ED5342E1  .SB.	LD	(TE142H),DE
 # }}}
 T4ECDh	210B61..  !.a.	LD	HL,0610Bh
-T4ED0h	2200E1..  "...	LD	(TE100H),HL
+T4ED0h	2200E1..  "...	LD	(TE100H),HL		; Channel A must execute code at 0x610B.
+
 T4ED3h	211261..  !.a.	LD	HL,06112h
-T4ED6h	2202E1..  "...	LD	(TE102H),HL
+T4ED6h	2202E1..  "...	LD	(TE102H),HL		; Channel B must execute code at 0x6112.
+
 T4ED9h	211961..  !.a.	LD	HL,06119h
-T4EDCh	2204E1..  "...	LD	(TE104H),HL
+T4EDCh	2204E1..  "...	LD	(TE104H),HL		; Channel C must execute code at 0x6119.
+
 T4EDFh	3AB2E1..  :...	LD	A,(TE1B2H)
-T4EE2h	E6FD....  ....	AND	0FDh	
+T4EE2h	E6FD....  ....	AND	0FDh			; 0xFD = 1111 1101, i.e. clear bit 1.
 T4EE4h	32B2E1..  2...	LD	(TE1B2H),A
 
 ; We can jump from T5011h to here.
@@ -2332,29 +2360,36 @@ T4EF1h	3E07....  >...	LD	A,007h			;
 T4EF3h	32C2E1..  2...	LD	(TE1C2H),A		; *(0xE1C2) = 0x07
 T4EF6h	C9......  ....	RET			
 
-; Data
+; Initial data for channel A, B and C.
+; 
 ; Copied during T4F33h from here to 0E193h, 0x1B bytes
-T4EF7h	00......  ....	NOP		
-T4EF8h	00......  ....	NOP		
-T4EF9h	010000..  ....	LD	BC,00000h
-T4EFCh	00......  ....	NOP		
-T4EFDh	00......  ....	NOP		
-T4EFEh	00......  ....	NOP		
-T4EFFh	00......  ....	NOP		
-T4F00h	010000..  ....	LD	BC,00000h
-T4F03h	00......  ....	NOP		
-T4F04h	00......  ....	NOP		
-T4F05h	010100..  ....	LD	BC,00001h
-T4F08h	00......  ....	NOP		
-T4F09h	00......  ....	NOP		
-T4F0Ah	00......  ....	NOP		
-T4F0Bh	00......  ....	NOP		
-T4F0Ch	00......  ....	NOP		
-T4F0Dh	00......  ....	NOP		
-T4F0Eh	00......  ....	NOP		
-T4F0Fh	00......  ....	NOP		
-T4F10h	00......  ....	NOP		
-T4F11h	00......  ....	NOP		
+defb 0x00	; T4EF7h
+defb 0x00	; T4EF8h
+defb 0x01	; T4EF9h
+defb 0x00	; T4EFAh
+defb 0x00	; T4EFBh
+defb 0x00	; T4EFCh
+defb 0x00	; T4EFDh
+defb 0x00	; T4EFEh
+defb 0x00	; T4EFFh
+defb 0x01	; T4F00h
+defb 0x00	; T4F01h
+defb 0x00	; T4F02h
+defb 0x00	; T4F03h
+defb 0x00	; T4F04h
+defb 0x01	; T4F05h
+defb 0x00	; T4F06h
+defb 0x00	; T4F07h
+defb 0x00	; T4F08h
+defb 0x00	; T4F09h
+defb 0x00	; T4F0Ah
+defb 0x00	; T4F0Bh
+defb 0x00	; T4F0Ch
+defb 0x00	; T4F0Dh
+defb 0x00	; T4F0Eh
+defb 0x00	; T4F0Fh
+defb 0x00	; T4F10h
+defb 0x00	; T4F11h
 
 ; We can jump to here from 0x4E75.
 T4F12h	4F......  O...	LD	C,A			; C = A, save A
@@ -2482,7 +2517,7 @@ T5011h	C3E74E..  ..N.	JP	T4EE7H
 T5014h	AF......  ....	XOR	A			; Clear A and F
 T5015h	32C9E1..  2...	LD	(TE1C9H),A
 T5018h	3AB2E1..  :...	LD	A,(TE1B2H)
-T501Bh	E6FE....  ....	AND	0FEh	
+T501Bh	E6FE....  ....	AND	0FEh			; 0xFE = 1111 1110, i.e. clear bit 0.
 T501Dh	32B2E1..  2...	LD	(TE1B2H),A
 T5020h	3AB3E1..  :...	LD	A,(TE1B3H)
 T5023h	32C0E1..  2...	LD	(TE1C0H),A
@@ -2495,23 +2530,23 @@ T5035h	32C2E1..  2...	LD	(TE1C2H),A
 T5038h	3AB7E1..  :...	LD	A,(TE1B7H)
 T503Bh	5F......  _...	LD	E,A	
 T503Ch	AF......  ....	XOR	A			; Clear A and F
-T503Dh	CD9300..  ....	CALL	T0093H	
+T503Dh	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set LSB of frequency divider of channel A to *(0xE1B7).
 T5040h	3AB8E1..  :...	LD	A,(TE1B8H)
 T5043h	5F......  _...	LD	E,A	
 T5044h	3E01....  >...	LD	A,001h	
-T5046h	CD9300..  ....	CALL	T0093H	
+T5046h	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set MSB of frequency divider of channel A to *(0xE1B8).
 T5049h	3AB9E1..  :...	LD	A,(TE1B9H)
 T504Ch	5F......  _...	LD	E,A	
 T504Dh	3E08....  >...	LD	A,008h	
-T504Fh	CD9300..  ....	CALL	T0093H	
+T504Fh	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set volume of channel A to *(0xE1B9).
 T5052h	3ABAE1..  :...	LD	A,(TE1BAH)
 T5055h	5F......  _...	LD	E,A	
 T5056h	3E09....  >...	LD	A,009h	
-T5058h	CD9300..  ....	CALL	T0093H	
+T5058h	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set volume of channel B to *(0xE1BA).
 T505Bh	3ABBE1..  :...	LD	A,(TE1BBH)
 T505Eh	5F......  _...	LD	E,A	
 T505Fh	3E0A....  >...	LD	A,00Ah	
-T5061h	C39300..  ....	JP	T0093H		
+T5061h	C39300..  ....	JP	T0093H			; BIOS CALL WRTPSG: set volume of channel C to *(0xE1BB).
 
 T5064h	3AB2E1..  :...	LD	A,(TE1B2H)
 T5067h	F602....  ....	OR	002h	
@@ -2527,15 +2562,15 @@ T507Ah	1805....  ....	JR	005h			; Jump to 05081H
 T507Ch	3AB1E1..  :...	LD	A,(TE1B1H)
 T507Fh	F61B....  ....	OR	01Bh	
 T5081h	32B1E1..  2...	LD	(TE1B1H),A
-T5084h	AF......  ....	XOR	A			; Clear A and F
-T5085h	CD9600..  ....	CALL	T0096H	
+T5084h	AF......  ....	XOR	A			; A = 0
+T5085h	CD9600..  ....	CALL	T0096H			; BIOS CALL RDPSG: read LSB of frequency divider of channel A.
 T5088h	32BDE1..  2...	LD	(TE1BDH),A
 T508Bh	3E01....  >...	LD	A,001h	
-T508Dh	CD9600..  ....	CALL	T0096H	
+T508Dh	CD9600..  ....	CALL	T0096H			; BIOS CALL RDPSG: read MSB of frequency divider of channel A.
 T5090h	32BEE1..  2...	LD	(TE1BEH),A
 T5093h	3E08....  >...	LD	A,008h	
 T5095h	CD9600..  ....	CALL	T0096H	
-T5098h	32BFE1..  2...	LD	(TE1BFH),A
+T5098h	32BFE1..  2...	LD	(TE1BFH),A		; BIOS CALL RDPSG: read volume of channel A.
 T509Bh	219E64..  !.d.	LD	HL,0649Eh
 T509Eh	2208E1..  "...	LD	(TE108H),HL
 T50A1h	1178E1..  .x..	LD	DE,0E178h
@@ -2550,8 +2585,9 @@ T50B3h	3AB2E1..  :...	LD	A,(TE1B2H)
 T50B6h	CB4F....  .O..	BIT	1,A	
 T50B8h	C8......  ....	RET	Z		
 
+; ?Play shadow channel A?
 T50B9h	3AB2E1..  :...	LD	A,(TE1B2H)
-T50BCh	E6FD....  ....	AND	0FDh	
+T50BCh	E6FD....  ....	AND	0FDh			; 0xFD = 1111 1101, i.e. clear bit 1.
 T50BEh	32B2E1..  2...	LD	(TE1B2H),A
 T50C1h	3AB0E1..  :...	LD	A,(TE1B0H)
 T50C4h	B7......  ....	OR	A	
@@ -2569,15 +2605,17 @@ T50D8h	32B1E1..  2...	LD	(TE1B1H),A
 T50DBh	3ABDE1..  :...	LD	A,(TE1BDH)
 T50DEh	5F......  _...	LD	E,A	
 T50DFh	AF......  ....	XOR	A			; Clear A and F
-T50E0h	CD9300..  ....	CALL	T0093H	
+T50E0h	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set LSB of frequency divider of channel A to *(0xE1BD).
 T50E3h	3ABEE1..  :...	LD	A,(TE1BEH)
 T50E6h	5F......  _...	LD	E,A	
 T50E7h	3E01....  >...	LD	A,001h	
-T50E9h	CD9300..  ....	CALL	T0093H	
-T50ECh	3ABFE1..  :...	LD	A,(TE1BFH)
-T50EFh	5F......  _...	LD	E,A	
-T50F0h	3E08....  >...	LD	A,008h	
-T50F2h	C39300..  ....	JP	T0093H		
+T50E9h	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set MSB of frequency divider of channel A to *(0xE1BE).
+T50ECh	3ABFE1..  :...	LD	A,(TE1BFH)		; Get volume
+T50EFh	5F......  _...	LD	E,A			; Volume level
+T50F0h	3E08....  >...	LD	A,008h			; Volume register
+T50F2h	C39300..  ....	JP	T0093H			; BIOS CALL WRTPSG: set volume of channel A to *(0xE1BF).
+
+
 
 T50F5h	3AC0E1..  :...	LD	A,(TE1C0H)
 T50F8h	B7......  ....	OR	A	
@@ -2708,8 +2746,8 @@ T520Fh	B7......  ....	OR	A
 T5210h	C8......  ....	RET	Z		
 
 T5211h	3600....  6...	LD	(HL),000h
-T5213h	3EFC....  >...	LD	A,0FCh	
-T5215h	C31F4E..  ..N.	JP	T4E1FH		
+T5213h	3EFC....  >...	LD	A,0FCh			; A = 0xFC
+T5215h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0xFC (pickup great key in castle sound?)
 
 T5218h	CD7945..  .yE.	CALL	T4579H	
 T521Bh	C2B049..  ..I.	JP	NZ,screenlock
@@ -4199,7 +4237,6 @@ T5C9Ah	10FB....  ....	DJNZ	0FBh			; Jump to 05C97H
 T5C9Ch	C1......  ....	POP	BC	
 T5C9Dh	C9......  ....	RET			
 
-
 T5C9Eh	3A1DE0..  :...	LD	A,(TE01DH)
 T5CA1h	B7......  ....	OR	A	
 T5CA2h	C8......  ....	RET	Z		
@@ -4207,13 +4244,13 @@ T5CA2h	C8......  ....	RET	Z
 T5CA3h	CDF550..  ..P.	CALL	T50F5H	
 T5CA6h	C0......  ....	RET	NZ		
 
-T5CA7h	F3......  ....	DI		
+T5CA7h	F3......  ....	DI				; Disable interrupts
 T5CA8h	211EE0..  !...	LD	HL,0E01Eh
 T5CABh	7E......  ~...	LD	A,(HL)	
 T5CACh	2D......  -...	DEC	L	
 T5CADh	3600....  6...	LD	(HL),000h
 
-T5CAFh	F3......  ....	DI				; ...?
+T5CAFh	F3......  ....	DI				; Disable interrupts
 T5CB0h	2121E0..  !!..	LD	HL,0E021h
 T5CB3h	3600....  6...	LD	(HL),000h
 T5CB5h	47......  G...	LD	B,A	
@@ -4222,8 +4259,8 @@ T5CB8h	FE05....  ....	CP	005h
 T5CBAh	78......  x...	LD	A,B	
 T5CBBh	3802....  8...	JR	C,002h			; Jump to 05CBFH
 T5CBDh	3601....  6...	LD	(HL),001h
-T5CBFh	CD1F4E..  ..N.	CALL	T4E1FH	
-T5CC2h	FB......  ....	EI		
+T5CBFh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id *(0xe01e)
+T5CC2h	FB......  ....	EI				; Enable interrupts
 T5CC3h	C9......  ....	RET			
 
 T5CC4h	CDC95C..  ..\.	CALL	T5CC9H	
@@ -4274,8 +4311,8 @@ T5D06h	C8......  ....	RET	Z
 T5D07h	CD1A5D..  ..].	CALL	T5D1AH	
 T5D0Ah	F3......  ....	DI		
 T5D0Bh	F5......  ....	PUSH	AF	
-T5D0Ch	3EFA....  >...	LD	A,0FAh	
-T5D0Eh	CD1F4E..  ..N.	CALL	T4E1FH	
+T5D0Ch	3EFA....  >...	LD	A,0FAh			; A = 0xFA
+T5D0Eh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0xFA (enter room with boss sound?)
 T5D11h	F1......  ....	POP	AF	
 T5D12h	67......  g...	LD	H,A	
 T5D13h	2E01....  ....	LD	L,001h	
@@ -4330,8 +4367,8 @@ T5D5Eh	C8......  ....	RET	Z
 T5D5Fh	13......  ....	INC	DE			;
 T5D60h	B8......  ....	CP	B	
 T5D61h	20F9....  ....	JR	NZ,0F9h			; Jump to 05D5CH
-T5D63h	3E28....  >(..	LD	A,028h	
-T5D65h	C31F4E..  ..N.	JP	T4E1FH		
+T5D63h	3E28....  >(..	LD	A,028h			; A = 0x28
+T5D65h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x28 (sound for???)
 
 T5D68h	2A0EE6..  *...	LD	HL,(TE60EH)
 T5D6Bh	CB46....  .F..	BIT	0,(HL)	

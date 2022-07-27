@@ -5,7 +5,17 @@ d000
 e000
 	e000	state
 	e001	substate
-	e002	seen at T4E24h
+	e002	seen at T4E24h, sound related
+		bit 0
+		bit 1
+		bit 2
+		bit 3
+		bit 4
+		bit 5
+		bit 6: Related to sound IDs with 0x80 bit set
+		bit 7
+	e003	seen at 0xB86D
+	e006:	Lock for preventing simultaneous stuff, in interrupt hook.
 	e009:
 		&0x01 (bit 0): Pressed key up
 		&0x02 (bit 1): Pressed key down
@@ -28,9 +38,23 @@ e000
 		0x4c6b (page 1+2+3)
 		0x4C75: "read_controls": keyboard and joystick are read
 		0x4C68: "store_controls": write state of controls to 0xE009
+	e00d:
+		bit 0: Sound related. set: muted?paused?Don't play sounds? T4E2Dh
+		bit 1:
+		bit 2:
+		bit 3:
+		bit 4:
+		bit 5:
+		bit 6:
+		bit 7:
 	e00e:	Involved in building Konami logo line by line
-	e00f:	Involved in building Konami logo line by line	
+	e00f:	Involved in building Konami logo line by line
+	e01d:	Seen at 0x5C9E
+	e01e:	Seen at 0x5CA8: current sound id?
+	e021:	Seen at 0x5CB0
 	e041-e042: current world (1=castle) and current room
+	e052:	Maximum vitality possible for Aphrodite. Multiple of 8.
+	e056:	Maximum vitality possible for Popolon. Multiple of 8.
 	e058:
 		When F1 is pressed:
 			0: Aphrodite is dead and not choosable
@@ -42,7 +66,7 @@ e000
 		When F1 is pressed:
 			0: Popolon is dead and not choosable
 			1: Popolon is alive and choosable
-		During gameplay:
+		During gameplay:-
 			0: ?
 			1: ?Popolon is still alive?
 	e063-e06c: World bits/items
@@ -92,15 +116,244 @@ e000
 		e0c6-e0c7: (ID 0C) room 0x85
 	e0d4: seen at 0x4BC6
 		?world key is visible?
-	e106-e107: seen at 0x4F4E
-		vase: "A5 64" (0x64A5)
-	e10c: sound/tune/melody related timer
+	e100-e107:
+		Sound execution/code refs
+				Castle	GrtKey	Lad2Wld	World1
+		e100-e101:	0x610B	0x610B	0x610B	0x610B
+		e102-e103:	0x6112	0x6112	0x6112	0x6112
+		e104-e105:	0x6119	0x6098	0x6098	0x6119
+		
+		e106-e107 (shadow channel A?):
+			seen at 0x4F4E
+				vase:		"A5 64" (0x64A5)
+				landing:	"A5 64" (0x64A5)
+		e108-e109 (shadow channel B?):
+			seen at 0x60A0
+		e10a-e10b (shadow channel C?):
+			seen at 0x6099
+	e10c/e127/e142/e15d/e178:
+		0xE10C - 0xE126: Channel A
+		0xE127 - 0xE141: Channel B
+		0xE142 - 0xE15C: Channel C
+		0xE15D - 0xE177: Channel ??? (seen at 0x64A5)
+		0xE178 - 0xE192: Channel ??? (seen at 0x649E)
+		
+		+00,+01 e10c,e10d / 0xe127,0xe128 / 0xe142,0xe143:
+			Pointer to "opcode" (usually tone or octave setting).
+			0x7F40: Start of Channel A for pressed space to begin game.
+			0x805C: Start of Channel B for main castle tune.
+			0x81EB: End   of Channel B for main castle tune.
+			
+			?Governed by 0x61A2 (page D)?
+			?Governed by 0x6191 (page D) for pressed space tune?
+			
+			*pointer >= 0xd0: special (see 0x619A)
+			*pointer >= 0xc0: special (see 0x61A7)
+			?Else *pointer is duration of note? (without duration factor and *e1c5)
+		+02 e10e: bits
+			0:
+				0x6136: Tested
+				0x61E0: Tested
+			1:
+				0x61E0: Set
+			2:
+				0x612C: Set
+				0x6159: Tested
+			3
+			4
+			5:
+				0x616F: Tested
+				0x61DC: Cleared
+			6: Increment frequency divider by 1?
+				0x6247: Tested
+					If set: Increment frequency divider by 1 (inc DE).
+				0x6402: Set
+			7: 1: End of sound definition (0xFF seen)
+				0x6174: Tested
+				0x7188: Set
+				0x62A8: Cleared (page 13)
+		+03, e10f:
+			?Duration factor?
+			0x06: Seen in main castle theme
+		+04 e110:
+			Seen at 0x6382 (page 0xD)
+		+05 e111:
+			Seen at 0x61B1, 0x638D
+		+06 e112:
+			Seen at 0x6394
+		+07 e113: Octave
+		+08 e114: Sound opcode?
+			0x01: Special, see 0x627F, HL -> 0x65A7
+			0x02: Special, see 0x6283, HL -> 0x65BF
+			0x03: Special, see 0x6287, HL -> 0x65D7
+			0x04: Special, see 0x628B, HL -> 0x65EF
+			0x05: Special, see 0x628F, HL -> 0x6607
+			Otherwise:                 HL -> 0x661F
+		+09 e115:
+			Number of VDP ticks left for the current note.
+			Counts down to zero.
+			0x61CA: Set
+		+0a e116:
+			Volume (0x00-0x0F)
+			Value 0x10 (bit 4) is a special case in the PSG:
+			0: Nothing special, just the volume as expected.
+			1: The volume will vary in proportion to the 
+			   envelope shape defined by PSG register 13.
+			
+			bit 4: Seen at 0x6578 (page 13)
+			bit 4: Seen at 0x64EF (page 13)
+		+0b e117:
+			Seen at 0x6147
+		+0c,0d e118,e119 / e133,134 / e14e,e14f / e167,e168 / e184,e185:
+			pointer into sample.
+			Main castle theme channel A: 0x7204
+			Main castle theme channel B:
+				0x7271 (mainly)
+				0x6663
+				0x6667
+				0x6669
+				0x666B
+				0x666D
+				0x666F
+				0x6671
+				0x6673
+				0x6675
+				0x6677
+				0x6679
+				0x667B
+				0x667D
+				0x667F
+				0x6681
+				0x6683
+				0x6685
+				0x6687
+				0x6689
+				0x668B
+				0x668D
+				0x668F
+				0x6691
+			Main castle theme channel C:
+				0x6EE5
+				0x6637
+				0x663C (noise?)
+				0x663D
+				0x6642
+				0x6647 (noise?)
+				
+		+0e e11a: 0x01 all the time?
+		+0f e11b: 0x01 all the time?
+		+10 e11c:
+			Seen at 0x6361
+		+11 e11d: Seen at 0x6530,0x6547
+		+12,13 e11e,e11f:
+			Seen at 0x6421,0x6422
+		+14 e120: MSB of frequency divider value (4 bit) "note"
+		+15 e121: LSB of frequency divider value (8 bit) "note"
+		+16 e122: Seen at 0x613D,0x640B
+			0: decrease frequency?
+		+17 e123: Seen at 0x6410,0x645D
+			low nybble: increase frequency divisor, decrease frequency
+		+18 e124: Seen at 0x6467
+		+19 e125: Seen at 0x647A
+		+1a e126: play sound if 0?
 	e15d-e177: seen at 0x4F39
 	e169-e170: seen at 0x4F47
-		vase: "7D 7C" (0x7C7D)
-	e1b0: seen at 0x4F18
-	e1c3: seen at 0x4F13
-	e1c7: ?last/previous sound?
+		vase: "7D 7C" (0x7C7D) - pointer to sound definition?
+	e1ae: PSG channel selector/picker/chooser.
+		0x00:	Operate on channel A (PSG register 0+1, frequency divider registers for channel A)
+		0x01:	Operate on channel B (PSG register 2+3, frequency divider registers for channel B)
+		0x02:	Operate on channel C (PSG register 4+5, frequency divider registers for channel C)
+	e1af: Sound related
+		Possibly indicates which channel is handled currently.
+		0x00:	During pauze
+		0x01:	Seen at 0x6070 (page D), not observed with ram_watch (?too short?)
+		0x02:	Twitchy during ram_watch
+		0x03:	Most of the time
+		0x04:	Noise?
+		
+		Seen at 0x6434 where it is a loop counter for rotating 0x7f
+			0: 0x7F => 0xFE (1111 1110) ?PSG reg7, i.e. enable channel A?
+			1: 0x7F => 0xFD (1111 1101) ?PSG reg7, i.e. enable channel B?
+			2: 0x7F => 0xFB (1111 1011) ?PSG reg7, i.e. enable channel C?
+                        
+			3: 0x7F => 0xF7 (1111 0111)
+			4: 0x7F => 0xEF (1110 1111)
+			5: 0x7F => 0xDF (1101 1111)
+			6: 0x7F => 0xBF (1011 1111)
+			7: 0x7F => 0x7F (0111 1111)
+	e1b0: seen at 0x4F18,0x607E,0x6125, related to 0xe1af
+	e1b1: Input for PSG register 7 (selecting tone or noise).
+              Used in interrupt hook as first action.
+                        ,---------- PSG I/O port B, must be 1
+                        |,--------- PSG I/O port A, must be 0
+                        || ,------- 1 == disable noise for channel C
+                        || |,------ 1 == disable noise for channel B
+                        || ||,----- 1 == disable noise for channel A
+                        || ||| ,--- 1 == disable tone  for channel C
+                        || ||| |,-- 1 == disable tone  for channel B
+                        || ||| ||,- 1 == disable tone  for channel A
+		0xB8 == 10 111 000: noise xxx, tone ABC - during main theme
+		0xBC == 10 111 100: noise xxx, tone ABx - T4DEFh (inside some sort of init routine)
+		0xBE == 10 111 110: noise xxx, tone Axx - during pauze
+		0x9C == 10 011 100: noise xxC, tone ABx - during main theme
+	e1b2: seen at 0x600D
+		bit 0: ?use shadow channel at 0xe10a, shadow channel C?
+			Set at 0x4F8F
+			Cleared at 0x501B
+			Tested at 0x6010
+		bit 1: ?use shadow channel at 0xe108, shadow channel B?
+			Set at 0x5067
+			Tested at 0x50b3
+			Tested at 0x6015 (page d)
+			Cleared at 0x4ee2 (page 0)
+			Cleared at 0x50bc
+			
+			0x50b9: specific code for if bit is set.
+	e1b7: Value for PSG register   0 (channel A, frequency divider, LSB)
+	e1b8: Value for PSG register   1 (channel A, frequency divider, MSB)
+	e1b9: Value for PSG register   8 (channel A, volume)
+	e1ba: Value for PSG register   9 (channel B, volume)
+	e1bb: Value for PSG register 0xa (channel C, volume)
+	e1c0: seen at 0x6049, 0x601A
+	e1c1: seen at 0x6028, 0x6506
+	e1c2: seen at 0x643F
+		Wanted value for PSG reg 7? Enable noise/tone, inverse logic.
+	e1c3: seen at 0x4F13 (page 0), 0x63F5, 0x63FC (page 13)
+	e1c4: seen at 0x6040
+	e1c5:
+		seen at 0xBCBD (page 0x3, stored/computed)
+		seen at 0x61B1 (page 13)
+	e1c6: seen at 0x615E
+	e1c7: ?last/previous/current sound?
+		0x00: quiet?
+		0x81: after entering "YOMAR" in world 1 in boss room (flickering screen).
+		0x82: at entering world 1 (going up the ladder in the castle)
+		0x82:
+			at leaving world 1 (going down the ladder in the castle)
+			Entering a shrine
+			Leaving a shrine
+		0x83:
+			special: explicit compare at 0x4e7b
+			when fairy appears
+		0x84: boss is defeated?
+		0x85: at pickup of great key in castle
+		0x86: at start of story
+		0x87: after space pressed when game says "push space key"
+		0x88: in castle (also during demo, also after leaving a world)
+		0x89: touched fairy
+		0x8A: in world 1
+		0x8B: victory sound?
+		0x8C: ominous sound
+		0x8D: Inside shrine
+		0x8E: at start of screen: "World 1 !!"
+		0x8F: at entering boss room in world 1
+		0x90: when YOMAR is about to appear (gas clouds)
+		0x91: ctrl pressed? bible?
+		0x92: ?
+		0x93: ?
+		0x94: When Popolon/Aphrodite dies
+		0x95: Game over
+	e1c9: seen at 0x6164
 	e4a0-e4ff: vertical elevator info; 06 records:
 		0 elevator id
 		1 current room
@@ -204,6 +457,7 @@ e000
 		00: Not on ladder? Don't increment counter e50b?
 		01: On ladder, climbing up
 		02: On ladder, climbing down
+	e516: Has something to do with disappearing ladder on which side the player is facing.
 	e525: Has something to do with disappearing ladder. Used the ladder?
 	e52e:
 		00: No arrow pressed?
@@ -260,6 +514,7 @@ e000
 		0: Vase is not visible (room 0x28)
 		1: Vase should become visible (room 0x28). Set to 1 at 0xA04B, after seeing VaseState==9.
 	e604: Counter. Starts counting from 0x00 upwards, upon entering a room.
+	e608: seen at 0xB869
 	e60c-e60d: address of some info about current room; 1 bit each.
 	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
 	e611: flag: 1 = all enemies need to be killed. 0 = no killall specials.
@@ -267,6 +522,7 @@ e000
 	e613: enemy counter during room setup, to index bits (for show/hide) in *e60c.
 	e614: some room property based on table (2 bits per room) at ba2e. Can be 0, 1 or 2.
 	e61c: ?Sabre visible/appeared in sabre room?
+	e61e: ?Touched fairy?
 	e620: number of enemies in this room
 	e621: used during enemy setup
 	e622: number of enemies to kill before special happens, or 0.
@@ -291,9 +547,15 @@ e000
 	e680: god id of shrine in this room
 	e688: marker(?) for world door
 	e68c: world door state (closed; opening; open)
+	e68d-e68e: related to opening world door (T9A1Dh)
 	e690: god id of shrine you're standing in
 	e691: shopping substate?
 	e692: position of selector in shop
+	e693: T90BCh (page 1/2/3)
+	e694: T90B2h (page 1/2/3)
+	e700: Index for table at 0x7F97 (page 1/2/3), 1 based. (So 0x7F98 is we make it 0 based.)
+	e710: Sound related. Related to e700.
+	e71d: Sound related.
 	e740: item id that is in current room
 
 	e742-e743: Y and X position of item, not a screenbuffer location 
@@ -369,23 +631,28 @@ e000
 			0100 0000
 			1000 0000:
 		ec07: 00: hasn't disappeared, 01: disappeared	00	00	00	00	00	00	00	00	00	00	00	00	00
-		ec20-ec30: horizontal elevator info
-			00: enabled
-			01: room number (always the current room)
-			02: 0
-			03: elevator id
-			04: 0
-			05: current Y (does not change)
-			06: 0
-			07: current X; initial is minimum
-			08: Y step per frame (always 0)
-			09: X step per frame (02 or fe)
-			0a: -
-			0b: -
-			0c: 0
-			0d: minimum X
-			0e: 0
-			0f: maximum X
+	ec20-ec30: horizontal elevator info
+		00: enabled
+		01: room number (always the current room)
+		02: 0
+		03: elevator id
+		04: 0
+		05: current Y (does not change)
+		06: 0
+		07: current X; initial is minimum
+		08: Y step per frame (always 0)
+		09: X step per frame (02 or fe)
+		0a: -
+		0b: -
+		0c: 0
+		0d: minimum X
+		0e: 0
+		0f: maximum X
 	ec80-ecff: sprite attribute buffer.
+		eca0: seen at 0xB873
 	ed00-efff: screen buffer.
 f000
+	f0f1: wanted page number from 0x6000
+	f0f2: wanted page number from 0x8000
+	f02c: seen at B88A
+	f032: seen at B885
