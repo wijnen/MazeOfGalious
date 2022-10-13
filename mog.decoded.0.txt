@@ -22,25 +22,25 @@ defb 0x07, 0x49, 0xfe, 0x00, 0xe0, 0x04
 defs *
 
 org 0x4030	; table of some addresses; use unknown.
-defw 0xe1c6
-defw 0xe1c7	; RAM address of last/previous/current sound ID.
-defw 0xe1c7	; RAM address of last/previous/current sound ID.
-defw 0xe1c7	; RAM address of last/previous/current sound ID.
-defw 0xe10c	; RAM address, sound channel A related: L
-defw 0xe10d	; RAM address, sound channel A related: H, HL points to sound code.
-defw 0xe127	; RAM address, sound channel B related: L
-defw 0xe128	; RAM address, sound channel B related: H, HL points to sound code.
-defw 0xe142	; RAM address, sound channel C related: L
-defw 0xe143	; RAM address, sound channel C related: H, HL points to sound code.
-defw 0xe1ca
-defw 0xe1c9
-defw 0xe1c8
-defw 0xe1b0
-defw 0xe169	; RAM address, possible related to VASE.
-defw 0xe16a
+defw 0xe1c6	; T4030h
+defw 0xe1c7	; T4032h RAM address of last/previous/current sound ID.
+defw 0xe1c7	; T4034h RAM address of last/previous/current sound ID.
+defw 0xe1c7	; T4036h RAM address of last/previous/current sound ID.
+defw 0xe10c	; T4038h RAM address, sound channel A related: L
+defw 0xe10d	; T403Ah RAM address, sound channel A related: H, HL points to sound code.
+defw 0xe127	; T403Ch RAM address, sound channel B related: L
+defw 0xe128	; T403Eh RAM address, sound channel B related: H, HL points to sound code.
+defw 0xe142	; T4040h RAM address, sound channel C related: L
+defw 0xe143	; T4042h RAM address, sound channel C related: H, HL points to sound code.
+defw 0xe1ca	; T4044h
+defw 0xe1c9	; T4046h
+defw 0xe1c8	; T4048h
+defw 0xe1b0	; T404Ah
+defw 0xe169	; T404Ch RAM address, possible related to VASE.
+defw 0xe16a	; T404Eh
 
 switch_hook:
-T4050h	C34041..  .@A.	JP	switch		
+T4050h	C34041..  .@A.	JP	T4140H_switch
 
 DE=*(HL+2*A)_hook:
 T4053h	C34C41..  .LA.	JP	DE=*(HL+2*A)
@@ -107,6 +107,7 @@ T40A0h	3EC3....  >...	LD	A,0C3h		; 0xC3 is the opcode for "JP".
 T40A2h	329AFD..  2...	LD	(TFD9AH),A	; 0xFD9A is the start of H.KEYI hook.
 T40A5h	21EF40..  !.@.	LD	HL,040EFh	; Set vdp interrupt hook.
 T40A8h	229BFD..  "...	LD	(TFD9BH),HL
+; Post 0xFD9A+0xFD9B+0xFD9C now reads "JP 0x40EF", i.e. jump to our interrupt handler.
 T40ABh	31F0F0..  1...	LD	SP,0F0F0h
 T40AEh	2100E0..  !...	LD	HL,0E000h
 T40B1h	1101E0..  ....	LD	DE,0E001h
@@ -126,6 +127,7 @@ T40D0h	FB......  ....	EI
 # {{{ Main loop (empty)
 T40D1h	18FE....  ....	JR	0FEh		; wait for interrupts.
 # }}}
+
 
 
 PreInit: ; {{{ Find slot of cartridge.
@@ -151,7 +153,12 @@ T40EDh	B1......  ....	OR	C		; bit 7: is_expanded; bit 2-3: subslot; bit 0-1: slo
 T40EEh	C9......  ....	RET			
 # }}}
 
-Interrupt_hook:	; {{{ This is where everything happens.
+
+
+Interrupt_hook:
+; We can get here from:
+;   0xFD9A (H.KEYI hook)
+; {{{ This is where everything happens.
 T40EFh	CD3E01..  .>..	CALL	T013EH		; read VDP status register; clears interrupt.
 T40F2h	F3......  ....	DI			; Disable interupts.
 T40F3h	2106E0..  !...	LD	HL,0E006h	; lock for preventing simultaneous stuff.
@@ -178,39 +185,46 @@ T4121h	2105E0..  !...	LD	HL,0E005h
 T4124h	7E......  ~...	LD	A,(HL)	
 T4125h	B7......  ....	OR	A	
 T4126h	2009....  ....	JR	NZ,009h		; Jump to 04131H: skip bottom half
-T4128h	34......  4...	INC	(HL)		;
+T4128h	34......  4...	INC	(HL)		; *(0xE005) = 1
 T4129h	FB......  ....	EI			; Enable interrupts.
 T412Ah	CD7742..  .wB.	CALL	InterruptBottomHalf
 T412Dh	AF......  ....	XOR	A		; Clear A and F
-T412Eh	3205E0..  2...	LD	(TE005H),A
+T412Eh	3205E0..  2...	LD	(TE005H),A	; *(0xE005) = 0
 T4131h	CD3E01..  .>..	CALL	T013EH		; read VDP status register; clears interrupt.
-T4134h	FB......  ....	EI		
+T4134h	FB......  ....	EI			; Enable interrupts.
 T4135h	C9......  ....	RET			
 ; }}}
 
+
+
 ; {{{ Subroutine library
-; [BD] Important subroutine.
 HL+=A:
-T4136h	85......  ....	ADD	A,L		; [BD] A += L;
-T4137h	6F......  o...	LD	L,A		; [BD] L = A;
-T4138h	D0......  ....	RET	NC		; [BD] return if no carry.
-T4139h	24......  $...	INC	H		; [BD] H += 1;
-T413Ah	C9......  ....	RET			; [BD] return;
-
-; [BD] Important subroutine.: DE += A
-DE+=A:
-T413Bh	83......  ....	ADD	A,E		; [BD] A += E;
-T413Ch	5F......  _...	LD	E,A		; [BD] E = A;
-T413Dh	D0......  ....	RET	NC		; [BD] return if no carry.
-T413Eh	14......  ....	INC	D		; [BD] ++D;
-T413Fh	C9......  ....	RET			; [BD] return;
-
-; Jump to *(PC + 2 * A);
+; Computes HL += A
 ;
-; Notice that the game code will CALL this function, yet this function 
-; will never RETurn.
-switch:
-T4140h	E1......  ....	POP	HL		; [BD] HL = PC;
+; Destroys A
+T4136h	85......  ....	ADD	A,L		; A += L (and set flags)
+T4137h	6F......  o...	LD	L,A		;
+T4138h	D0......  ....	RET	NC		; return if no carry.
+T4139h	24......  $...	INC	H		; Manually add carry.
+T413Ah	C9......  ....	RET			;
+
+
+
+DE+=A:
+; Computes DE += A
+;
+; Destroys A
+T413Bh	83......  ....	ADD	A,E		; A += E (and set flags)
+T413Ch	5F......  _...	LD	E,A		;
+T413Dh	D0......  ....	RET	NC		; return if no carry.
+T413Eh	14......  ....	INC	D		; Manually add carry.
+T413Fh	C9......  ....	RET			;
+
+
+
+T4140H_switch:
+; Jump to *(PC + 2 * A). Equivalently: PC = PC[2 * A]
+T4140h	E1......  ....	POP	HL		; HL = PC;
 T4141h	87......  ....	ADD	A,A		; A += A;
 T4142h	85......  ....	ADD	A,L		; A += L;
 T4143h	6F......  o...	LD	L,A		; L = A;
@@ -222,6 +236,8 @@ T4148h	23......  #...	INC	HL		; ++HL;
 T4149h	66......  f...	LD	H,(HL)		; H = *(HL);
 T414Ah	6F......  o...	LD	L,A		; L = A;
 T414Bh	E9......  ....	JP	(HL)		; PC = *(HL) Jump to computed address in HL.
+
+
 
 DE=*(HL+2*A):	; return *(2*A + HL) as DE
 T414Ch	87......  ....	ADD	A,A	
@@ -456,9 +472,10 @@ T4271h	CDCEB3..  ....	CALL	TB3CEH
 T4274h	C38541..  ..A.	JP	SetMapper456		
 ; }}}
 
-InterruptBottomHalf:	; {{{
+InterruptBottomHalf:
+; {{{
 T4277h	2103E0..  !...	LD	HL,0E003h
-T427Ah	34......  4...	INC	(HL)		;
+T427Ah	34......  4...	INC	(HL)		; Increment ticker.
 T427Bh	3A00E0..  :...	LD	A,(state)
 T427Eh	FE03....  ....	CP	003h	
 T4280h	3004....  0...	JR	NC,004h		; Jump to 04286H
@@ -466,7 +483,7 @@ T4282h	21FA4B..  !.K.	LD	HL,04BFAh	; return to here for state 0-3
 T4285h	E5......  ....	PUSH	HL	
 T4286h	ED4B00E0  .K..	LD	BC,(state)
 T428Ah	79......  y...	LD	A,C	
-T428Bh	CD4041..  .@A.	CALL	switch		
+T428Bh	CD4041..  .@A.	CALL	T4140H_switch
 defw 0x42B8	; 0: Konami logo
 defw 0x430C	; 1: MoG logo
 defw 0x433c	; 2: demo (substate 1 = game; 2 = story)
@@ -492,10 +509,10 @@ defw 0x4BD8	;14: boss victory after key pickup
 
 ; {{{ state handlers
 state_0:	; Konami logo
-T42B8h	100D....  ....	DJNZ	00Dh		; Jump to 042C7H
+T42B8h	100D....  ....	DJNZ	00Dh		; if(--B != 0) Jump to 042C7H
 state_0_1:
 T42BAh	3A03E0..  :...	LD	A,(TE003H)
-T42BDh	1F......  ....	RRA		
+T42BDh	1F......  ....	RRA			; Rotate right via carry.
 T42BEh	D0......  ....	RET	NC		
 
 T42BFh	CD8569..  ..i.	CALL	T6985H	
@@ -504,6 +521,10 @@ T42C2h	C0......  ....	RET	NZ
 T42C3h	AF......  ....	XOR	A		
 T42C4h	C35B43..  .[C.	JP	store_a_in_delay_then_inc_substate		
 
+
+
+; We can get here from:
+;   0x42B8 (djnz)
 T42C7h	100C....  ....	DJNZ	00Ch		; Jump to 042D5H
 state_0_2:
 T42C9h	2104E0..  !...	LD	HL,delay
@@ -563,7 +584,7 @@ T433Bh	C9......  ....	RET
 
 state_2:	; demo
 T433Ch	78......  x...	LD	A,B	
-T433Dh	CD4041..  .@A.	CALL	switch	
+T433Dh	CD4041..  .@A.	CALL	T4140H_switch
 defw 0x4348
 defw 0x437b
 defw 0x43b4	; intro story
@@ -768,8 +789,9 @@ T44B1h	CD079E..  ....	CALL	check_F2
 T44B4h	301F....  0...	JR	NC,01Fh		; Jump to 044D5H
 T44B6h	3A00E5..  :...	LD	A,(TE500H)
 T44B9h	FE05....  ....	CP	005h	
-T44BBh	C8......  ....	RET	Z		
+T44BBh	C8......  ....	RET	Z		; if (*(0xe500) == 5) return
 
+; Post: *(0xe500) != 5
 T44BCh	CDCEA8..  ....	CALL	TA8CEH	
 T44BFh	2804....  (...	JR	Z,004h			; Jump to 044C5H
 T44C1h	211DE6..  !...	LD	HL,0E61Dh
@@ -793,13 +815,19 @@ T44E2h	CD8052..  ..R.	CALL	clear_ec80
 T44E5h	3E0B....  >...	LD	A,00Bh		; state b: item screen
 T44E7h	C3A943..  ..C.	JP	set_new_state		
 
-T44EAh	3A00E5..  :...	LD	A,(TE500H)
-T44EDh	D604....  ....	SUB	004h	
-T44EFh	FE04....  ....	CP	004h	
-T44F1h	C9......  ....	RET			
+; We can get here from:
+;   0x44D5 (call)
+;   0x99FF (call)
+;   0x9A76 (call)
+;   0xB068 (call)
+T44EAh	3A00E5..  :...	LD	A,(TE500H)	; A = *(0xE500)
+T44EDh	D604....  ....	SUB	004h		; A -= 4
+T44EFh	FE04....  ....	CP	004h		; Compute A - 4 and set flags. Callers want the carry flag.
+T44F1h	C9......  ....	RET			;
 
 state_6:	; [hero] out screen wipe
 T44F2h	100E....  ....	DJNZ	00Eh		; Jump to 04502H
+
 state_6_1:
 T44F4h	2104E0..  !...	LD	HL,delay
 T44F7h	35......  5...	DEC	(HL)	
@@ -1278,8 +1306,8 @@ T484Ch	C35E43..  .^C.	JP	inc_substate
 state_c:	; magnifier view
 T484Fh	101D....  ....	DJNZ	01Dh			; Jump to 0486EH
 state_c_1:
-T4851h	CD684C..  .hL.	CALL	store_controls	
-T4854h	3A08E0..  :...	LD	A,(pressed_controls)
+T4851h	CD684C..  .hL.	CALL	store_controls		; Call T4C68H.
+T4854h	3A08E0..  :...	LD	A,(TE008H)		; A = *(pressed_controls)
 T4857h	CB6F....  .o..	BIT	5,A	
 T4859h	C8......  ....	RET	Z		
 
@@ -1335,7 +1363,7 @@ T48C2h	C35E43..  .^C.	JP	inc_substate
 
 state_10:	; god in castle
 T48C5h	78......  x...	LD	A,B	
-T48C6h	CD4041..  .@A.	CALL	switch	
+T48C6h	CD4041..  .@A.	CALL	T4140H_switch
 defw 0x48d3
 defw 0x48e4
 defw 0x4909
@@ -1404,16 +1432,18 @@ T494Ah	CDAF5C..  ..\.	CALL	T5CAFH
 T494Dh	CD5659..  .VY.	CALL	T5956H	
 T4950h	AF......  ....	XOR	A			; Clear A and F
 T4951h	321CE0..  2...	LD	(TE01CH),A
-T4954h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
+T4954h	3E05....  >...	LD	A,005h			; state 5: normal gameplay
 T4956h	C3A943..  ..C.	JP	set_new_state		
+
+
 
 state_f:	; boss appearing
 T4959h	100E....  ....	DJNZ	00Eh			; Jump to 04969H
 state_f_1:
 T495Bh	CD689F..  .h..	CALL	T9F68H	
 T495Eh	3A4CE6..  :L..	LD	A,(TE64CH)
-T4961h	B7......  ....	OR	A			; [BD] HL |= A.
-T4962h	C0......  ....	RET	NZ			; [BD] return if HL != 0.
+T4961h	B7......  ....	OR	A			;
+T4962h	C0......  ....	RET	NZ			;
 
 T4963h	CD3543..  .5C.	CALL	T4335H	
 T4966h	C35E43..  .^C.	JP	inc_substate
@@ -1437,11 +1467,15 @@ T4988h	CD6155..  .aU.	CALL	T5561H
 T498Bh	CDBF54..  ..T.	CALL	PasteScreen	
 T498Eh	C35E43..  .^C.	JP	inc_substate
 
+
+
 T4991h	1008....  ....	DJNZ	008h			; Jump to 0499BH
 state_f_3:
 T4993h	CD4858..  .HX.	CALL	T5848H	
-T4996h	3E05....  >...	LD	A,005h		; state 5: normal gameplay
+T4996h	3E05....  >...	LD	A,005h			; state 5: normal gameplay
 T4998h	C3A943..  ..C.	JP	set_new_state		
+
+
 
 state_f_0:
 T499Bh	AF......  ....	XOR	A			; Clear A and F
@@ -1453,15 +1487,19 @@ T49A7h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x81 (flicker screen when bo
 T49AAh	CD619F..  .a..	CALL	T9F61H	
 T49ADh	C35E43..  .^C.	JP	inc_substate
 
+
+
 screenlock:
 T49B0h	21FFFF..  !...	LD	HL,0FFFFh
 T49B3h	2248E6..  "H..	LD	(current_exits),HL
 T49B6h	224AE6..  "J..	LD	(current_exits + 2),HL
 T49B9h	C9......  ....	RET			
 
+
+
 state_11:	; end demo
 T49BAh	78......  x...	LD	A,B	
-T49BBh	CD4041..  .@A.	CALL	switch	
+T49BBh	CD4041..  .@A.	CALL	T4140H_switch
 defw 0x49d0	;; T49BE
 defw 0x49da	;; T49C0
 defw 0x49e5	;; T49C2
@@ -1846,29 +1884,48 @@ T4C63h	  0E07..  ....	CALL	PO,T070EH
 T4C65h	C34700..  .G..	JP	T0047H		
 
 store_controls:
-T4C68h	CD754C..  .uL.	CALL	read_controls	
-T4C6Bh	2109E0..  !...	LD	HL,active_controls
-T4C6Eh	4E......  N...	LD	C,(HL)	
-T4C6Fh	77......  w...	LD	(HL),A	
-T4C70h	A9......  ....	XOR	C	
-T4C71h	A6......  ....	AND	(HL)	
-T4C72h	2B......  +...	DEC	HL	
-T4C73h	77......  w...	LD	(HL),A	
+;
+; Register A: contains the (new) active controls
+; 
+; &0x01 (bit 0): Pressed key up
+; &0x02 (bit 1): Pressed key down
+; &0x04 (bit 2): Pressed key left
+; &0x08 (bit 3): Pressed key right
+; &0x10 (bit 4): Pressed space
+; &0x20 (bit 5): Pressed M
+T4C68h	CD754C..  .uL.	CALL	T4C75H		; Call read_controls()
+T4C6Bh	2109E0..  !...	LD	HL,(TE009H)	; HL = 0xE009 (active_controls)
+T4C6Eh	4E......  N...	LD	C,(HL)		; Get previously active control.
+T4C6Fh	77......  w...	LD	(HL),A		; Store new active controls.
+T4C70h	A9......  ....	XOR	C		; See below.
+T4C71h	A6......  ....	AND	(HL)		; See below.
+; Post:
+; Previously active   Newly active   Xorred   Anded with newly
+;                 0              0        1                  0
+;                 0              1        1                  1
+;                 1              0        1                  0
+;                 1              1        0                  0
+;
+; Conclusion: only 1 if the key/control during 1 VDP tick: only when just pressed.
+T4C72h	2B......  +...	DEC	HL		; HL = 0xE008 (pressed_controls)
+T4C73h	77......  w...	LD	(HL),A		;
 T4C74h	C9......  ....	RET			
+
+
 
 read_controls:
 ;; From https://www.msx.org/wiki/Joystick_control:
 ;; PSG register 15:
-;; -------------------------------------------------
-;; | b7  | b6  | b5  | b4 | b3  | b2  | b1  | b0   |
-;; -------------------------------------------------
-;;    |    |     |     |     |     |     |     |
-;;    |	   |     |     |     |     |     |     +--> 6th pin output/Joyport A (Default 1)
-;;    |    |     |     |     |     |     +--------> 7th pin output/Joyport A (Default 1)
-;;    |    |     |     |     |     +--------------> 6th pin output/Joyport B (Default 1)
-;;    |    |     |     |     +--------------------> 7th pin output/Joyport B (Default 1)
-;;    |    |     |     +--------------------------> 8th pin output/Joyport A (Default 0)
-;;    |    |     +--------------------------------> 8th pin output/Joyport B (Default 0)
+;; ,----------------------------------------------.
+;; | b7 | b6 | b5  | b4  | b3  | b2  | b1  | b0   |
+;; `--v----v----v-----v-----v-----v-----v-----v---'
+;;    |    |    |     |     |     |     |     |
+;;    |	   |    |     |     |     |     |     +--> 6th pin output/Joyport A (Default 1)
+;;    |    |    |     |     |     |     +--------> 7th pin output/Joyport A (Default 1)
+;;    |    |    |     |     |     +--------------> 6th pin output/Joyport B (Default 1)
+;;    |    |    |     |     +--------------------> 7th pin output/Joyport B (Default 1)
+;;    |    |    |     +--------------------------> 8th pin output/Joyport A (Default 0)
+;;    |    |    +--------------------------------> 8th pin output/Joyport B (Default 0)
 ;;    |    |
 ;;    |    +---> 0: b0-b5 of PSG register 14 to be connected to Joyport A
 ;;    |          1: b0-b5 of PSG register 14 to be connected to Joyport B (Default)
@@ -2090,25 +2147,39 @@ T4DC1h	3EB9....  >...	LD	A,0B9h
 T4DC3h	BE......  ....	CP	(HL)	
 T4DC4h	D8......  ....	RET	C		
 
+
+
 T4DC5h	23......  #...	INC	HL			;
 T4DC6h	BE......  ....	CP	(HL)	
 T4DC7h	C9......  ....	RET			
 
+
+
+; Enemy related. ?Check for object? Carry means object?
+;
+; Called from pages 4/5/6 a lot (via hook)
 T4DC8h	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
-T4DCBh	3EB9....  >...	LD	A,0B9h	
+T4DCBh	3EB9....  >...	LD	A,0B9h			; A = 0xB9, 0xBA is first object (part of rock).
 T4DCDh	BE......  ....	CP	(HL)	
 T4DCEh	C9......  ....	RET			
 
-T4DCFh	0608....  ....	LD	B,008h	
-T4DD1h	2E00....  ....	LD	L,000h	
-T4DD3h	55......  U...	LD	D,L	
-T4DD4h	29......  )...	ADD	HL,HL	
+
+
+T4DCFh	0608....  ....	LD	B,008h			; Number of DJNZ loops.
+T4DD1h	2E00....  ....	LD	L,000h			; L = 0
+T4DD3h	55......  U...	LD	D,L			; D = 0
+; Start of DJNZ loop.
+T4DD4h	29......  )...	ADD	HL,HL			; H *= 2
 T4DD5h	3001....  0...	JR	NC,001h			; Jump to 04DD8H
-T4DD7h	19......  ....	ADD	HL,DE	
+T4DD7h	19......  ....	ADD	HL,DE			; HL += E
 T4DD8h	10FA....  ....	DJNZ	0FAh			; Jump to 04DD4H
 T4DDAh	C9......  ....	RET			
 
-is_(HL)_nz:
+
+
+; We can get here from:
+;   0xB844@123 (call) Called with HL == 0xE08E (ring item: Aphrodites rock hits count for 5).
+T4DDBH_nz_(HL)_or_am_Popolon:
 T4DDBh	7E......  ~...	LD	A,(HL)	
 T4DDCh	A7......  ....	AND	A	
 T4DDDh	C0......  ....	RET	NZ		
@@ -2117,23 +2188,50 @@ T4DDEh	3A01E5..  :...	LD	A,(am_I_Popolon)
 T4DE1h	A7......  ....	AND	A	
 T4DE2h	C9......  ....	RET			
 
+
+
+T4DE3H_randomize_reg_A:
+;
+; This routine uses both the refresh register A and the interrupt bottom 
+; half counter as sources for entropy/chaos/randomness.
+;
+; We can get here from:
+;   0x8614@1 (call)
+;   0x86AA@1 (call)
+;   0x86B1@1 (call)
+;   0x86E6@1 (call)
+;   0x8757@1 (call)
+;   0x884A@1 (call)
+;   0x88A7@1 (call)
+;   0x89F9@1 (call)
+;   0x8D8F@1 (call)
+;   0x8DFB@1 (call)
+;   0x8E13@1 (call)
 T4DE3h	ED5F....  ._..	LD	A,R	
-T4DE5h	0F......  ....	RRCA		
-T4DE6h	0F......  ....	RRCA		
-T4DE7h	0F......  ....	RRCA		
-T4DE8h	2103E0..  !...	LD	HL,0E003h
-T4DEBh	AE......  ....	XOR	(HL)	
+T4DE5h	0F......  ....	RRCA			; Rotate right
+T4DE6h	0F......  ....	RRCA			; Rotate right
+T4DE7h	0F......  ....	RRCA			; Rotate right
+; Post: A == R << 5 | R >> 3
+;
+; Why shift A/R? Because the InterruptBottomHalf counter does not have 
+; much randomness in its upper bits. (InterruptBottomHalf increases 
+; slowly, especially compared to R.) So the upper bits stay the same for 
+; quite some time.
+T4DE8h	2103E0..  !...	LD	HL,0E003h	; InterruptBottomHalf counter
+T4DEBh	AE......  ....	XOR	(HL)		; Mix both sources of randomness.
 T4DECh	C9......  ....	RET			
+
+
 
 # {{{ Part of init1: reset some variables.
 T4DEDh	3EBC....  >...	LD	A,0BCh	
 T4DEFh	32B1E1..  2...	LD	(TE1B1H),A		; *(0xe1b1) = 0xbc. Enable tone for channel A and C, disable noise.
 T4DF2h	AF......  ....	XOR	A			; Clear A and F
-T4DF3h	32C0E1..  2...	LD	(TE1C0H),A
-T4DF6h	32C1E1..  2...	LD	(TE1C1H),A
-T4DF9h	32C2E1..  2...	LD	(TE1C2H),A
-T4DFCh	32C6E1..  2...	LD	(TE1C6H),A
-T4DFFh	32C5E1..  2...	LD	(TE1C5H),A
+T4DF3h	32C0E1..  2...	LD	(TE1C0H),A		; *(0xe1c0) = 0
+T4DF6h	32C1E1..  2...	LD	(TE1C1H),A		; *(0xe1c1) = 0
+T4DF9h	32C2E1..  2...	LD	(TE1C2H),A		; *(0xe1c2) = 0
+T4DFCh	32C6E1..  2...	LD	(TE1C6H),A		; *(0xe1c6) = 0
+T4DFFh	32C5E1..  2...	LD	(TE1C5H),A		; *(0xe1c5) = 0, use frequency divider table at 0x62D0@DEF (starts at C).
 
 ; We can get here from T4DFFh:
 ; * When game loads/initializes.
@@ -2154,10 +2252,10 @@ T4DFFh	32C5E1..  2...	LD	(TE1C5H),A
 ; 0xE106 = 75
 ; 0xE107 = 60
 T4E02h	AF......  ....	XOR	A			; Clear A and F
-T4E03h	32C7E1..  2...	LD	(TE1C7H),A		; 0xe1c7 = 0
-T4E06h	32B0E1..  2...	LD	(TE1B0H),A		; 0xe1b0 = 0
-T4E09h	32B2E1..  2...	LD	(TE1B2H),A		; 0xe1b2 = 0
-T4E0Ch	32C3E1..  2...	LD	(TE1C3H),A		; 0xe1b3 = 0
+T4E03h	32C7E1..  2...	LD	(TE1C7H),A		; *(0xe1c7) = 0
+T4E06h	32B0E1..  2...	LD	(TE1B0H),A		; *(0xe1b0) = 0
+T4E09h	32B2E1..  2...	LD	(TE1B2H),A		; *(0xe1b2) = 0, don't use shadow sound channels.
+T4E0Ch	32C3E1..  2...	LD	(TE1C3H),A		; *(0xe1b3) = 0
 T4E0Fh	217560..  !u`.	LD	HL,06075h
 T4E12h	2200E1..  "...	LD	(TE100H),HL		; 0xe100 = 0x6075 (e100 as word)
 T4E15h	2202E1..  "...	LD	(TE102H),HL		; 0xe102 = 0x6075 (e102 as word)
@@ -2165,6 +2263,8 @@ T4E18h	2204E1..  "...	LD	(TE104H),HL		; 0xe104 = 0x6075 (e104 as word)
 T4E1Bh	2206E1..  "...	LD	(TE106H),HL		; 0xe106 = 0x6075 (e106 as word)
 T4E1Eh	C9......  ....	RET			
 # }}}
+
+
 
 ;; This function is sometimes called and sometimes jumped to.
 ;;
@@ -2264,7 +2364,7 @@ T4E6Ch	CA024E..  ..N.	JP	Z,T4E02H	; reset bytes e1c7, e1b0, e1b2, e1c3 to 0, wor
 
 ; If you like experimenting: T4E6Fh is a nice place to break:
 ; 
-;   debug set_breakpoint 0x4E6F
+;   debug set_bp 0x4E6F
 ; 
 ; (Page 0 is always mapped in; no need to check for correct slot/page.)
 ;
@@ -2275,8 +2375,11 @@ T4E6Ch	CA024E..  ..N.	JP	Z,T4E02H	; reset bytes e1c7, e1b0, e1b2, e1c3 to 0, wor
 ; 
 T4E6Fh	FEFA....  ....	CP	0FAh		; 0xFA means: enter the room with world boss
 T4E71h	D2524F..  .RO.	JP	NC,T4F52H	; if(?want theme change?) jump to T4F52H.
-T4E74h	B7......  ....	OR	A		; Count number of bits that are 1.
-T4E75h	F2124F..  ..O.	JP	P,T4F12H	
+T4E74h	B7......  ....	OR	A		; Set flags.
+T4E75h	F2124F..  ..O.	JP	P,T4F12H	; if (A & 0x80 == 0) jump T4F12h.
+; Post: A & 0x80 == 0x80, i.e. bit 7 is set.
+; 
+; This is melody initialisation code.
 T4E78h	32C7E1..  2...	LD	(TE1C7H),A	; *(0xE1C7) = A
 T4E7Bh	FE83....  ....	CP	083h		; 0x83 is sound when fairy appears.
 T4E7Dh	2007....  ....	JR	NZ,007h		; if(!fairy_appear_id) Jump to 04E86H
@@ -2287,7 +2390,7 @@ T4E84h	1804....  ....	JR	004h		; Jump to 04E8AH
 T4E86h	AF......  ....	XOR	A		; Clear A and F
 T4E87h	32CBE1..  2...	LD	(TE1CBH),A	; *(0xE1CB) = 0x00
 ; We can also get here by a jump from T4E7Dh (with A==0x01).
-T4E8Ah	3AC7E1..  :...	LD	A,(TE1C7H)	; A = *(0xE1C7) ?get (previous?current?) sound id?
+T4E8Ah	3AC7E1..  :...	LD	A,(TE1C7H)	; A = *(0xE1C7) ?get (previous?current?) melody id?
 # {{{ Initialize channel A memory: Copy 0x1B bytes from 0x4EF7 to 0xE10C.
 T4E8Dh	110CE1..  ....	LD	DE,0E10Ch
 T4E90h	21F74E..  !.N.	LD	HL,04EF7h
@@ -2310,7 +2413,7 @@ T4EABh	5F......  _...	LD	E,A		; E = A
 T4EACh	07......  ....	RLCA			; A *= 2
 T4EADh	83......  ....	ADD	A,E		; A += E
 ; A == sound id * 6, probably struct of 6 bytes.
-T4EAEh	213E74..  !>t.	LD	HL,0743Eh	; HL = 0x743E, ?start of sound definitions?
+T4EAEh	213E74..  !>t.	LD	HL,0743Eh	; HL = 0x743E, Start of melody table (first 6 bytes may belong to a different table though).
 
 # {{{ Execute HL += A, ?skip to correct sound definition?
 T4EB1h	85......  ....	ADD	A,L		; 
@@ -2318,21 +2421,21 @@ T4EB2h	6F......  o...	LD	L,A		;
 T4EB3h	3001....  0...	JR	NC,001h		; Jump to 04EB6H
 T4EB5h	24......  $...	INC	H		;
 # }}}
-# {{{ *(0xE10C) = *(HL), HL+=2
+# {{{ *(0xE10C) = *(HL), HL+=2, store melody start for channel A.
 T4EB6h	5E......  ^...	LD	E,(HL)	
 T4EB7h	23......  #...	INC	HL			;
 T4EB8h	56......  V...	LD	D,(HL)	
 T4EB9h	23......  #...	INC	HL			;
 T4EBAh	ED530CE1  .S..	LD	(TE10CH),DE
 # }}}
-# {{{ *(0xE127) = *(HL), HL+=2
+# {{{ *(0xE127) = *(HL), HL+=2, store melody start for channel B.
 T4EBEh	5E......  ^...	LD	E,(HL)	
 T4EBFh	23......  #...	INC	HL			;
 T4EC0h	56......  V...	LD	D,(HL)	
 T4EC1h	23......  #...	INC	HL			;
 T4EC2h	ED5327E1  .S'.	LD	(TE127H),DE
 # }}}
-# {{{ *(0xE142) = *(HL), HL+=1
+# {{{ *(0xE142) = *(HL), HL+=1, store melody start for channel C.
 T4EC6h	5E......  ^...	LD	E,(HL)	
 T4EC7h	23......  #...	INC	HL			;
 T4EC8h	56......  V...	LD	D,(HL)	
@@ -2347,11 +2450,15 @@ T4ED6h	2202E1..  "...	LD	(TE102H),HL		; Channel B must execute code at 0x6112.
 T4ED9h	211961..  !.a.	LD	HL,06119h
 T4EDCh	2204E1..  "...	LD	(TE104H),HL		; Channel C must execute code at 0x6119.
 
+# {{{ *(0xE1B2) &= 0xFD, i.e. clear bit 1.
 T4EDFh	3AB2E1..  :...	LD	A,(TE1B2H)
 T4EE2h	E6FD....  ....	AND	0FDh			; 0xFD = 1111 1101, i.e. clear bit 1.
 T4EE4h	32B2E1..  2...	LD	(TE1B2H),A
+# }}}
 
-; We can jump from T5011h to here.
+; We can get here from:
+;   0x4EE4 (fallthourgh)
+;   0x5011 (unconditional jump) Channel F with opcode pointer to 0x7DE5
 T4EE7h	AF......  ....	XOR	A			; Clear A and F
 T4EE8h	32C0E1..  2...	LD	(TE1C0H),A		; *(0xE1C0) = 0x00
 T4EEBh	32C1E1..  2...	LD	(TE1C1H),A		; *(0xE1C1) = 0x00
@@ -2360,38 +2467,41 @@ T4EF1h	3E07....  >...	LD	A,007h			;
 T4EF3h	32C2E1..  2...	LD	(TE1C2H),A		; *(0xE1C2) = 0x07
 T4EF6h	C9......  ....	RET			
 
+
+
 ; Initial data for channel A, B and C.
 ; 
 ; Copied during T4F33h from here to 0E193h, 0x1B bytes
-defb 0x00	; T4EF7h
-defb 0x00	; T4EF8h
-defb 0x01	; T4EF9h
-defb 0x00	; T4EFAh
-defb 0x00	; T4EFBh
-defb 0x00	; T4EFCh
-defb 0x00	; T4EFDh
-defb 0x00	; T4EFEh
-defb 0x00	; T4EFFh
-defb 0x01	; T4F00h
-defb 0x00	; T4F01h
-defb 0x00	; T4F02h
-defb 0x00	; T4F03h
-defb 0x00	; T4F04h
-defb 0x01	; T4F05h
-defb 0x00	; T4F06h
-defb 0x00	; T4F07h
-defb 0x00	; T4F08h
-defb 0x00	; T4F09h
-defb 0x00	; T4F0Ah
-defb 0x00	; T4F0Bh
-defb 0x00	; T4F0Ch
-defb 0x00	; T4F0Dh
-defb 0x00	; T4F0Eh
-defb 0x00	; T4F0Fh
-defb 0x00	; T4F10h
-defb 0x00	; T4F11h
+defb 0x00	; T4EF7h  0
+defb 0x00	; T4EF8h  1
+defb 0x01	; T4EF9h  2
+defb 0x00	; T4EFAh  3
+defb 0x00	; T4EFBh  4
+defb 0x00	; T4EFCh  5
+defb 0x00	; T4EFDh  6
+defb 0x00	; T4EFEh  7
+defb 0x00	; T4EFFh  8
+defb 0x01	; T4F00h  9: Number of VDP ticks left for the current note/sound/opcode/something.
+defb 0x00	; T4F01h  A
+defb 0x00	; T4F02h  B
+defb 0x00	; T4F03h  C
+defb 0x00	; T4F04h  D
+defb 0x01	; T4F05h  E: ?
+defb 0x00	; T4F06h  F
+defb 0x00	; T4F07h 10
+defb 0x00	; T4F08h 11
+defb 0x00	; T4F09h 12
+defb 0x00	; T4F0Ah 13
+defb 0x00	; T4F0Bh 14
+defb 0x00	; T4F0Ch 15
+defb 0x00	; T4F0Dh 16
+defb 0x00	; T4F0Eh 17
+defb 0x00	; T4F0Fh 18
+defb 0x00	; T4F10h 19
+defb 0x00	; T4F11h 1A
 
-; We can jump to here from 0x4E75.
+; We can get here from:
+;   0x4E75 (jump) A & 0x80 == 0, A == sound_id
 T4F12h	4F......  O...	LD	C,A			; C = A, save A
 T4F13h	3AC3E1..  :...	LD	A,(TE1C3H)		; A = *(0xE1C3)
 T4F16h	B7......  ....	OR	A			; Test if A is zero
@@ -2400,22 +2510,28 @@ T4F17h	C0......  ....	RET	NZ			; if(A!=0) return
 T4F18h	3AB0E1..  :...	LD	A,(TE1B0H)		; A = *(0xE1B0)
 T4F1Bh	B9......  ....	CP	C			; Compute A - C and set flags. We need Z and NC.
 T4F1Ch	2801....  (...	JR	Z,001h			; if(original_A matches value in 0xE1B0) Jump to 04F1FH
-T4F1Eh	D0......  ....	RET	NC		
+T4F1Eh	D0......  ....	RET	NC			; if (A >= C) return
 
 T4F1Fh	FE25....  .%..	CP	025h			; Compute A - 0x25 and set flags. We need NZ.
 T4F21h	2009....  ....	JR	NZ,009h			; Jump to 04F2CH
+; Post: A == 0x25 ?Popolon in water?
 T4F23h	3A11E5..  :...	LD	A,(TE511H)
-T4F26h	B7......  ....	OR	A	
-T4F27h	FE01....  ....	CP	001h	
-T4F29h	2001....  ....	JR	NZ,001h			; Jump to 04F2CH
+T4F26h	B7......  ....	OR	A			; Why?
+T4F27h	FE01....  ....	CP	001h			;
+T4F29h	2001....  ....	JR	NZ,001h			; if (*(0xE511) != 1) Jump to 04F2CH
 T4F2Bh	C9......  ....	RET			
 
+; We can get here from:
+;   0x4F21 (jump) A != 0x25
+;   0x4F29 (jump) A == 0x25 and *(0xE511) != 1
 T4F2Ch	79......  y...	LD	A,C			; A = C
 T4F2Dh	32B0E1..  2...	LD	(TE1B0H),A		; *(0xE1B0) = A
+# {{{ Initialize channel D memory: Copy 0x1B bytes from 0x4EF7 to 0xE15D.
 T4F30h	115DE1..  .]..	LD	DE,0E15Dh		; DE = 0xE15D
 T4F33h	21F74E..  !.N.	LD	HL,04EF7h		; HL = 0x4EF7
 T4F36h	011B00..  ....	LD	BC,0001Bh		; BC = 0x001B
 T4F39h	EDB0....  ....	LDIR				; Repeat "LD (DE),(HL)" 0x001B times.
+# }}}
 T4F3Bh	07......  ....	RLCA				; Rotate A 1 bit to the left, set carry to former msb.
 T4F3Ch	21DC73..  !.s.	LD	HL,073DCh		; HL = 0x73DC
 T4F3Fh	85......  ....	ADD	A,L			; A += L
@@ -2429,6 +2545,8 @@ T4F47h	ED5369E1  .Si.	LD	(TE169H),DE
 T4F4Bh	21A564..  !.d.	LD	HL,064A5h
 T4F4Eh	2206E1..  "...	LD	(TE106H),HL
 T4F51h	C9......  ....	RET			
+
+
 
 ; Fade out?
 T4F52h	2823....  (#..	JR	Z,023h			; if(A==0xFA) jump to 04F77H
@@ -2449,7 +2567,8 @@ T4F71h	3E30....  >0..	LD	A,030h			; A = 0x30
 T4F73h	32C0E1..  2...	LD	(TE1C0H),A		; *(0xE1C0) = 0x30
 T4F76h	C9......  ....	RET			
 
-; If we get here, A is 0xFA.
+; We can get here from:
+;   0x4F52 (jump) A == 0xFA
 T4F77h	3E01....  >...	LD	A,001h			; 
 T4F79h	32C8E1..  2...	LD	(TE1C8H),A		; *(0xE1C8) = 0x01
 T4F7Ch	3EFA....  >...	LD	A,0FAh			;
@@ -2458,12 +2577,17 @@ T4F81h	3E0A....  >...	LD	A,00Ah			;
 T4F83h	32C0E1..  2...	LD	(TE1C0H),A		; *(0xE1C0) = 0x0A
 T4F86h	C9......  ....	RET			
 
-; If we get here, A is 0xFD.
+; We can get here from:
+;   0x4F60 (jump) A == 0xFD
+;
+; This code seems to be for channel F (shadow channel C?)
 T4F87h	3E01....  >...	LD	A,001h			;
 T4F89h	32C9E1..  2...	LD	(TE1C9H),A		; *(0xE1C9) = 0x01
+# {{{ *(0xE1B2) |= 0x01
 T4F8Ch	3AB2E1..  :...	LD	A,(TE1B2H)		; A = *(0xE1B2)
 T4F8Fh	F601....  ....	OR	001h			; Set bit 0
 T4F91h	32B2E1..  2...	LD	(TE1B2H),A		; *(0xE1B2) = A, write new value back
+# }}}
 T4F94h	3AC0E1..  :...	LD	A,(TE1C0H)		; 
 T4F97h	32B3E1..  2...	LD	(TE1B3H),A		; *(0xE1B3) = *(0xE1C0)
 T4F9Ah	3AC1E1..  :...	LD	A,(TE1C1H)		; 
@@ -2475,11 +2599,11 @@ T4FA9h	32B6E1..  2...	LD	(TE1B6H),A		; *(0xE1B6) = *(0xE1C2)
 T4FACh	AF......  ....	XOR	A			; Clear A and F
 T4FADh	32C2E1..  2...	LD	(TE1C2H),A		; *(0xE1C2) = 0
 T4FB0h	3EBF....  >...	LD	A,0BFh			;
-T4FB2h	32B1E1..  2...	LD	(TE1B1H),A		; *(0xE1B1) = 0xBF
-T4FB5h	AF......  ....	XOR	A			; Clear A and F
+T4FB2h	32B1E1..  2...	LD	(TE1B1H),A		; *(0xE1B1) = 0xBF, i.e silence (no noise, no tone)
+T4FB5h	AF......  ....	XOR	A			; A = 0x00
 T4FB6h	CD9600..  ....	CALL	T0096H			; BIOS call RDPSG: Read value from PSG register, reg A is in+out
 T4FB9h	32B7E1..  2...	LD	(TE1B7H),A		; *(0xE1B7) = Least signifiant bits of channel A frequency (0-255)
-T4FBCh	3E01....  >...	LD	A,001h			; A = 0x00
+T4FBCh	3E01....  >...	LD	A,001h			; A = 0x01
 T4FBEh	CD9600..  ....	CALL	T0096H			; BIOS call RDPSG: Read value from PSG register, reg A is in+out
 T4FC1h	32B8E1..  2...	LD	(TE1B8H),A		; *(0xE1B8) = Most significant bits of channel A frequency (0-15)
 T4FC4h	3E08....  >...	LD	A,008h			; A = 0x08
@@ -2504,40 +2628,50 @@ T4FF1h	AF......  ....	XOR	A			; Clear A and F
 T4FF2h	32AEE1..  2...	LD	(TE1AEH),A		; *(0xE1AE) = 0x00
 T4FF5h	3E05....  >...	LD	A,005h			;
 T4FF7h	32AFE1..  2...	LD	(TE1AFH),A		; *(0xE1AF) = 0x05
+# {{{ HL = 0x6104, *(0xE10A) = 0x6104, i.e. initialize channel F code ref.
 T4FFAh	210461..  !.a.	LD	HL,06104h		;
 T4FFDh	220AE1..  "...	LD	(TE10AH),HL		;
+# }}}
+# {{{ Initialize channel F memory: Copy 0x1B bytes from 0x4EF7 to 0xE193.
 T5000h	1193E1..  ....	LD	DE,0E193h
 T5003h	21F74E..  !.N.	LD	HL,04EF7h
 T5006h	011B00..  ....	LD	BC,0001Bh
 T5009h	EDB0....  ....	LDIR				; Copy 0x1B bytes from HL to DE
+# }}}
+# {{{ HL = 0x7DE5, *(0xE193) = 0x7DE5, i.e. set the sound opcode pointer to 0x7DE5 for channel F.
 T500Bh	21E57D..  !.}.	LD	HL,07DE5h
 T500Eh	2293E1..  "...	LD	(TE193H),HL
+# }}}
 T5011h	C3E74E..  ..N.	JP	T4EE7H		
 
+
+
 T5014h	AF......  ....	XOR	A			; Clear A and F
-T5015h	32C9E1..  2...	LD	(TE1C9H),A
-T5018h	3AB2E1..  :...	LD	A,(TE1B2H)
-T501Bh	E6FE....  ....	AND	0FEh			; 0xFE = 1111 1110, i.e. clear bit 0.
-T501Dh	32B2E1..  2...	LD	(TE1B2H),A
-T5020h	3AB3E1..  :...	LD	A,(TE1B3H)
-T5023h	32C0E1..  2...	LD	(TE1C0H),A
-T5026h	3AB4E1..  :...	LD	A,(TE1B4H)
-T5029h	32C1E1..  2...	LD	(TE1C1H),A
-T502Ch	3AB5E1..  :...	LD	A,(TE1B5H)
-T502Fh	32B1E1..  2...	LD	(TE1B1H),A
-T5032h	3AB6E1..  :...	LD	A,(TE1B6H)
-T5035h	32C2E1..  2...	LD	(TE1C2H),A
-T5038h	3AB7E1..  :...	LD	A,(TE1B7H)
-T503Bh	5F......  _...	LD	E,A	
-T503Ch	AF......  ....	XOR	A			; Clear A and F
+T5015h	32C9E1..  2...	LD	(TE1C9H),A		; *(0xE1C9) = 0
+# {{{ *(0xE1B2) &= 0xFE, i.e. clear bit 0.
+T5018h	3AB2E1..  :...	LD	A,(TE1B2H)		;
+T501Bh	E6FE....  ....	AND	0FEh			; 0xFE = 1111 1110
+T501Dh	32B2E1..  2...	LD	(TE1B2H),A		;
+# }}}
+T5020h	3AB3E1..  :...	LD	A,(TE1B3H)		;
+T5023h	32C0E1..  2...	LD	(TE1C0H),A		; *(0xE1C0) = *(0xE1B3)
+T5026h	3AB4E1..  :...	LD	A,(TE1B4H)		;
+T5029h	32C1E1..  2...	LD	(TE1C1H),A		; *(0xE1C1) = *(0xE1B4)
+T502Ch	3AB5E1..  :...	LD	A,(TE1B5H)		;
+T502Fh	32B1E1..  2...	LD	(TE1B1H),A		; *(0xE1B1) = *(0xE1B5)
+T5032h	3AB6E1..  :...	LD	A,(TE1B6H)		;
+T5035h	32C2E1..  2...	LD	(TE1C2H),A		; *(0xE1C2) = *(0xE1B6)
+T5038h	3AB7E1..  :...	LD	A,(TE1B7H)		;
+T503Bh	5F......  _...	LD	E,A			; E = *(0xE1B7), LSB of frequency divider.
+T503Ch	AF......  ....	XOR	A			; A = 0 (PSG register 0: set LSB of frequency divider)
 T503Dh	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set LSB of frequency divider of channel A to *(0xE1B7).
-T5040h	3AB8E1..  :...	LD	A,(TE1B8H)
-T5043h	5F......  _...	LD	E,A	
-T5044h	3E01....  >...	LD	A,001h	
+T5040h	3AB8E1..  :...	LD	A,(TE1B8H)		;
+T5043h	5F......  _...	LD	E,A			; E = *(0xE1B8), MSB of frequency divider.
+T5044h	3E01....  >...	LD	A,001h			; A = 1 (PSG register 1: set MSB of frequency divider)
 T5046h	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set MSB of frequency divider of channel A to *(0xE1B8).
-T5049h	3AB9E1..  :...	LD	A,(TE1B9H)
-T504Ch	5F......  _...	LD	E,A	
-T504Dh	3E08....  >...	LD	A,008h	
+T5049h	3AB9E1..  :...	LD	A,(TE1B9H)		;
+T504Ch	5F......  _...	LD	E,A			; E = *(0xE1B9), volume
+T504Dh	3E08....  >...	LD	A,008h			; A = 8 (PSG register 8: volume/amplitude. 0x1y is special)
 T504Fh	CD9300..  ....	CALL	T0093H			; BIOS CALL WRTPSG: set volume of channel A to *(0xE1B9).
 T5052h	3ABAE1..  :...	LD	A,(TE1BAH)
 T5055h	5F......  _...	LD	E,A	
@@ -2548,47 +2682,72 @@ T505Eh	5F......  _...	LD	E,A
 T505Fh	3E0A....  >...	LD	A,00Ah	
 T5061h	C39300..  ....	JP	T0093H			; BIOS CALL WRTPSG: set volume of channel C to *(0xE1BB).
 
-T5064h	3AB2E1..  :...	LD	A,(TE1B2H)
-T5067h	F602....  ....	OR	002h	
-T5069h	32B2E1..  2...	LD	(TE1B2H),A
-T506Ch	3AB1E1..  :...	LD	A,(TE1B1H)
-T506Fh	32BCE1..  2...	LD	(TE1BCH),A
+# {{{ *(0xE1B2) |= 0x02. Set bit 1.
+T5064h	3AB2E1..  :...	LD	A,(TE1B2H)		;
+T5067h	F602....  ....	OR	002h			;
+T5069h	32B2E1..  2...	LD	(TE1B2H),A		;
+# }}}
+# {{{ *(0xE1BC) = *(0xE1B1)
+T506Ch	3AB1E1..  :...	LD	A,(TE1B1H)		;
+T506Fh	32BCE1..  2...	LD	(TE1BCH),A		;
+# }}}
 T5072h	3AB0E1..  :...	LD	A,(TE1B0H)
 T5075h	B7......  ....	OR	A	
-T5076h	2004....  ....	JR	NZ,004h			; Jump to 0507CH
-T5078h	3EBF....  >...	LD	A,0BFh	
-T507Ah	1805....  ....	JR	005h			; Jump to 05081H
+T5076h	2004....  ....	JR	NZ,004h			; if (*(0xE1B0) != 0) jump to 0507CH
+T5078h	3EBF....  >...	LD	A,0BFh			; A = 0xBF, in bits: 10 111 111 disable noise for A+B+C, disable tone for A+B+C
+T507Ah	1805....  ....	JR	005h			; Jump to 05081H, unconditionally
 
+; We can get here from:
+;   0x5076 (jump) *(0xE1B0) != 0
 T507Ch	3AB1E1..  :...	LD	A,(TE1B1H)
-T507Fh	F61B....  ....	OR	01Bh	
+T507Fh	F61B....  ....	OR	01Bh			; 0x1B in bits: 00 011 011, disable noise for A+B, disable tone for A+B. Doesn't touch channel C at all.
+
+; We can get here from:
+;   0x507A (jump) A == 0xBF (1011 1111), all bits except bit 6.
+;   0x507F (fall) A == *(0xE1B1) | 0x1B
 T5081h	32B1E1..  2...	LD	(TE1B1H),A
+# {{{ *(0xE1BD) = LSB of frequency divider of channel A (via RDPSG, register 0).
 T5084h	AF......  ....	XOR	A			; A = 0
 T5085h	CD9600..  ....	CALL	T0096H			; BIOS CALL RDPSG: read LSB of frequency divider of channel A.
-T5088h	32BDE1..  2...	LD	(TE1BDH),A
-T508Bh	3E01....  >...	LD	A,001h	
+T5088h	32BDE1..  2...	LD	(TE1BDH),A		; Store
+# }}}
+# {{{ *(0xE1BE) = MSB of frequency divider of channel A (via RDPSG, register 1).
+T508Bh	3E01....  >...	LD	A,001h			; A = 1
 T508Dh	CD9600..  ....	CALL	T0096H			; BIOS CALL RDPSG: read MSB of frequency divider of channel A.
-T5090h	32BEE1..  2...	LD	(TE1BEH),A
+T5090h	32BEE1..  2...	LD	(TE1BEH),A		; Store
+# }}}
+# {{{ *(0xE1BF) = Current volume of channel A (via RDPSG, register 8).
 T5093h	3E08....  >...	LD	A,008h	
 T5095h	CD9600..  ....	CALL	T0096H	
 T5098h	32BFE1..  2...	LD	(TE1BFH),A		; BIOS CALL RDPSG: read volume of channel A.
+# }}}
 T509Bh	219E64..  !.d.	LD	HL,0649Eh
-T509Eh	2208E1..  "...	LD	(TE108H),HL
+T509Eh	2208E1..  "...	LD	(TE108H),HL		; *(0xe108) = 0x64e9
+# {{{ Initialize channel E memory: Copy 0x1B bytes from 0x4EF7 to 0xE178.
 T50A1h	1178E1..  .x..	LD	DE,0E178h
 T50A4h	21F74E..  !.N.	LD	HL,04EF7h
 T50A7h	011B00..  ....	LD	BC,0001Bh
 T50AAh	EDB0....  ....	LDIR		
+# }}}
+# {{{ HL = 0x7DF2, *(0xE184) = 0x7DF2, i.e, *(0xE184) == 0xF2, *(0xE185) == 0x7D (channel E, IX[0xC] and IX[0xD])
 T50ACh	21F27D..  !.}.	LD	HL,07DF2h
 T50AFh	2284E1..  "...	LD	(TE184H),HL
+# }}}
 T50B2h	C9......  ....	RET			
+
+
 
 T50B3h	3AB2E1..  :...	LD	A,(TE1B2H)
 T50B6h	CB4F....  .O..	BIT	1,A	
-T50B8h	C8......  ....	RET	Z		
-
+T50B8h	C8......  ....	RET	Z			; if (*(0xE1B2) & 0x02 == 0) return
+; Post: bit 1 IS set in 0xE1B2
+;
 ; ?Play shadow channel A?
+# {{{ Clear bit 1 in 0xE1B2.
 T50B9h	3AB2E1..  :...	LD	A,(TE1B2H)
 T50BCh	E6FD....  ....	AND	0FDh			; 0xFD = 1111 1101, i.e. clear bit 1.
 T50BEh	32B2E1..  2...	LD	(TE1B2H),A
+# }}}
 T50C1h	3AB0E1..  :...	LD	A,(TE1B0H)
 T50C4h	B7......  ....	OR	A	
 T50C5h	3ABCE1..  :...	LD	A,(TE1BCH)
@@ -2626,15 +2785,19 @@ T50FFh	C9......  ....	RET
 
 T5100h	3AC1E1..  :...	LD	A,(TE1C1H)
 T5103h	FEFB....  ....	CP	0FBh	
-T5105h	C0......  ....	RET	NZ		
+T5105h	C0......  ....	RET	NZ			; if (*(0xE1C1) != 0xFB) return		
 
+; Post: *(0xE1C1) == 0xFB
 T5106h	AF......  ....	XOR	A			; Clear A and F
-T5107h	32C8E1..  2...	LD	(TE1C8H),A
+T5107h	32C8E1..  2...	LD	(TE1C8H),A		; *(0xE1C8) = 0
 T510Ah	C9......  ....	RET			
 
+; We can get here from:
+;   0x4425
+;   0x7D9E
 T510Bh	CD5E52..  .^R.	CALL	ClearE600	
-T510Eh	CD6C52..  .lR.	CALL	T526CH		; clear some variables
-T5111h	CD8E56..  ..V.	CALL	setup_for_new_screen		; setup patterns
+T510Eh	CD6C52..  .lR.	CALL	T526CH			; clear some variables
+T5111h	CD8E56..  ..V.	CALL	setup_for_new_screen	; setup patterns
 T5114h	CD8E52..  ..R.	CALL	T528EH	
 T5117h	CD2B42..  .+B.	CALL	SetMapper9	
 T511Ah	CDC263..  ..c.	CALL	T63C2H	
@@ -2808,21 +2971,21 @@ T528Dh	C9......  ....	RET
 
 T528Eh	CD2B42..  .+B.	CALL	SetMapper9	
 T5291h	AF......  ....	XOR	A			; Clear A and F
-T5292h	3200E5..  2...	LD	(TE500H),A
-T5295h	3203E5..  2...	LD	(TE503H),A
-T5298h	3202E5..  2...	LD	(TE502H),A
-T529Bh	3208E5..  2...	LD	(TE508H),A
-T529Eh	3218E5..  2...	LD	(TE518H),A
-T52A1h	3233E5..  23..	LD	(TE533H),A
-T52A4h	3C......  <...	INC	A			;
-T52A5h	3218E5..  2...	LD	(TE518H),A
-T52A8h	3C......  <...	INC	A			;
-T52A9h	3233E5..  23..	LD	(TE533H),A
-T52ACh	3E08....  >...	LD	A,008h	
-T52AEh	3232E5..  22..	LD	(TE532H),A
+T5292h	3200E5..  2...	LD	(TE500H),A		; *(0xE500) = 0
+T5295h	3203E5..  2...	LD	(TE503H),A		; *(0xE503) = 0
+T5298h	3202E5..  2...	LD	(TE502H),A		; *(0xE502) = 0
+T529Bh	3208E5..  2...	LD	(TE508H),A		; *(0xE508) = 0
+T529Eh	3218E5..  2...	LD	(TE518H),A		; *(0xE518) = 0
+T52A1h	3233E5..  23..	LD	(TE533H),A		; *(0xE533) = 0
+T52A4h	3C......  <...	INC	A			; A = 1
+T52A5h	3218E5..  2...	LD	(TE518H),A		; *(0xE518) = 1
+T52A8h	3C......  <...	INC	A			; A = 2
+T52A9h	3233E5..  23..	LD	(TE533H),A		; *(0xE533) = 2
+T52ACh	3E08....  >...	LD	A,008h			; A = 8
+T52AEh	3232E5..  22..	LD	(TE532H),A		; *(0xE532) = 8
 T52B1h	2A41E0..  *A..	LD	HL,(WorldNumber)
-T52B4h	11018A..  ....	LD	DE,08A01h
-T52B7h	E7......  ....	RST	20h	
+T52B4h	11018A..  ....	LD	DE,08A01h		; DE = 0x8A01
+T52B7h	E7......  ....	RST	20h			; 0x0020 is BIOS: DCOMPR: Zero flag set if HL and DE are equal. Carry flag set if HL is less than DE.
 T52B8h	2013....  ....	JR	NZ,013h			; Jump to 052CDH
 T52BAh	3A07E5..  :...	LD	A,(TE507H)
 T52BDh	B7......  ....	OR	A	
@@ -2833,6 +2996,8 @@ T52C6h	3E58....  >X..	LD	A,058h
 T52C8h	3205E5..  2...	LD	(TE505H),A
 T52CBh	1825....  .%..	JR	025h			; Jump to 052F2H
 
+; We can get here from:
+;   0x52B8 (jump)
 T52CDh	3A41E0..  :A..	LD	A,(WorldNumber)
 T52D0h	2106B1..  !...	LD	HL,0B106h
 T52D3h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
@@ -2966,7 +3131,7 @@ T5432h	C3E154..  ..T.	JP	unlock_e602
 
 PossiblyFillSpriteAttributeTable:
 T5435h	3A00E0..  :...	LD	A,(state)
-T5438h	CD4041..  .@A.	CALL	switch	
+T5438h	CD4041..  .@A.	CALL	T4140H_switch
 defw 0x5487	; 0: no action
 defw 0x5487	; 1: no action
 defw 0x5465	; 2: SometimesFillSpriteAttributeTable
@@ -3428,9 +3593,11 @@ T56F6h	D9......  ....	EXX
 T56F7h	20EE....  ....	JR	NZ,0EEh			; Jump to 056E7H
 T56F9h	C9......  ....	RET			
 
+
+
 SetupBossPatterns:
 T56FAh	CDE45D..  ..].	CALL	IsBossInCurrentRoom	
-T56FDh	C0......  ....	RET	NZ		
+T56FDh	C0......  ....	RET	NZ			; if (boss_not_in_room) return
 
 T56FEh	3AD2E0..  :...	LD	A,(TE0D2H)
 T5701h	B7......  ....	OR	A	
@@ -3523,6 +3690,8 @@ T57D8h	1100E8..  ....	LD	DE,0E800h
 T57DBh	01A000..  ....	LD	BC,000A0h
 T57DEh	C3D85B..  ..[.	JP	send_vram_3_times		
 
+
+
 setup_god_screen_characters:
 T57E1h	CDDD54..  ..T.	CALL	lock_e602
 T57E4h	CD955E..  ..^.	CALL	load_text_characters_kana	
@@ -3546,8 +3715,17 @@ T5814h	217024..  !p$.	LD	HL,02470h
 T5817h	CDE158..  ..X.	CALL	load_item_patterns	
 T581Ah	C3B856..  ..V.	JP	finish_new_screen_setup		
 
+
+
 god_wall_colors:
-T581Dh		defb	0xf0, 0xa0, 0xa0, 0x00, 0xf0, 0xa0, 0xa0, 0x00
+defb 0xf0	; T581Dh
+defb 0xa0	; T581Eh
+defb 0xa0	; T581Fh
+defb 0x00	; T5820h
+defb 0xf0	; T5821h
+defb 0xa0	; T5822h
+defb 0xa0	; T5823h
+defb 0x00	; T5824h
 
 ;which item is for sale here? 1 per god.
 god_items:
@@ -3581,11 +3759,13 @@ T584Dh	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock
 T5850h	CD5658..  .VX.	CALL	T5856H	
 T5853h	C3B856..  ..V.	JP	finish_new_screen_setup		
 
+
+
 LoadMoreBossPatterns:
 T5856h	3AD3E0..  :...	LD	A,(TE0D3H)
 T5859h	FE02....  ....	CP	002h	
 T585Bh	280F....  (...	JR	Z,00Fh			; Jump to 0586CH
-T585Dh	215761..  !Wa.	LD	HL,06157h	; table with boss graphics
+T585Dh	215761..  !Wa.	LD	HL,06157h		; table with boss graphics
 T5860h	CDAD5A..  ..Z.	CALL	setup_world_vram_patterns	
 T5863h	3AD3E0..  :...	LD	A,(TE0D3H)
 T5866h	210262..  !.b.	LD	HL,06202h
@@ -3599,9 +3779,15 @@ T5877h	B7......  ....	OR	A
 T5878h	20F7....  ....	JR	NZ,0F7h			; Jump to 05871H
 T587Ah	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0x8327@2 (call)
 T587Bh	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T587Eh	CD8458..  ..X.	CALL	LoadBossPatterns	
 T5881h	C3B856..  ..V.	JP	finish_new_screen_setup		
+
+
 
 LoadBossPatterns:
 T5884h	3A1BE6..  :...	LD	A,(TE61BH)
@@ -3626,10 +3812,18 @@ T58A5h	3807....  8...	JR	C,007h			; Jump to 058AEH
 T58A7h	3A09E7..  :...	LD	A,(TE709H)
 T58AAh	CB6F....  .o..	BIT	5,A	
 T58ACh	2820....  (...	JR	Z,020h			; Jump to 058CEH
+; We can get here from:
+;   0x58A5 (jump)
+;   0x58AC (fall)
+;   0x58CC (jump)
 T58AEh	211BE6..  !...	LD	HL,0E61Bh
 T58B1h	34......  4...	INC	(HL)			;
 T58B2h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0x5889 (jump) *(0xE61B) - 8 >= 0, i.e. *(0xE61B) >= 8
 T58B3h	D608....  ....	SUB	008h	
 T58B5h	6F......  o...	LD	L,A	
 T58B6h	2600....  &...	LD	H,000h	
@@ -3645,9 +3839,15 @@ T58C4h	CD8D5A..  ..Z.	CALL	mirror_chars_multiple
 T58C7h	3A1BE6..  :...	LD	A,(TE61BH)
 T58CAh	FE2C....  .,..	CP	02Ch	
 T58CCh	38E0....  8...	JR	C,0E0h			; Jump to 058AEH
+
+; We can get here from:
+;   0x58AC (jump)
+;   0x58CC (fall)
 T58CEh	AF......  ....	XOR	A			; Clear A and F
 T58CFh	321BE6..  2...	LD	(TE61BH),A
 T58D2h	C9......  ....	RET			
+
+
 
 T58D3h	CDC156..  ..V.	CALL	set_mapper_ABC_and_lock	
 T58D6h	3E0C....  >...	LD	A,00Ch	
@@ -3841,7 +4041,7 @@ T5A16h	1F......  ....	RRA
 T5A17h	1F......  ....	RRA		
 T5A18h	1F......  ....	RRA		
 T5A19h	E60F....  ....	AND	00Fh			; Now A is the nybble from the lookup table at 60d7
-T5A1Bh	CD4041..  .@A.	CALL	switch	
+T5A1Bh	CD4041..  .@A.	CALL	T4140H_switch
 ; Now follows a table of 16 jump addresses; only 6 are used.
 ; defw 0x5a2c, 0x5a33, 0x5a3a, 0x5a48, 0x5a5d, 0x5a72, 5a80
 
@@ -4482,38 +4682,53 @@ T5DE0h	23......  #...	INC	HL			;
 T5DE1h	23......  #...	INC	HL			;
 T5DE2h	18F1....  ....	JR	0F1h			; Jump to 05DD5H
 
+
+
 IsBossInCurrentRoom:
 T5DE4h	3A41E0..  :A..	LD	A,(WorldNumber)
 T5DE7h	2161E0..  !a..	LD	HL,0E061h
 T5DEAh	CD3641..  .6A.	CALL	HL+=A	
-T5DEDh	CB56....  .V..	BIT	2,(HL)	
-T5DEFh	C0......  ....	RET	NZ		
+T5DEDh	CB56....  .V..	BIT	2,(HL)			; Check beaten boss bit.
+T5DEFh	C0......  ....	RET	NZ			; if(boss_already_beaten) return
 
-T5DF0h	2A41E0..  *A..	LD	HL,(WorldNumber)
-T5DF3h	7C......  |...	LD	A,H	
+T5DF0h	2A41E0..  *A..	LD	HL,(WorldNumber)	; L is world number, H is room number
+T5DF3h	7C......  |...	LD	A,H			; A = room_number
 T5DF4h	2600....  &...	LD	H,000h	
-T5DF6h	11FB5D..  ..].	LD	DE,05DFBh	; room with world boss
+T5DF6h	11FB5D..  ..].	LD	DE,05DFBh		; room with world boss
 T5DF9h	19......  ....	ADD	HL,DE	
-T5DFAh	BE......  ....	CP	(HL)	
+T5DFAh	BE......  ....	CP	(HL)			; Compute current_room_number - boss_room_number and set flags (Z/NZ especially)
 T5DFBh	C9......  ....	RET			
 
-T5DFCh	00......  ....	NOP		
-T5DFDh	0D......  ....	DEC	C	
-T5DFEh	09......  ....	ADD	HL,BC	
-T5DFFh	0D......  ....	DEC	C	
-T5E00h	0E11....  ....	LD	C,011h	
-T5E02h	0D......  ....	DEC	C	
-T5E03h	0A......  ....	LD	A,(BC)	
-T5E04h	07......  ....	RLCA		
-T5E05h	19......  ....	ADD	HL,DE	
-T5E06h	05......  ....	DEC	B	
-T5E07h	010402..  ....	LD	BC,00204h
-T5E0Ah	0B......  ....	DEC	BC	
-T5E0Bh	0A......  ....	LD	A,(BC)	
-T5E0Ch	03......  ....	INC	BC			;
-T5E0Dh	07......  ....	RLCA		
-T5E0Eh	08......  ....	EX	AF,AF'	
-T5E0Fh	0609....  ....	LD	B,009h	
+
+
+; Data, referenced by 0x5DF6@0
+defb 0x00	; T5DFCh, Castle,   room 0x00 ( 0), i.e. no boss inside the castle.
+defb 0x0D	; T5DFDh, World  1, room 0x0d (13). YOMAR.
+defb 0x09	; T5DFEh, World  2, room 0x09 ( 9).
+defb 0x0D	; T5DFFh, World  3, room 0x0d (13).
+defb 0x0E	; T5E00h, World  4, room 0x0e (14).
+defb 0x11	; T5E01h, World  5, room 0x11 (17).
+defb 0x0D	; T5E02h, World  6, room 0x0d (13).
+defb 0x0A	; T5E03h, World  7, room 0x0a (10).
+defb 0x07	; T5E04h, World  8, room 0x07 ( 7).
+defb 0x19	; T5E05h, World  9, room 0x19 (25).
+defb 0x05	; T5E06h, World 10, room 0x05 ( 5).
+
+
+
+; Data, referenced by 0x497C.
+defb 0x01	; T5E07h Index  2. World  1.
+defb 0x04	; T5E08h Index  3. World  2.
+defb 0x02	; T5E09h Index  4. World  3.
+defb 0x0B	; T5E0Ah Index  5. World  4.
+defb 0x0A	; T5E0Bh Index  6. World  5.
+defb 0x03	; T5E0Ch Index  7. World  6.
+defb 0x07	; T5E0Dh Index  8. World  7.
+defb 0x08	; T5E0Eh Index  9. World  8.
+defb 0x06	; T5E0Fh Index 10. World  9.
+defb 0x09	; T5E10h Index 11. World 10.
+
+
 
 load_text_characters_default:		; 0-9 and A-Z
 T5E11h	CDD041..  ..A.	CALL	SetMapperDEF	
@@ -4642,6 +4857,8 @@ T5F08h	4F......  O...	LD	C,A
 T5F09h	10F0....  ....	DJNZ	0F0h			; Jump to 05EFBH
 T5F0Bh	C9......  ....	RET			
 
+
+
 # Set F0F8 depending on some things... CheatMaster stuff?
 T5F0Ch	11595F..  .Y_.	LD	DE,05F59h
 T5F0Fh	21FA7F..  !...	LD	HL,07FFAh
@@ -4671,12 +4888,14 @@ T5F3Eh	21F8F0..  !...	LD	HL,0F0F8h
 T5F41h	CBC6....  ....	SET	0,(HL)			; Set if Knightmare is in slot 2.
 T5F43h	C9......  ....	RET			
 
+
+
 # {{{Compare two strings, *(C:HL) and (DE), length B. Carry is set if equal.
 SltStrCmp:
 T5F44h	C5......  ....	PUSH	BC	
 T5F45h	D5......  ....	PUSH	DE	
 T5F46h	79......  y...	LD	A,C	
-T5F47h	CD0C00..  ....	CALL	T000CH			; read slot A, adress HL, return in A.
+T5F47h	CD0C00..  ....	CALL	T000CH			; read slot A, address HL, return in A.
 T5F4Ah	D1......  ....	POP	DE	
 T5F4Bh	C1......  ....	POP	BC	
 T5F4Ch	EB......  ....	EX	DE,HL	
@@ -4693,7 +4912,7 @@ T5F57h	A7......  ....	AND	A
 T5F58h	C9......  ....	RET			
 # }}}
 
-# {{{ Magic numers...?
+# {{{ Magic numbers...?
 T5F59h	defb 0x00, 0x30, 0x31, 0x13, 0x35, 0xaa -> game master
 T5F5Fh	defb 0xb7, 0x8b, 0x9e, 0x0a, 0x39, 0xaa	-> knightmare
 T5F65h	defb 0xba, 0xb2, 0x86, 0x07, 0x46, 0xaa -> q-bert
@@ -4749,15 +4968,14 @@ T5FBFh	00......  ....	NOP
 T5FC0h	70......  p...	LD	(HL),B	
 T5FC1h	00......  ....	NOP		
 T5FC2h	FE3A....  .:..	CP	03Ah	
-:
-;5FC3h	3A1FE0..	LD	A,(TE01FH)
-T5FC4h	1F......  ....	RRA		
-T5FC5h	E0......  ....	RET	PO		
 
+; We can get here from:
+;   0x51D3 (call)
+T5FC3h	3A1FE0..	LD	A,(TE01FH)
 T5FC6h	3D......  ....	DEC	A	
-T5FC7h	283A....  (:..	JR	Z,03Ah			; Jump to 06003H
+T5FC7h	283A....  (:..	JR	Z,03Ah			; Jump to 06003H: if (*(0xe01f) == 1) LoadStartPosInWorld()
 T5FC9h	3D......  ....	DEC	A	
-T5FCAh	2849....  (I..	JR	Z,049h			; Jump to 06015H
+T5FCAh	2849....  (I..	JR	Z,049h			; Jump to 06015H: if (*(0xe01f) == 2) LoadStartPosInCastle()
 T5FCCh	3A1AE0..  :...	LD	A,(TE01AH)
 T5FCFh	3D......  ....	DEC	A	
 T5FD0h	280A....  (...	JR	Z,00Ah			; Jump to 05FDCH
@@ -4769,11 +4987,20 @@ T5FD8h	3D......  ....	DEC	A
 T5FD9h	2822....  ("..	JR	Z,022h			; Jump to 05FFDH
 T5FDBh	C9......  ....	RET			
 
-T5FDCh	3EB9....  >...	LD	A,0B9h	
+
+
+; We can get here from:
+;   0x5FD0 (jump)
+T5FDCh	3EB9....  >...	LD	A,0B9h			; A = 0xB9
 T5FDEh	1802....  ....	JR	002h			; Jump to 05FE2H
 
-T5FE0h	3E28....  >(..	LD	A,028h	
-T5FE2h	3205E5..  2...	LD	(TE505H),A
+; We can get here from:
+;   0x5FD3 (jump)
+T5FE0h	3E28....  >(..	LD	A,028h			; A = 0x28
+; We can get here from:
+;   0x5FDE (jump) *(0xE01A) == 1, A == 0xB9
+;   0x5FE0 (fall) *(0xE01A) == 2, A == 0x28
+T5FE2h	3205E5..  2...	LD	(TE505H),A		; Set Y position of Popolon/Aphrodite.
 T5FE5h	2112EC..  !...	LD	HL,0EC12h
 T5FE8h	CB46....  .F..	BIT	0,(HL)	
 T5FEAh	C8......  ....	RET	Z		
@@ -4785,12 +5012,22 @@ T5FF0h	56......  V...	LD	D,(HL)
 T5FF1h	67......  g...	LD	H,A	
 T5FF2h	2E00....  ....	LD	L,000h	
 T5FF4h	19......  ....	ADD	HL,DE	
-T5FF5h	2205E5..  "...	LD	(TE505H),HL
+T5FF5h	2205E5..  "...	LD	(TE505H),HL		
 T5FF8h	C9......  ....	RET			
 
-T5FF9h	3EF7....  >...	LD	A,0F7h	
+
+
+; We can get here from:
+;   0x5FD6 (jump) *(0xE01A) == 3
+T5FF9h	3EF7....  >...	LD	A,0F7h			; A = 0xF7
 T5FFBh	1802....  ....	JR	002h			; Jump to 05FFFH
 
-T5FFDh	3E10....  >...	LD	A,010h	
-T5FFFh  07......  xxxx  DB	007h
+; We can get here from:
+;   0x5FD9 (jump) *(0xE01A) == 4
+T5FFDh	3E10....  >...	LD	A,010h			; A = 0x10
+; We can get here from:
+;   0x5FFB (jump) A == 0xF7
+;   0x5FFD (fall) A == 0x10
+T5FFFh  3207E5..  ....	LD	(TE507H),A		; Set X position of Popolon/Aphrodite.
+T6002h	C9......  ....	RET
 ; }}}

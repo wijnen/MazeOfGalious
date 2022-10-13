@@ -14,9 +14,31 @@ e000
 		bit 5
 		bit 6: Related to sound IDs with 0x80 bit set
 		bit 7
-	e003	seen at 0xB86D
+	e003
+		InterruptBottomHalf tick counter.
+		
+		Stops counting when switching rooms.
+		Increments more rapidly during F1.
+		
+		0x4277@0: Loaded, incremented, stored.
+		0x42BA@0: Loaded, rotated right.
+		0x4DE8@0: Loaded, randomized with xor and R.
+		0x6298@1: Loaded, low nybble tested.
+		0x68A2@1: Loaded, bit 3 tested.
+		0x68C6@1: Loaded, bit 3 tested.
+		0x68ED@1: Loaded, bit 3 tested.
+		0x6ADC@1: Loaded, bit 0 tested.
+		0x9075@2: Loaded, bit 0 tested.
+		0x81F6@5: Used
+		0x8942@5: Loaded, anded with 0x3f (lower 6 bits)
+		0xB86D
+	e005:	Skip interrupt bottom half if true.
+		
+		0x4121@0: Loaded, tested for being zero/non-zero.
 	e006:	Lock for preventing simultaneous stuff, in interrupt hook.
-	e009:
+	e008: "pressed_controls"
+		Almost the same as 0xE009 (="active_controls"), except a bit is only 1 for 1 VDP tick.
+	e009: "active_controls"
 		&0x01 (bit 0): Pressed key up
 		&0x02 (bit 1): Pressed key down
 		&0x04 (bit 2): Pressed key left
@@ -49,12 +71,44 @@ e000
 		bit 7:
 	e00e:	Involved in building Konami logo line by line
 	e00f:	Involved in building Konami logo line by line
+	e01a
+		When moving to next room:
+		1: Set Y position to 0xB9. Far down.  Happens when exiting upwards/north.
+		2: Set Y position to 0x28. Far up.    Happens when exiting downwards/south.
+		3: Set X position to 0xF7. Far right. Happens when exiting left/west.
+		4: Set X position to 0x10. Far left.  Happens when exiting right/east.
+		0x5FCC@0: Loaded
 	e01d:	Seen at 0x5C9E
-	e01e:	Seen at 0x5CA8: current sound id?
+	e01e:	Seen at 0x5CA8: current sound id? No!
+	e01f
+		Set to 1 upon climbing the ladder to world 1.
+		Set to 2 when returning from world 1 to castle.
+		0x5FC3@0: Loaded
 	e021:	Seen at 0x5CB0
-	e041-e042: current world (1=castle) and current room
+	e041:	Current world (1==castle, 2==world 1, etc.)
+	e042:	Current room
+	e04e:	"itemscreen_selected_weapon"
+		
+		During the F1 screen, the player can select a weapon.
+		
+		This byte is used to determine the correct value for 
+		0xe510 ("active weapon").
+		
+		0: Wrap around needed
+		1: Arrow
+		2: Ceramic Arrow
+		3: Fire
+		4: Rolling Fire
+		5: Mine
+		6: Magnifying Glass
+		7: Wrap around needed
+		
+		0x67F4 == handle_itemscreen_controls(), this routine 
+		uses/sets/computes 0xE04E.
 	e052:	Maximum vitality possible for Aphrodite. Multiple of 8.
+	e053:	Current vitality of Aphrodite?
 	e056:	Maximum vitality possible for Popolon. Multiple of 8.
+	e057:	Current vitality of Popolon?
 	e058:
 		When F1 is pressed:
 			0: Aphrodite is dead and not choosable
@@ -89,12 +143,24 @@ e000
 		e06a: World 8
 		e06b: World 9
 		e06c: World 10
-
+	e06d: World 10 Activator
+	e06e: World 10 location
+		0: Middle tower
+		1: Right tower
+		2: Left tower
+		3: At start
 	e06f:
-		Seen at T5D92h (page 0). Fake. Would have been 0xe070 if 
-		Konami used 0 based instead of 1 based.
+		Would have been 0xe070 if Konami used 0 based instead of 
+		1 based.
+		
+		Seen at:
+			0x5D92 (page 0)
+			0x681A (page 0)
+			0x6832 (page 0
 	e070-e099: item inventory (see items.txt for individual item addresses)
 	e097: active shield (0 means no shield; 3 means gold)
+	e0a2:
+		0x9D88@789: Set to 1. Near disappearing wall code.
 	e0b0-e0c7:
 		byte 0:
 			0: Timer expired?
@@ -114,9 +180,28 @@ e000
 		e0c2-e0c3: (ID 0A) room 0x74
 		e0c4-e0c5: (ID 0B) room 0x7c
 		e0c6-e0c7: (ID 0C) room 0x85
+	e0d0:
+		Coordinates of where to start climbing downwards when re-entering from world to castle.
+		
+		0x6015@1: Loaded.
+	e0d2:
+		0: no boss fight
+		1: before gas clouds appear, high pitched sound
+		2: Gas clouds
+		3: ?
+		4: ?
+		
+		0x4988@0: Stored, together with 0xe0d3. Fixed value 0x01 (see 0x4983@0).
+		0x56FE@0: Seen
+		0x9ACE@123: Loaded
+	e0d3:
+		Boss fight related
+		
+		0x4988@0: Stored, together with 0xe0d2.
+		0x7F57@123: HL, value goes to 0xE700.
 	e0d4: seen at 0x4BC6
 		?world key is visible?
-	e100-e107:
+	e100-e10b:
 		Sound execution/code refs
 				Castle	GrtKey	Lad2Wld	World1
 		e100-e101:	0x610B	0x610B	0x610B	0x610B
@@ -131,12 +216,14 @@ e000
 			seen at 0x60A0
 		e10a-e10b (shadow channel C?):
 			seen at 0x6099
-	e10c/e127/e142/e15d/e178:
+			0x4FFD: Set to 0x6104
+	e10c/e127/e142/e15d/e178/e193 (typically addressed via IX register):
 		0xE10C - 0xE126: Channel A
 		0xE127 - 0xE141: Channel B
 		0xE142 - 0xE15C: Channel C
-		0xE15D - 0xE177: Channel ??? (seen at 0x64A5)
-		0xE178 - 0xE192: Channel ??? (seen at 0x649E)
+		0xE15D - 0xE177: Channel D (seen at 0x64A5)
+		0xE178 - 0xE192: Channel E (seen at 0x50A1, 0x649E)
+		0xE193 - 0xE1AD: Channel F (seen at 0x5000)
 		
 		+00,+01 e10c,e10d / 0xe127,0xe128 / 0xe142,0xe143:
 			Pointer to "opcode" (usually tone or octave setting).
@@ -151,50 +238,55 @@ e000
 			*pointer >= 0xc0: special (see 0x61A7)
 			?Else *pointer is duration of note? (without duration factor and *e1c5)
 		+02 e10e: bits
-			0:
+			Whole byte is set at:
+				0x4E96 During ldir, in which it is set to 0x01. Initialisation code.
+				0x63D4 Set to the value of register A.
+			0:	Unset: play a sample instead of a note. Opcode 0xE8 is important. Uses IX[8] to select the correct sample table.
 				0x6136: Tested
 				0x61E0: Tested
-			1:
-				0x61E0: Set
-			2:
+			1:	POSSIBLY UNUSED BIT
+			2:	POSSIBLY UNUSED BIT
+			3:	POSSIBLY UNUSED BIT
+			4:	POSSIBLY UNUSED BIT
+			5:
 				0x612C: Set
 				0x6159: Tested
-			3
-			4
-			5:
 				0x616F: Tested
 				0x61DC: Cleared
-			6: Increment frequency divider by 1?
+				0x6491: Tested. Set: don't write frequency to PSG.
+			6: Increment frequency divider by 1 (so decreased frequency).
 				0x6247: Tested
 					If set: Increment frequency divider by 1 (inc DE).
-				0x6402: Set
+				0x6402: Set, because current opcode is 0xE7.
 			7: 1: End of sound definition (0xFF seen)
 				0x6174: Tested
-				0x7188: Set
+				0x6188: Set
 				0x62A8: Cleared (page 13)
 		+03, e10f:
 			?Duration factor?
 			0x06: Seen in main castle theme
 		+04 e110:
+			0x625B: increase volume
 			Seen at 0x6382 (page 0xD)
 		+05 e111:
-			Seen at 0x61B1, 0x638D
+			Seen at 0x61B1, 0x61EA, 0x638D
 		+06 e112:
 			Seen at 0x6394
 		+07 e113: Octave
-		+08 e114: Sound opcode?
-			0x01: Special, see 0x627F, HL -> 0x65A7
-			0x02: Special, see 0x6283, HL -> 0x65BF
-			0x03: Special, see 0x6287, HL -> 0x65D7
-			0x04: Special, see 0x628B, HL -> 0x65EF
-			0x05: Special, see 0x628F, HL -> 0x6607
-			Otherwise:                 HL -> 0x661F
+		+08 e114: Sample table to select
+			0x627F: 0x01: HL -> 0x65A7
+			0x6283: 0x02: HL -> 0x65BF
+			0x6287: 0x03: HL -> 0x65D7
+			0x628B: 0x04: HL -> 0x65EF
+			0x628F: 0x05: HL -> 0x6607
+			0x6291: 0x00 or >= 0x06: HL -> 0x661F
 		+09 e115:
 			Number of VDP ticks left for the current note.
 			Counts down to zero.
 			0x61CA: Set
 		+0a e116:
-			Volume (0x00-0x0F)
+			Volume (0x00-0x0F), or 0x1y
+			
 			Value 0x10 (bit 4) is a special case in the PSG:
 			0: Nothing special, just the volume as expected.
 			1: The volume will vary in proportion to the 
@@ -202,10 +294,11 @@ e000
 			
 			bit 4: Seen at 0x6578 (page 13)
 			bit 4: Seen at 0x64EF (page 13)
-		+0b e117:
+		+0b e117: ?decrement volume if true?
 			Seen at 0x6147
+			Seen at 0x61ED
 		+0c,0d e118,e119 / e133,134 / e14e,e14f / e167,e168 / e184,e185:
-			pointer into sample.
+			Pointer into sample. (Backup copy of HL register.)
 			Main castle theme channel A: 0x7204
 			Main castle theme channel B:
 				0x7271 (mainly)
@@ -240,25 +333,55 @@ e000
 				0x6642
 				0x6647 (noise?)
 				
-		+0e e11a: 0x01 all the time?
-		+0f e11b: 0x01 all the time?
-		+10 e11c:
+		+0e e11a/e135/e150:
+			0x62AE: Set to hardcoded 1. (During switch to sample mode.)
+			0x64B0: Decremented
+			0x6581: Set to sample opcode
+		+0f e11b/e136/e151: 0x01 all the time?
+			0x6584: Set to sample opcode
+		+10 e11c/e137/e152:
 			Seen at 0x6361
-		+11 e11d: Seen at 0x6530,0x6547
+		+11 e11d/e138/e153/e16e/e189:
+			Active value of sample/sound loop counter.
+			Associated melody opcode: 0xFE
 		+12,13 e11e,e11f:
-			Seen at 0x6421,0x6422
+			Sound opcode 0xED: "call"
+			Sound opcode 0xEE: "return"
+			IX[12]+IX[13] is the address to return to.
 		+14 e120: MSB of frequency divider value (4 bit) "note"
 		+15 e121: LSB of frequency divider value (8 bit) "note"
-		+16 e122: Seen at 0x613D,0x640B
-			0: decrease frequency?
+		+16 e122: ?Vibrato?
+			0x63A8: Set to 0xEC by sound opcode 0xEC.
+			
+			During intro: both 0xEC and 0xED. Seems to increase+decrease frequency divider.
+			0x6244: set to fixed 0xEC (1110 1100)
+			0x640B: set to fixed 0xEC (1110 1100)
+			0x6457: incremented
+			0: decrease frequency? Just testing for odd/even?
+				0x6449: Tested
 		+17 e123: Seen at 0x6410,0x645D
-			low nybble: increase frequency divisor, decrease frequency
-		+18 e124: Seen at 0x6467
-		+19 e125: Seen at 0x647A
-		+1a e126: play sound if 0?
+			low nybble: increase frequency divisor (=decrease frequency)
+			0x623C: Read.
+			0x6410: Set to sample opcode byte.
+		+18 e124:
+			Cleared at 0x6239
+			Seen at 0x6467
+		+19 e125:
+			0x00: Increase frequency divider (in vibrato mode)
+			0xFF: Decrease frequency divider (in vibrato mode)
+			
+			Flip occurs at 0x647D
+		+1a e126/e141/: play sample if 0?
+			0x6181: Set to 1.
+			0x650F: Volume related
 	e15d-e177: seen at 0x4F39
-	e169-e170: seen at 0x4F47
-		vase: "7D 7C" (0x7C7D) - pointer to sound definition?
+	e169-e170:
+		0x404C@0: Very very early in the ROM.
+		0x4F47@0: vase: "7D 7C" (0x7C7D) - pointer to sound definition?
+	e16a:
+		0x404E@0: Very very early in the ROM.
+	e184:
+		0x50AC-50AF: Set to 0x22
 	e1ae: PSG channel selector/picker/chooser.
 		0x00:	Operate on channel A (PSG register 0+1, frequency divider registers for channel A)
 		0x01:	Operate on channel B (PSG register 2+3, frequency divider registers for channel B)
@@ -266,10 +389,14 @@ e000
 	e1af: Sound related
 		Possibly indicates which channel is handled currently.
 		0x00:	During pauze
-		0x01:	Seen at 0x6070 (page D), not observed with ram_watch (?too short?)
+			Seen at 0x6051
+		0x01:	Seen at 0x6071 (page D).
+			Not observed with ram_watch (?too short?).
+			Noticed when YOMAR was typed in world 1, written at 0x6071
 		0x02:	Twitchy during ram_watch
 		0x03:	Most of the time
 		0x04:	Noise?
+		0x05:	Seen at 0x4FF7
 		
 		Seen at 0x6434 where it is a loop counter for rotating 0x7f
 			0: 0x7F => 0xFE (1111 1110) ?PSG reg7, i.e. enable channel A?
@@ -281,9 +408,15 @@ e000
 			5: 0x7F => 0xDF (1101 1111)
 			6: 0x7F => 0xBF (1011 1111)
 			7: 0x7F => 0x7F (0111 1111)
-	e1b0: seen at 0x4F18,0x607E,0x6125, related to 0xe1af
-	e1b1: Input for PSG register 7 (selecting tone or noise).
-              Used in interrupt hook as first action.
+	e1b0:
+		0x4F18
+		0x5076: Tested for being zero.
+		0x607E: Set to 0.
+		0x6125: Tested for being zero.
+	e1b1:
+		Input for PSG register 7 (selecting tone or noise).
+		
+		Used in interrupt hook as first action.
                         ,---------- PSG I/O port B, must be 1
                         |,--------- PSG I/O port A, must be 0
                         || ,------- 1 == disable noise for channel C
@@ -295,35 +428,104 @@ e000
 		0xB8 == 10 111 000: noise xxx, tone ABC - during main theme
 		0xBC == 10 111 100: noise xxx, tone ABx - T4DEFh (inside some sort of init routine)
 		0xBE == 10 111 110: noise xxx, tone Axx - during pauze
+		0xBF == 10 111 111: noise xxx, tone xxx - SILENCE (0x5078)
 		0x9C == 10 011 100: noise xxC, tone ABx - during main theme
-	e1b2: seen at 0x600D
+		
+		0x1B == 00 011 011: noise xxC, tone xxC - Seen at 0x507F ("or bitmask")
+		
+		0x502F: Value copied from 0xE1B5
+		0x506F: Value copied to   0xE1BC
+	e1b2:
 		bit 0: ?use shadow channel at 0xe10a, shadow channel C?
-			Set at 0x4F8F
-			Cleared at 0x501B
-			Tested at 0x6010
 		bit 1: ?use shadow channel at 0xe108, shadow channel B?
-			Set at 0x5067
-			Tested at 0x50b3
-			Tested at 0x6015 (page d)
-			Cleared at 0x4ee2 (page 0)
-			Cleared at 0x50bc
-			
-			0x50b9: specific code for if bit is set.
+		
+		0x4E09       : Whole byte: Initialized to 0.
+		0x4EDF-0x4F91: Bit 1: Cleared.
+		0x4F89-0x4F8C: Bit 0: Set.
+		0x5018-0x501D: Bit 0: Cleared.
+		0x5064-0x5069: Bit 1: Set.
+		0x5069:
+		0x50B3: Loaded for a test of bit 1.
+		0x50B9: specific code for if bit 1 is set.
+		0x600D-0x6012: Bit 0: Tested. !Very early in SoundHandling()!
+		0x6015-0x6017: Bit 1: Tested. !Very early in SoundHandling()!
+	e1b3:
+		0x4F97: Set to same value as in 0xE1C0
+	e1b4:
+		0x4F9D: Value copied from 0xE1C1
+		0x5029: Value copied to   0xE1C1
+	e1b5:
+		0x4FA3: Value copied from 0xE1B1
+		0x502F: Value copied to   0xE1B1
+	e1b6:
+		0x4FA9: Set to same value as in 0xE1C2
+		0x5032: Loaded
 	e1b7: Value for PSG register   0 (channel A, frequency divider, LSB)
 	e1b8: Value for PSG register   1 (channel A, frequency divider, MSB)
 	e1b9: Value for PSG register   8 (channel A, volume)
 	e1ba: Value for PSG register   9 (channel B, volume)
 	e1bb: Value for PSG register 0xa (channel C, volume)
-	e1c0: seen at 0x6049, 0x601A
-	e1c1: seen at 0x6028, 0x6506
-	e1c2: seen at 0x643F
+	e1bc:
+		0x506F: Value copied from 0xE1B1
+	e1bd: Value of PSG register 0 (channel A, frequency divider, LSB)
+		0x5084-0x5088: Value read from PSG
+	e1be: Value of PSG register 1 (channel A, frequency divider, MSB)
+		0x508B-0x5090: Value read from PSG
+	e1bf: Value of PSG register 0 (channel A, volume)
+		0x5093-5098: Value read from PSG
+	e1c0:
+		0x4DF3: Initialized to 0.
+		0x4EE8: Initialized to 0.
+		0x5023: Value copied from 0xE1B3
+		0x6049: Set to value of register A, possibly volume related
+		0x601A: ?
+	e1c1: Volume booster?
+		0x4DF6: Initialized to 0.
+		0x4EEB: Initialized to 0.
+		0x5029: Value copied from 0xE1B4
+		0x5103: Compared with 0xFB
+
+		0x6028: Value 0xF0 is special: mute channel. Perhaps to 
+		help determine if volume is still 4 bits (since 5th bit 
+		is special: vary volume by envelope).
+		
+		0x6258: Loaded.
+		0x6506: Volume related test
+	e1c2:
+		0x4DF9: Initialized to 0.
+		0x4EF3: Initialized to 7.
+		0x5035: *(0xE1C2) = *(0xE1B6)
+		0x643F: ?
 		Wanted value for PSG reg 7? Enable noise/tone, inverse logic.
-	e1c3: seen at 0x4F13 (page 0), 0x63F5, 0x63FC (page 13)
+	e1c3:
+		0: Most of the time.
+		1: Seen when hitting space to begin game.
+			Because of opcode 0xE6 at 0x7F40 (start of channel A).
+			Because of opcode 0xE6 at 0x8036 (start of channel B).
+			Because of opcode 0xE6 at 0x81F0 (start of channel C).
+		1: Seen when entering a world, during "World N !!"
+			Because of opcode 0xE6 at 0x856B (start of channel A).
+			Because of opcode 0xE6 at 0x8577 (start of channel B).
+			Because of opcode 0xE6 at 0x8585 (start of channel C).
+		0x4E0C (page 0): set to 0
+		0x4EEE (page 0): set to 0
+		0x4F13 (page 0): read value
+		0x63F5: set to 1
+		0x63FC: set to 0
 	e1c4: seen at 0x6040
-	e1c5:
+	e1c5: Frequency divider table number
+		0: use standard   frequency divider table 0x62D0@DEF, starts at C.
+		1: use pitched up frequency divider table 0x62E8@DEF, starts at D#. 3 pitches up compared to base.
+		2: use pitched up frequency divider table 0x6300@DEF, starts at F#. 6 pitches up compared to base.
+		
+		0x4DFF: Initialized to 0.
 		seen at 0xBCBD (page 0x3, stored/computed)
 		seen at 0x61B1 (page 13)
-	e1c6: seen at 0x615E
+		0xBCBD@123: Stored
+	e1c6:
+		0x4DFC: Initialized to 0.
+		0x615E: ?
+		0x6266: Volume related
 	e1c7: ?last/previous/current sound?
 		0x00: quiet?
 		0x81: after entering "YOMAR" in world 1 in boss room (flickering screen).
@@ -353,7 +555,10 @@ e000
 		0x93: ?
 		0x94: When Popolon/Aphrodite dies
 		0x95: Game over
-	e1c9: seen at 0x6164
+	e1c9:
+		0x5015: Initialized to 0.
+		0x6164: ?
+		0x6270: volume related
 	e4a0-e4ff: vertical elevator info; 06 records:
 		0 elevator id
 		1 current room
@@ -372,8 +577,16 @@ e000
 		e bottom limit room
 		f bottom limit position
 	e500:
-		0: Player is not jumping
-		1: Player is jumping
+		0: Player is doing none of the below.
+		1: Player is jumping (both rise and fall).
+		2: Player is falling (but not because of a jump).
+		3: Player is climbing a ladder.
+		4: Player is hit (by spikes, bat, bamboo, whatever).
+		5: Player dies.
+		6: Player is hit by Frost Demon (world 2); player shakes.
+		7: Player is going through a door using a key.
+		
+		No other possibilies, as can be concluded from 0xA131.
 	e501:
 		0: Playing as/with Aphrodite
 		1: Playing as/with Popolon
@@ -457,8 +670,53 @@ e000
 		00: Not on ladder? Don't increment counter e50b?
 		01: On ladder, climbing up
 		02: On ladder, climbing down
+	e50e:
+		0xA2DE: Loaded, inside code about jumping.
+		0xA2E4: Table with 4 pointers; i.e. range is [0..3]
+		
+		0: ?Must determine which key is pressed?
+		1: Neither left key nor right key is pressed. (Or both pressed.)
+		2: Right key is pressed.
+		3: Left key is pressed.
+	e510: Active weapon
+		0: No weapon active
+		1: Arrow
+		2: Ceramic Arrow
+		3: Fire
+		4: Rolling Fire
+		5: Mine
+		6: Magnifying Glass
+	e511: Player in water
+		0: Player not in water
+		1: Player in water
+		0x4F27: Compared to 1.
+		0x6378 (page 4/5/6): Tested for being zero.
+		0x8422 (page 4/5/6): Tested for being zero.
+		0xA117 (page 1/2/3): Tested for being zero.
+		0xA1E5 (page 1/2/3): Tested for being zero.
+		0xA229 (page 1/2/3): Tested for being zero.
+		0xA370 (page 1/2/3): Tested for being zero.
+		0xA428 (page 1/2/3): Tested for being zero.
+		0xA4B0 (page 1/2/3): Tested for being zero.
+		0xB005 (page 1/2/3): Value copied to 0xF030.
+		0xB00C (page 1/2/3): Set to 0. Player is not in water.
+		0xB05A (page 1/2/3): Set to 1 or 2. Player is in water.
+		0xB078 (page 1/2/3): Decremented?!
 	e516: Has something to do with disappearing ladder on which side the player is facing.
+	e518: Invulnerable
+		Found in /usr/share/openmsx/scripts/_trainerdefs.tcl
+	e519:
+		0xB020 (page 1/2/3): Bit 3 tested.
+		0xB054 (page 1/2/3): Bit 3 is set. Walking on water because of oar?
 	e525: Has something to do with disappearing ladder. Used the ladder?
+	e526:
+		0xB89A@123: rock related?
+	e52a:
+		0xB04E (page 1/2/3): Set to 1. Walking on water because of oar?
+	e52b:
+		0xA30D: Related to 0xEC12
+	e52d:
+		0xA313: Related to 0xEC10
 	e52e:
 		00: No arrow pressed?
 		01: Up arrow pressed? Seems extra special because of jumping?
@@ -466,8 +724,7 @@ e000
 		04: Left arrow pressed?
 		08: Right arrow pressed?
 		
-		(Some) code references:
-		0xA8F0 (pages 1+2+3)
+		0xA8F0 (pages 1+2+3): Stored
 	e532:
 		(Some) code references:
 		0xA8F7 (pages 1+2+3)
@@ -516,22 +773,40 @@ e000
 	e604: Counter. Starts counting from 0x00 upwards, upon entering a room.
 	e608: seen at 0xB869
 	e60c-e60d: address of some info about current room; 1 bit each.
+	e60e+e60f:
+		0x9D8D@789: Loaded, bit fiddling. Inside appearing ladder code.
+		0xB871@123: Loaded, stored back. After shattering a rock.
 	e610: is this room in the special list? (all killall rooms seem to be, plus some more.)
 	e611: flag: 1 = all enemies need to be killed. 0 = no killall specials.
 	e612: some room property set up during room enter (to 0 if room not in list from 60ee, 1 if it is on the list).
 	e613: enemy counter during room setup, to index bits (for show/hide) in *e60c.
 	e614: some room property based on table (2 bits per room) at ba2e. Can be 0, 1 or 2.
+	e61b:
+		0x586E@0: Set to 1. Inside LoadMoreBossPatterns().
+		0x5874@0: Loaded, compared to 0. Inside LoadMoreBossPatterns().
+		0x5884@0: Loaded, compared to 8. Inside LoadBossPatterns().
+		0x58A0@0: Loaded, compared to 7. Inside LoadBossPatterns().
+		0x58AE@0: Loaded, incremented.
+		0x58C7@0: Loaded, compared to 0x2c (44).
+		0x58CF@0: Set to 0.
+		0x8321@2: Set to 1.
+		0x832C@2: Loaded, compared to 0.
+
 	e61c: ?Sabre visible/appeared in sabre room?
 	e61e: ?Touched fairy?
 	e620: number of enemies in this room
 	e621: used during enemy setup
 	e622: number of enemies to kill before special happens, or 0.
-	e623: 
+	e623: Rock iterator? Start at 7/8 and count down to 0?
 	e624: some enemy property set during setup (again for each enemy?)
 	e625: set to 80 if *e097 > 0 and correct enemy type is in room, otherwise set to 0 correct type taken from lists, see code at 659b @456
 	e635: maximum allowed number of enemies in this room
 	e636: something about enemies.
-	e648-e64b: exits from this room: down, up. left, right
+	e648-e64b: exits from this room: down, up, left, right
+		e648: Down
+		e649: Up
+		e65a: Left
+		e65b: Right
 	e650-e670: appearing enemies
 		e650: falling+bouncing grey boulders appear in this room. Code at 61e4@4: hardcoded to castle rooms 03, 47, 71, 72.
 		e653: exploding fireballs appear in this room. Code at 6205@4: hardcoded to castle rooms 90,91,92,93; world 8 rooms 0f, 10, 11, 12, 13; world 9 rooms 03, 04, 05; world 10 rooms 02, 03.
@@ -544,6 +819,7 @@ e000
 			e668: 1 if flocking birds appear in this room.
 			e669: number of birds (5 or a)
 			e66a: ? (initialized to 0010)
+		e670: Seen at 0x68F4 (page 1/2/3
 	e680: god id of shrine in this room
 	e688: marker(?) for world door
 	e68c: world door state (closed; opening; open)
@@ -553,8 +829,23 @@ e000
 	e692: position of selector in shop
 	e693: T90BCh (page 1/2/3)
 	e694: T90B2h (page 1/2/3)
-	e700: Index for table at 0x7F97 (page 1/2/3), 1 based. (So 0x7F98 is we make it 0 based.)
-	e710: Sound related. Related to e700.
+	e700:
+		Index for table at 0x7F97 (page 1/2/3), 1 based. (So 0x7F98 is we make it 0 based.)
+		0xB9D2:
+			Index for jump/switch table 
+	e702:
+		0xB9BC@123: Loaded
+	e70a:
+		0xBA04@123: Loaded
+	e710:
+		Boss hit points left before destroyed.
+		
+		Initial values:
+		
+			Without Holy Water	With Holy Water
+		World 1	0x18 (24)		0x0C (12)
+		
+		Related to e700.
 	e71d: Sound related.
 	e740: item id that is in current room
 
@@ -609,29 +900,36 @@ e000
 		1f	initial 00
 	eaa2: Y coordinate of trap wall
 	eaa3: X coordinate of trap wall
-	eac0: has something to do with disappearing wall in World 1, room 0x0c
-	eac2: has something to do with disappearing wall in World 1, room 0x0c
-	ec00-ec07: disappearing ladder
+	eac0: Disappearing walls
+		0: Walls won't be drawn, i.e. player can walk to boss room.
+		1: Walls will be drawn, i.e. passage is blocked.
+		
+		0x735F@123: Loaded, used for whether to draw
+		0x9E08@789: Stored, when last enemy is killed.
+	eac2-eac3:
+		Address of where to start drawing walls which can disappear.
+		
+		World 1, room 0x0c: 0xED80
+	ec00-ec07: Disappearing ladder.
 								room 0d	room 13	room 15	room 3c	room 46	room 49	room 56	room 66	room 6a room 74	room 7c	room 85	room 88
 		ec00: non zero if disappearing ladder		01	02	03	04	05	06	07	08	09	0A	0B	0C	0D
 		ec01: Y						40	80	60	40	80	40	80	60	60	60	40	80	60
 		ec02: X						B0	A0	80	50	30	30	60	E0	70	20	A0	B0	30
 		ec03: height (counted from top)			07	07	03	07	07	0F	07	07	07	07	0B	07	0B
 		ec04: ?						40	40	20	40	40	80	40	40	40	40	60	40	60
-		ec05: X of something				16	14	90	0A	06	06	0C	9C	8E	84	14	16	86
-		ec06:						EE	EF	EE	EE	EF	EE	EF	EE	EE	EE	EE	EF	EE
-			0000 0001
-			0000 0010
-			0000 0100
-			0000 1000
-				0: Draw ladder downwards?
-				1: Draw ladder upwards?
-			0001 0000
-			0010 0000
-			0100 0000
-			1000 0000:
+		ec05+ec06: screen buffer address		EE16	EF14	EE90	EE0A	EF06	EE06	EF0C	EE9C	EE8E	EE84	EE14	EF16	EE86
 		ec07: 00: hasn't disappeared, 01: disappeared	00	00	00	00	00	00	00	00	00	00	00	00	00
-	ec20-ec30: horizontal elevator info
+	ec08-ecab: Appearing ladder stuff?
+							W1R0xA
+		ec08		1=Appear		0x01
+		ec09		Height			0x03
+		ec0a+ec0b	Screen buffer address	0xEE15
+	ec10:
+		Seen at 0xA310
+	ec12:
+		0x5FE5@0: Loaded, bit 0 tested.
+		Seen at 0xA308
+	ec20-ec2f: horizontal elevator info
 		00: enabled
 		01: room number (always the current room)
 		02: 0
@@ -648,11 +946,107 @@ e000
 		0d: minimum X
 		0e: 0
 		0f: maximum X
+	ec30:	Rock attributes?
+                 #1 / #2 / #3 / #4 / #5 / #6 / #7 / #8
+		ec30/ec38/ec40/ec48/ec50/ec58/ec60/ec68 IX[0]
+		ec31/ec39/ec41/ec49/ec51/ec59/ec61/ec69 IX[1]
+		ec32/ec3a/ec42/ec4a/ec52/ec5a/ec62/ec6a IX[2] Y position
+		ec33/ec3b/ec43/ec4b/ec53/ec5b/ec63/ec6b IX[3] X position
+		ec34/ec3c/ec44/ec4c/ec54/ec5c/ec64/ec6c IX[4]
+		ec35/ec3d/ec45/ec4d/ec55/ec5d/ec65/ec6d IX[5]
+		ec36/ec3e/ec46/ec4e/ec56/ec5e/ec66/ec6e IX[6] Hits still needed to destroy the rock.
+		ec37/ec3f/ec47/ec4f/ec57/ec5f/ec67/ec6f IX[7]
+
 	ec80-ecff: sprite attribute buffer.
+		ec88: seen at 0x68EA (page 1/2/3)
 		eca0: seen at 0xB873
-	ed00-efff: screen buffer.
+	ed00-efff: screen buffer, 0x20 (32) bytes per row, 16 rows.
+		ed00-ed1f Line 0x0 Popolon Aphrodite Arrows
+		ed20-ed3f Line 0x1 Vitality
+		ed40-ed5f Line 0x2 Experience
+		ed60-ed7f Line 0x3 Castle / World N
+		ed80-ed9f Line 0x4 Line 0 of world/castle
+		eda0-edbf Line 0x5 Line 1 of world/castle
+		edc0-eddf Line 0x6 Line 2 of world/castle
+		ede0-edff Line 0x7 Line 3 of world/castle
+		
+		ee00-ee1f Line 0x8 Line 4 of world/castle
+		ee20-ee3f Line 0x9 Line 5 of world/castle
+		ee40-ee5f Line 0xA Line 6 of world/castle
+		ee60-ee7f Line 0xB Line 7 of world/castle
+		ee80-ee9f Line 0xC Line 8 of world/castle
+		eea0-eebf Line 0xD Line 9 of world/castle
+		eec0-eedf Line 0xE Line A of world/castle
+		eee0-eeff Line 0xF Line B of world/castle
+		
+		ef00-ef1f Line 0x8 Line C of world/castle
+		ef20-ef3f Line 0x9 Line D of world/castle
+		ef40-ef5f Line 0xA Line E of world/castle
+		ef60-ef7f Line 0xB Line F of world/castle
+		ef80-ef9f Line 0xC Line 10 of world/castle
+		efa0-efbf Line 0xD Line 11 of world/castle
+		efc0-efdf Line 0xE Line 12 of world/castle
+		efe0-efff Line 0xF Line 13 of world/castle
+		
+		8d: shrine - left arc
+		8e: shrine - left pillar
+		93: shrine - right arc
+		94: shrine - right pillar
+		
+		9a: ladder #1
+		9b: ladder #2
+		
+		9c: blue pillar #1, brick background
+		9d: blue pillar #2, brick background
+		9e: blue pillar #3, brick background
+		9f: blue pillar #4, brick background
+		
+		a2: background #1
+		a3: background #2
+		a4: background #3
+		a5: background #4
+		a6: background #5
+		a7: background #6
+		a8: background #7
+		a9: background #8
+		aa: background #9
+		ab: background #10
+		ac: background #11
+		ad: background #12
+		ae: background #13
+		af: background #14
+		b0: background #15
+		b1: background #16
+
+		b6: surface of water
+		b7: water
+		b8: surface of lava
+		b9: lava
+		ba: rock (upper left corner)
+		bb: rock (upper right corner)
+		bc: rock (lower left corner)
+		bd: rock (lower right corner)
+
+		c5: door (key needed) (goes upwards with key used)
+		c6: door (key needed)#1 (upper) (open to left if pushed from right and vv).
+		c7: door (key needed)#2 (middle)
+		c8: door (key needed)#3 (lower)
+		c9: door opening (upper left corner)
+		ca: door opening (upper right corner)
+		cb: door opening (lower left corner)
+		cc: door opening (lower right corner)
+		
+		cf: door
+		f0: wall
 f000
 	f0f1: wanted page number from 0x6000
 	f0f2: wanted page number from 0x8000
-	f02c: seen at B88A
-	f032: seen at B885
+	f0f8:
+		Bit 0: Knightmare  is in slot 2.
+		Bit 1: Q-Bert      is in slot 2.
+		Bit 2: Game Master is in slot 2.
+	f02c: Seen at 0xB88A
+	f030:
+		0xB008 (page 1/2/3): Copy of 0xe511 (is player in water)
+		0xB060 (page 1/2/3): Compared with 0xe511
+	f032: Seen at 0xB885

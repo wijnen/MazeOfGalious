@@ -6,38 +6,53 @@
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
-T6000h	07......  ....	RLCA		
-T6001h	E5......  ....	PUSH	HL	
+T5FFFh	3207E5..  ....	LD	(TE507H),A		; Starts in page 0.
 T6002h	C9......  ....	RET			
 
-T6003h	211760..  !.`.	LD	HL,06017h
+
+
+LoadStartPosInWorld:
+; Only for worlds, not for the castle.
+;
+; We can get here from:
+;   0x5FC7@0 (jump)
+T6003h	211760..  !.`.	LD	HL,06017h		; Pointer to positions
 T6006h	3A41E0..  :A..	LD	A,(WorldNumber)
 T6009h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
+; We can get here from:
+;   0x6019@1 (jump) DE == 0xE0D0
 T600Ch	7B......  {...	LD	A,E	
-T600Dh	3205E5..  2...	LD	(TE505H),A
+T600Dh	3205E5..  2...	LD	(TE505H),A		; Set Y of Popolon/Aphrodite.
 T6010h	7A......  z...	LD	A,D	
-T6011h	3207E5..  2...	LD	(TE507H),A
+T6011h	3207E5..  2...	LD	(TE507H),A		; Set X of Popolon/Aphrodite.
 T6014h	C9......  ....	RET			
 
-T6015h	ED5BD0E0  .[..	LD	DE,(TE0D0H)
-T6019h	18F1....  ....	JR	0F1h			; Jump to 0600CH
 
-dw 0x8038, 0x8098, 0x8098, 0x20b8, 0xe078, 0x8038, 0x88b8, 0x8038, 0x2038, 0x1838
-T601Bh	3880....  8...	JR	C,080h			; Jump to 05F9DH
-T601Dh	98......  ....	SBC	A,B	
-T601Eh	80......  ....	ADD	A,B	
-T601Fh	98......  ....	SBC	A,B	
-T6020h	80......  ....	ADD	A,B	
-T6021h	B8......  ....	CP	B	
-T6022h	2078....  .x..	JR	NZ,078h			; Jump to 0609CH
-T6024h	E0......  ....	RET	PO		
 
-T6025h	3880....  8...	JR	C,080h			; Jump to 05FA7H
-T6027h	B8......  ....	CP	B	
-T6028h	88......  ....	ADC	A,B	
-T6029h	3880....  8...	JR	C,080h			; Jump to 05FABH
-T602Bh	3820....  8...	JR	C,020h			; Jump to SetupStatusBar
-T602Dh	3818....  8...	JR	C,018h			; Jump to 06047H
+LoadStartPosInCastle:
+; We can get here from:
+;   0x5FCA@0 (jump)
+T6015h	ED5BD0E0  .[..	LD	DE,(TE0D0H)		; 
+T6019h	18F1....  ....	JR	0F1h			; Jump to 0600CH: Inside LoadStartPosInWorld()
+
+
+
+;; Starting position of player in each world.
+;;
+;; Referenced by:
+;;   0x6003@1
+defw 0x8038	; T601Bh+T601Ch Index 2: World  1, X=0x80, Y=0x38
+defw 0x8098	; T601Dh+T601Eh Index 3: World  2, X=0x80, Y=0x98
+defw 0x8098	; T601Fh+T6020h Index 4: World  3, X=0x80, Y=0x98
+defw 0x20B8	; T6021h+T6022h Index 5: World  4, X=0x20, Y=0xB8
+defw 0xE078	; T6023h+T6024h Index 6: World  5, X=0xE0, Y=0x78
+defw 0x8038	; T6025h+T6026h Index 7: World  6, X=0x80, Y=0x38
+defw 0x88B8	; T6027h+T6028h Index 8: World  7, X=0x88, Y=0xB8
+defw 0x8038	; T6029h+T602Ah Index 9: World  8, X=0x80, Y=0x38
+defw 0x2038	; T602Bh+T602Ch Index A: World  9, X=0x20, Y=0x38
+defw 0x1838	; T602Dh+T602Dh Index B: World 10, X=0x18, Y=0x38
+
+
 
 T602Fh	AF......  ....	XOR	A			; Clear A and F
 T6030h	3290E6..  2...	LD	(current_god_screen),A
@@ -377,7 +392,7 @@ T6254h	3A31F0..  :1..	LD	A,(TF031H)
 T6257h	B7......  ....	OR	A	
 T6258h	CADA62..  ..b.	JP	Z,T62DAH	
 T625Bh	3A1FF0..  :...	LD	A,(TF01FH)
-T625Eh	CD4041..  .@A.	CALL	switch	
+T625Eh	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x6267
 defw 0x6298
 defw 0x628e
@@ -423,7 +438,7 @@ T629Eh	2120F0..  !...	LD	HL,0F020h
 T62A1h	34......  4...	INC	(HL)			;
 T62A2h	7E......  ~...	LD	A,(HL)	
 T62A3h	3D......  ....	DEC	A	
-T62A4h	CD4041..  .@A.	CALL	switch	
+T62A4h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x62b1
 defw 0x62bd
 defw 0x62bd
@@ -585,9 +600,9 @@ T6398h	3A90E0..  :...	LD	A,(TE090H)	; Harp
 T639Bh	B7......  ....	OR	A	
 T639Ch	C8......  ....	RET	Z		
 
-T639Dh	3A08E0..  :...	LD	A,(pressed_controls)
-T63A0h	E610....  ....	AND	010h	
-T63A2h	C8......  ....	RET	Z		
+T639Dh	3A08E0..  :...	LD	A,(TE008H)	; A = *(pressed_controls)
+T63A0h	E610....  ....	AND	010h		; 0x10 is bitmask for space
+T63A2h	C8......  ....	RET	Z		; if (didn't press space right before this VDP tick) return
 
 T63A3h	2132E6..  !2..	LD	HL,0E632h
 T63A6h	7E......  ~...	LD	A,(HL)	
@@ -996,7 +1011,7 @@ T6686h	3220F0..  2...	LD	(TF020H),A
 T6689h	C8......  ....	RET	Z		
 
 T668Ah	0E08....  ....	LD	C,008h	
-T668Ch	CDA566..  ..f.	CALL	T66A5H	
+T668Ch	CDA566..  ..f.	CALL	T66A5H		;
 T668Fh	3A89E0..  :...	LD	A,(TE089H)	; Lamp: mark guardian
 T6692h	A7......  ....	AND	A	
 T6693h	C8......  ....	RET	Z		
@@ -1222,10 +1237,12 @@ T67EBh	CDF467..  ..g.	CALL	handle_itemscreen_controls
 T67EEh	CD8568..  ..h.	CALL	T6885H	
 T67F1h	C31542..  ..B.	JP	SetMapper3		
 
+
+
 handle_itemscreen_controls:
-T67F4h	3A08E0..  :...	LD	A,(pressed_controls)
-T67F7h	E603....  ....	AND	003h		; up or down
-T67F9h	C46F68..  .oh.	CALL	NZ,select_person_or_weapon
+T67F4h	3A08E0..  :...	LD	A,(TE008H)		; A = *(pressed_controls)
+T67F7h	E603....  ....	AND	003h			; up or down
+T67F9h	C46F68..  .oh.	CALL	NZ,T686F		; Call select_person_or_weapon().
 T67FCh	3A4CE0..  :L..	LD	A,(am_selecting_weapon)
 T67FFh	B7......  ....	OR	A	
 T6800h	283B....  (;..	JR	Z,03Bh			; Jump to 0683DH: select_person
@@ -1234,39 +1251,57 @@ T6805h	B7......  ....	OR	A
 T6806h	C8......  ....	RET	Z		
 
 T6807h	214EE0..  !N..	LD	HL,itemscreen_selected_weapon
-T680Ah	3A08E0..  :...	LD	A,(pressed_controls)
-T680Dh	E60C....  ....	AND	00Ch	
-T680Fh	C8......  ....	RET	Z		
+T680Ah	3A08E0..  :...	LD	A,(TE008H)		; A = *(pressed_controls)
+T680Dh	E60C....  ....	AND	00Ch			; A &= 0b 0000 1100, i.e. select left+right
+T680Fh	C8......  ....	RET	Z			; if (not pressed either right or left right before this VDP tick) return
 
-T6810h	CB5F....  ._..	BIT	3,A	
-T6812h	2015....  ....	JR	NZ,015h			; Jump to 06829H
-T6814h	35......  5...	DEC	(HL)	
+; Post: either right of left was just pressed, or both.
+T6810h	CB5F....  ._..	BIT	3,A			; Test if "right" was pressed.
+T6812h	2015....  ....	JR	NZ,015h			; if (right was pressed) jump to 06829H.
+; Post: Left was pressed.
+
+; We can get here from:
+;   0x6812 (fall) HL == itemscreen_selected_weapon, left was pressed.
+;   0x6821 (jump) HL == itemscreen_selected_weapon, player does not own the selected weapon.
+T6814h	35......  5...	DEC	(HL)			; Decrement selected weapon and set Z flag.
 T6815h	2002....  ....	JR	NZ,002h			; Jump to 06819H
-T6817h	3606....  6...	LD	(HL),006h
-T6819h	7E......  ~...	LD	A,(HL)	
-T681Ah	116FE0..  .o..	LD	DE,0E06Fh
-T681Dh	83......  ....	ADD	A,E	
-T681Eh	5F......  _...	LD	E,A	
-T681Fh	1A......  ....	LD	A,(DE)	
-T6820h	B7......  ....	OR	A	
-T6821h	28F1....  (...	JR	Z,0F1h			; Jump to 06814H
+; Post: *(0xe04e) == 0, i.e. selected weapon in itemscreen is 0 (wrap around needed)
+T6817h	3606....  6...	LD	(HL),006h		; *(0xe04e) = 6, magnifying glass
+; We can get here from:
+;   0x6815 (jump) *(0xe04e) >= 1
+;   0x6817 (fall) *(0xe04e) == 6 (magnifying glass, highest weapon ID)
+T6819h	7E......  ~...	LD	A,(HL)			; Get ID of selected weapon.
+T681Ah	116FE0..  .o..	LD	DE,0E06Fh		; Get start of item table. Would have been 0xE070 if Konami used 0 based.
+T681Dh	83......  ....	ADD	A,E			; Compute offset.
+T681Eh	5F......  _...	LD	E,A			; Store offset.
+T681Fh	1A......  ....	LD	A,(DE)			;
+T6820h	B7......  ....	OR	A			; Test if player actually has this weapon.
+T6821h	28F1....  (...	JR	Z,0F1h			; if (player does not have this weapon) jump to 06814H
+; Post: player has this weapon.
 T6823h	7E......  ~...	LD	A,(HL)	
 T6824h	3210E5..  2...	LD	(current_weapon),A
 T6827h	1841....  .A..	JR	041h			; Jump to 0686AH
 
-T6829h	34......  4...	INC	(HL)			;
+; We can get here from:
+;   0x6812 (jump) HL == itemscreen_selected_weapon, right was just pressed.
+;   0x6839 (jump) HL == itemscreen_selected_weapon, player does not own the selected weapon.
+T6829h	34......  4...	INC	(HL)			; Increment selected weapon.
 T682Ah	7E......  ~...	LD	A,(HL)	
-T682Bh	FE07....  ....	CP	007h	
-T682Dh	3802....  8...	JR	C,002h			; Jump to 06831H
-T682Fh	3601....  6...	LD	(HL),001h
-T6831h	7E......  ~...	LD	A,(HL)	
-T6832h	116FE0..  .o..	LD	DE,0E06Fh
-T6835h	83......  ....	ADD	A,E	
-T6836h	5F......  _...	LD	E,A	
+T682Bh	FE07....  ....	CP	007h			; Compute A - 7 and set flags.
+T682Dh	3802....  8...	JR	C,002h			; if (A < 7) Jump to 06831H
+; Post: A == 7, wrap around needed.
+T682Fh	3601....  6...	LD	(HL),001h		; *(0xE04E) = 1, set itemscreen_selected_weapon to Arrow.
+T6831h	7E......  ~...	LD	A,(HL)			; Get ID of selected weapon.
+T6832h	116FE0..  .o..	LD	DE,0E06Fh		; Get start of item table. Would have been 0xE070 if Konami used 0 based.
+T6835h	83......  ....	ADD	A,E			; Compute offset.
+T6836h	5F......  _...	LD	E,A			; Store offset.
 T6837h	1A......  ....	LD	A,(DE)	
-T6838h	B7......  ....	OR	A	
+T6838h	B7......  ....	OR	A			; Test if player actually has this weapon.
 T6839h	28EE....  (...	JR	Z,0EEh			; Jump to 06829H
 T683Bh	18E6....  ....	JR	0E6h			; Jump to 06823H
+; End of handle_itemscreen_controls().
+
+
 
 select_person:
 T683Dh	3A41E0..  :A..	LD	A,(WorldNumber)		; A = *(WorldNumber)
@@ -1290,9 +1325,10 @@ T6853h	C8......  ....	RET	Z			; Return if user does not have the Necklace.
 							; Popolon cannot enter world 7 without the Necklace.
 							; We are selecting a person while in world 7, so we don't need to test who we are. If we don't have the Necklace, we cannot be Popolon.
 
-T6854h	3A08E0..  :...	LD	A,(pressed_controls)		; A = *(0xe008)
+T6854h	3A08E0..  :...	LD	A,(TE008H)		; A = pressed_controls
 T6857h	E60C....  ....	AND	00Ch			; A &= 0b00001100	; left or right
-T6859h	C8......  ....	RET	Z		
+T6859h	C8......  ....	RET	Z			; if(left or right isn't pressed just before this VDP tick) return
+; Post: either left or right is pressed, or both. Al least 1 key wasn't pressed in the previous VDP tick.
 
 change_selected_person:
 T685Ah	214DE0..  !M..	LD	HL,itemscreen_selected_character ; HL = 0xe04d
@@ -1307,10 +1343,15 @@ T6867h	B7......  ....	OR	A			;
 T6868h	C8......  ....	RET	Z			;	See if this person is still alive
 
 T6869h	71......  q...	LD	(HL),C			; *(HL) = C
-;; T6879h jumps here, unconditionally.
-;; T6883h jumps here, unconditionally.
+
+; We can get here from:
+;   0x6869 (fall)
+;   0x6879 (jump) Unconditional jump.
+;   0x6883 (jump) Unconditional jump.
 T686Ah	3E2C....  >,..	LD	A,02Ch			; A = 0x2C
 T686Ch	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2C (in F1 or shrine when pushing up/down/left/right)
+
+
 
 select_person_or_weapon: {{{
 T686Fh	214CE0..  !L..	LD	HL,am_selecting_weapon	; HL = 0xe04c
@@ -1334,6 +1375,8 @@ T6882h	71......  q...	LD	(HL),C			; *(0xe04c) = C
 							; Restore original value of 0xe04c
 T6883h	18E5....  ....	JR	0E5h			; Jump to 0686AH
 ; }}}
+
+
 
 T6885h	CDEA68..  ..h.	CALL	T68EAH	
 T6888h	CD6B60..  .k`.	CALL	WriteCurrentWeapon	
@@ -1393,17 +1436,25 @@ T68E8h	C0......  ....	RET	NZ
 
 T68E9h	D8......  ....	RET	C		
 
-T68EAh	1188EC..  ....	LD	DE,0EC88h
+
+
+; We can get here from:
+;   0x6885 (call)
+T68EAh	1188EC..  ....	LD	DE,0EC88h		; 0xec88 is part of the sprite attribute buffer.
 T68EDh	3A03E0..  :...	LD	A,(TE003H)
 T68F0h	CB5F....  ._..	BIT	3,A	
 T68F2h	2809....  (...	JR	Z,009h			; Jump to 068FDH
 T68F4h	2170E6..  !p..	LD	HL,0E670h
 T68F7h	010800..  ....	LD	BC,00008h
-T68FAh	EDB0....  ....	LDIR		
+T68FAh	EDB0....  ....	LDIR				; Copy 8 bytes (=2 sprite attributes) from 0xE670 to 0xEC88.
 T68FCh	C9......  ....	RET			
 
-T68FDh	CD236E..  .#n.	CALL	T6E23H	
-T6900h	C3236E..  .#n.	JP	T6E23H		
+; We can get here from:
+;   0x68F2 (jump) DE == 0xEC88, A & 8 == 1
+T68FDh	CD236E..  .#n.	CALL	T6E23H			;
+T6900h	C3236E..  .#n.	JP	T6E23H			; Call first, then jump to same???
+
+
 
 T6903h	114DE0..  .M..	LD	DE,itemscreen_selected_character
 T6906h	1A......  ....	LD	A,(DE)	
@@ -2214,13 +2265,24 @@ T6E1Dh	CD236E..  .#n.	CALL	T6E23H
 T6E20h	10FB....  ....	DJNZ	0FBh			; Jump to 06E1DH
 T6E22h	C9......  ....	RET			
 
-T6E23h	3EE0....  >...	LD	A,0E0h	
+
+
+; We can get here from:
+;   0x68A7 (jump)
+;   0x68BD (jump)
+;   0x68CB (jump)
+;   0x68FD (call)
+;   0x6900 (jump)
+;   0x6E1D (call) Part of DJNZ
+T6E23h	3EE0....  >...	LD	A,0E0h			; A = 0xE0
 T6E25h	12......  ....	LD	(DE),A	
 T6E26h	1C......  ....	INC	E			;
 T6E27h	1C......  ....	INC	E			;
 T6E28h	1C......  ....	INC	E			;
 T6E29h	1C......  ....	INC	E			;
 T6E2Ah	C9......  ....	RET			
+
+
 
 T6E2Bh	DDCB027E  ...~	BIT	7,(IX+002h)
 T6E2Fh	C8......  ....	RET	Z		
@@ -2386,7 +2448,7 @@ T6F2Ah	1C......  ....	INC	E			;
 T6F2Bh	C9......  ....	RET			
 
 T6F2Ch	DD7E0B..  .~..	LD	A,(IX+00Bh)
-T6F2Fh	CD4041..  .@A.	CALL	switch	
+T6F2Fh	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x6f54
 defw 0x6f8a
 defw 0x6fe2
@@ -3085,12 +3147,14 @@ T732Bh	10ED....  ....	DJNZ	0EDh			; Jump to 0731AH
 T732Dh	D9......  ....	EXX		
 T732Eh	C9......  ....	RET			
 
+
+
 T732Fh	3A08EC..  :...	LD	A,(TEC08H)
 T7332h	B7......  ....	OR	A	
-T7333h	C8......  ....	RET	Z		
+T7333h	C8......  ....	RET	Z			; if (*(0xEC08) == 0) return, i.e. don't draw appearing wall
 
 T7334h	2A0AEC..  *...	LD	HL,(TEC0AH)
-T7337h	3A09EC..  :...	LD	A,(TEC09H)
+T7337h	3A09EC..  :...	LD	A,(TEC09H)		; A = height of ladder
 T733Ah	180B....  ....	JR	00Bh			; Jump to 07347H
 
 T733Ch	3A00EC..  :...	LD	A,(TEC00H)
@@ -3099,7 +3163,10 @@ T7340h	C8......  ....	RET	Z
 
 T7341h	2A05EC..  *...	LD	HL,(TEC05H)
 T7344h	3A03EC..  :...	LD	A,(TEC03H)
-T7347h	119B9A..  ....	LD	DE,09A9Bh
+; We can get here from:
+;   0x733A (jump)
+;   0x7344 (fall)
+T7347h	119B9A..  ....	LD	DE,09A9Bh		; Left and right ladder characters.
 T734Ah	011F00..  ....	LD	BC,0001Fh
 T734Dh	72......  r...	LD	(HL),D	
 T734Eh	2C......  ,...	INC	L			;
@@ -3116,21 +3183,35 @@ T7359h	C8......  ....	RET	Z
 T735Ah	219CED..  !...	LD	HL,0ED9Ch
 T735Dh	1808....  ....	JR	008h			; Jump to 07367H
 
+
+; Disappearing walls.
 T735Fh	3AC0EA..  :...	LD	A,(TEAC0H)
 T7362h	B7......  ....	OR	A	
-T7363h	C8......  ....	RET	Z		
+T7363h	C8......  ....	RET	Z			
 
-T7364h	2AC2EA..  *...	LD	HL,(TEAC2H)
+; Draw disappearable walls:
+;   World 1: Passage to boss room is blocked, room 0x0c -> 0x0d is blocked.
+T7364h	2AC2EA..  *...	LD	HL,(TEAC2H)		; Address of first brick (to draw).
 T7367h	111C00..  ....	LD	DE,0001Ch
-T736Ah	0E03....  ....	LD	C,003h	
-T736Ch	0604....  ....	LD	B,004h	
-T736Eh	36F0....  6...	LD	(HL),0F0h
+T736Ah	0E03....  ....	LD	C,003h			; Draw 3 rows of walls.
+
+; We can get here from:
+;   0x736A (fall)
+;   0x7375 (jump)
+T736Ch	0604....  ....	LD	B,004h			; Draw 4 walls inside DJNZ loop.
+; We can get here from:
+;   0x736C (fall)
+;   0x7371 (djnz)
+T736Eh	36F0....  6...	LD	(HL),0F0h		; Draw wall.
 T7370h	23......  #...	INC	HL			;
 T7371h	10FB....  ....	DJNZ	0FBh			; Jump to 0736EH
+
 T7373h	19......  ....	ADD	HL,DE	
-T7374h	0D......  ....	DEC	C	
+T7374h	0D......  ....	DEC	C			; Another layer of bricks completed.
 T7375h	20F5....  ....	JR	NZ,0F5h			; Jump to 0736CH
-T7377h	C9......  ....	RET			
+T7377h	C9......  ....	RET				; All layers/bricks/walls drawn.
+
+
 
 T7378h	2130EC..  !0..	LD	HL,0EC30h
 T737Bh	0603....  ....	LD	B,003h	
@@ -5092,13 +5173,15 @@ T7EEFh	37......  7...	SCF
 T7EF0h	C9......  ....	RET			
 
 T7EF1h	3E07....  >...	LD	A,007h	
-T7EF3h	CD4101..  .A..	CALL	T0141H	; read keyboard
+T7EF3h	CD4101..  .A..	CALL	T0141H			; read keyboard
 T7EF6h	2F......  /...	CPL		
-T7EF7h	E602....  ....	AND	002h	; is F5 pressed?
+T7EF7h	E602....  ....	AND	002h			; is F5 pressed?
 T7EF9h	C8......  ....	RET	Z		
 
-T7EFAh	37......  7...	SCF		
+T7EFAh	37......  7...	SCF				; Set carry flag	
 T7EFBh	C9......  ....	RET			
+
+
 
 T7EFCh	21D2E0..  !...	LD	HL,0E0D2h
 T7EFFh	7E......  ~...	LD	A,(HL)	
@@ -5131,11 +5214,13 @@ T7F2Fh	CD2042..  ..B.	CALL	SetMapper6
 T7F32h	CDEDB0..  ....	CALL	TB0EDH	
 T7F35h	C31542..  ..B.	JP	SetMapper3		
 
+
+
 T7F38h	3A00E7..  :...	LD	A,(TE700H)
 T7F3Bh	3D......  ....	DEC	A	
 T7F3Ch	F8......  ....	RET	M		
 
-T7F3Dh	CD4041..  .@A.	CALL	switch	
+T7F3Dh	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x802e
 defw 0x8170
 defw 0x83a7
@@ -5148,25 +5233,33 @@ defw 0x8d2d
 defw 0x8535
 defw 0x8815
 
+; Involved in setting up world boss.
+;
+; We can get here from:
+;   0x7F0B (jump)
 T7F56h	34......  4...	INC	(HL)			;
+; Example: HL == 0xE0D3
 T7F57h	2C......  ,...	INC	L			;
 T7F58h	7E......  ~...	LD	A,(HL)			;
 T7F59h	3200E7..  2...	LD	(TE700H),A		;
-T7F5Ch	21977F..  !...	LD	HL,07F97h		; Some sound related table?
+T7F5Ch	21977F..  !...	LD	HL,07F97h		; Boss hitpoints per world.
 T7F5Fh	CD5541..  .UA.	CALL	A=HL[A]			;
 T7F62h	47......  G...	LD	B,A			;
-T7F63h	3A76E0..  :v..	LD	A,(TE076H)		;
+T7F63h	3A76E0..  :v..	LD	A,(TE076H)		; Holy Water
 T7F66h	B7......  ....	OR	A			;
 T7F67h	78......  x...	LD	A,B			;
 T7F68h	2802....  (...	JR	Z,002h			; Jump to 07F6CH
 T7F6Ah	CB3F....  .?..	SRL	A	
+; We can get here from:
+;   0x7F68 (jump) A == boss hitpoints     (player doesn't have this world's holy water).
+;   0x7F6A (fall) A == boss hitpoints / 2 (player has          this world's holy water).
 T7F6Ch	3210E7..  2...	LD	(TE710H),A
 T7F6Fh	DD2100E7  .!..	LD	IX,0E700h
 T7F73h	DD360100  .6..	LD	(IX+001h),000h
 T7F77h	DD3602F0  .6..	LD	(IX+002h),0F0h
 T7F7Bh	3A00E7..  :...	LD	A,(TE700H)
 T7F7Eh	3D......  ....	DEC	A	
-T7F7Fh	CD4041..  .@A.	CALL	switch	
+T7F7Fh	CD4041..  .@A.	CALL	T4140H_switch	
 
 defw 0x8013	;; T7F82h
 defw 0x8279	;; T7F84h
@@ -5180,24 +5273,45 @@ defw 0x8cdd	;; T7F92h
 defw 0x84f0	;; T7F94h
 defw 0x87e6	;; T7F96h
 
-;; Some table. Probably sound related. 1 byte per record.
+;; Initial boss hit points.
 ;; 
 ;; Referenced by:
-;; TBCA8h
-T7F98h	1840....  .@..	JR	040h			; Jump to 07FDAH
+;;   0x7F5C
+;;   0xBCA8
+defb 0x18	; T7F98h 1. World 1
+defb 0x40	; T7F99h 2.
+defb 0x38	; T7F9Ah 3.
+defb 0x28	; T7F9Bh 4.
+defb 0x00	; T7F9Ch 5. ???
+defb 0x50	; T7F9Dh 6.
+defb 0x40	; T7F9Eh 7.
+defb 0x50	; T7F9Fh 8.
+defb 0xF8	; T7FA0h 9.
+defb 0x48	; T7FA1h 10.
+defb 0x70	; T7FA2h 11.
 
-T7F9Ah	3828....  8(..	JR	C,028h			; Jump to 07FC4H
-T7F9Ch	00......  ....	NOP		
-T7F9Dh	50......  P...	LD	D,B	
-T7F9Eh	40......  @...	LD	B,B	
-T7F9Fh	50......  P...	LD	D,B	
-T7FA0h	F8......  ....	RET	M		
 
-T7FA1h	48......  H...	LD	C,B	
-T7FA2h	70......  p...	LD	(HL),B	
+
+; We can get here from:
+;   0x80D9 (jump)
+;   0x830F (call)
+;   0x83A4 (jump)
+;   0x8452 (jump)
+;   0x8532 (jump)
+;   0x86DD (jump)
+;   0x8792 (jump)
+;   0x8812 (jump)
+;   0x889E (call)
+;   0x88C2 (call)
+;   0x8900 (call)
+;   0x8942 (jump)
+;   0x89F2 (jump)
+;   0x8BF4 (call)
 T7FA3h	CD2042..  ..B.	CALL	SetMapper6	
 T7FA6h	CD3EB1..  .>..	CALL	TB13EH	
 T7FA9h	C31542..  ..B.	JP	SetMapper3		
+
+
 
 T7FACh	CD2042..  ..B.	CALL	SetMapper6	
 T7FAFh	CD5FB1..  ._..	CALL	TB15FH	
@@ -5247,6 +5361,12 @@ T7FFEh	21D2E0..  !...	LD	HL,0E0D2h
 T8001h	34......  4...	INC	(HL)			;
 T8002h	C9......  ....	RET			
 
+
+
+; Data.
+;
+; Referenced by:
+;   0x7FEE
 T8003h	70......  p...	LD	(HL),B	
 T8004h	40......  @...	LD	B,B	
 T8005h	98......  ....	SBC	A,B	
@@ -5433,7 +5553,7 @@ T816Ch	320AE7..  2...	LD	(TE70AH),A
 T816Fh	C9......  ....	RET			
 
 T8170h	3A01E7..  :...	LD	A,(TE701H)
-T8173h	CD4041..  .@A.	CALL	switch	
+T8173h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x8182
 defw 0x8201
 defw 0x822f
@@ -5469,7 +5589,7 @@ T81B9h	FE0C....  ....	CP	00Ch
 T81BBh	380F....  8...	JR	C,00Fh			; Jump to 081CCH
 T81BDh	ED5F....  ._..	LD	A,R	
 T81BFh	E603....  ....	AND	003h	
-T81C1h	CD4041..  .@A.	CALL	switch	
+T81C1h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x81cc
 defw 0x81e9
 defw 0x8244
@@ -5559,7 +5679,7 @@ T827Dh	3A19E7..  :...	LD	A,(TE719H)
 T8280h	1F......  ....	RRA		
 T8281h	1F......  ....	RRA		
 T8282h	E603....  ....	AND	003h	
-T8284h	CD4041..  .@A.	CALL	switch	
+T8284h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x828f
 defw 0x829b
 defw 0x82c6
@@ -5609,6 +5729,8 @@ T82D6h	CB11....  ....	RL	C
 T82D8h	79......  y...	LD	A,C	
 T82D9h	1804....  ....	JR	004h			; Jump to 082DFH
 
+
+
 T82DBh	ED5F....  ._..	LD	A,R	
 T82DDh	E60F....  ....	AND	00Fh	
 T82DFh	321DE7..  2...	LD	(TE71DH),A
@@ -5624,6 +5746,8 @@ T82FCh	DD360B01  .6..	LD	(IX+00Bh),001h
 T8300h	CD7587..  .u..	CALL	T8775H	
 T8303h	1804....  ....	JR	004h			; Jump to 08309H
 
+
+
 T8305h	DD361501  .6..	LD	(IX+015h),001h
 T8309h	DD710A..  .q..	LD	(IX+00Ah),C
 T830Ch	DD7007..  .p..	LD	(IX+007h),B
@@ -5636,6 +5760,8 @@ T831Ch	3205E7..  2...	LD	(TE705H),A
 T831Fh	3E01....  >...	LD	A,001h	
 T8321h	321BE6..  2...	LD	(TE61BH),A
 T8324h	C9......  ....	RET			
+
+
 
 T8325h	DDE5....  ....	PUSH	IX	
 T8327h	CD7B58..  .{X.	CALL	T587BH	
@@ -5651,6 +5777,9 @@ T8339h	3EE0....  >...	LD	A,0E0h
 T833Bh	3202E7..  2...	LD	(TE702H),A
 T833Eh	C3F886..  ....	JP	T86F8H		
 
+
+
+; Lookup table, referenced by 0x8316.
 T8341h	2040....  .@..	JR	NZ,040h			; Jump to 08383H
 T8343h	60......  `...	LD	H,B	
 T8344h	80......  ....	ADD	A,B	
@@ -6007,19 +6136,23 @@ T8601h	0602....  ....	LD	B,002h
 T8603h	3E57....  >W..	LD	A,057h	
 T8605h	C37D40..  .}@.	JP	T407DH		
 
+
+
 T8608h	08......  ....	EX	AF,AF'	
 T8609h	1018....  ....	DJNZ	018h			; Jump to 08623H
 T860Bh	20DD....  ....	JR	NZ,0DDh			; Jump to 085EAH
 T860Dh	35......  5...	DEC	(HL)	
 T860Eh	1EC0....  ....	LD	E,0C0h	
 T8610h	DDCB02E6  ....	SET	4,(IX+002h)
-T8614h	CDE34D..  ..M.	CALL	T4DE3H	
+T8614h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T8617h	E61F....  ....	AND	01Fh	
 T8619h	C608....  ....	ADD	A,008h	
 T861Bh	DD771E..  .w..	LD	(IX+01Eh),A
 T861Eh	DD360100  .6..	LD	(IX+001h),000h
 T8622h	DD361823  .6.#	LD	(IX+018h),023h
 T8626h	C9......  ....	RET			
+
+
 
 T8627h	3EF0....  >...	LD	A,0F0h	
 T8629h	DDA602..  ....	AND	(IX+002h)
@@ -6061,24 +6194,37 @@ T8690h	7E......  ~...	LD	A,(HL)
 T8691h	FE04....  ....	CP	004h	
 T8693h	CA6587..  .e..	JP	Z,T8765H	
 T8696h	3A01E7..  :...	LD	A,(TE701H)
-T8699h	CD4041..  .@A.	CALL	switch	
-defw 0x86a4
-defw 0x86c1
-defw 0x86e0
-defw 0x86fd
+T8699h	CD4041..  .@A.	CALL	T4140H_switch	
 
+; Code pointers, referenced by T8699h.
+defw 0x86a4	; T869Ch+T869Dh
+defw 0x86c1	; T869Eh+T869Fh
+defw 0x86e0	; T8690h+T8691h
+defw 0x86fd	; T86A2h+T86A3h
+
+
+
+; We can get here from
+;   0x8699 (call)
 T86A4h	DDCB1E46  ....	BIT	0,(IX+01Eh)
 T86A8h	2812....  (...	JR	Z,012h			; Jump to 086BCH
-T86AAh	CDE34D..  ..M.	CALL	T4DE3H	
+T86AAh	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T86ADh	E601....  ....	AND	001h	
 T86AFh	280B....  (...	JR	Z,00Bh			; Jump to 086BCH
-T86B1h	CDE34D..  ..M.	CALL	T4DE3H	
+T86B1h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T86B4h	E601....  ....	AND	001h	
 T86B6h	321CE7..  2...	LD	(TE71CH),A
 T86B9h	C37A87..  .z..	JP	T877AH		
 
+
+
+; We can get here from:
+;   0x86A8 (jump)
+;   0x86AF (jump)
 T86BCh	DD360102  .6..	LD	(IX+001h),002h
 T86C0h	C9......  ....	RET			
+
+
 
 T86C1h	DD351B..  .5..	DEC	(IX+01Bh)
 T86C4h	CCC387..  ....	CALL	Z,T87C3H
@@ -6091,9 +6237,11 @@ T86D6h	DD360102  .6..	LD	(IX+001h),002h
 T86DAh	110000..  ....	LD	DE,00000h
 T86DDh	C3A37F..  ....	JP	T7FA3H		
 
+
+
 T86E0h	DDCB1F46  ...F	BIT	0,(IX+01Fh)
 T86E4h	2812....  (...	JR	Z,012h			; Jump to 086F8H
-T86E6h	CDE34D..  ..M.	CALL	T4DE3H	
+T86E6h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T86E9h	E601....  ....	AND	001h	
 T86EBh	280B....  (...	JR	Z,00Bh			; Jump to 086F8H
 T86EDh	3A1DE7..  :...	LD	A,(TE71DH)
@@ -6139,11 +6287,13 @@ T874Ah	CD7D40..  .}@.	CALL	T407DH
 T874Dh	3E11....  >...	LD	A,011h			; A = 0x11
 T874Fh	C35940..  .Y@.	JP	T4059H			; Play sound id 0x11 (sound for???) (hook)
 
+
+
 T8752h	3A22E7..  :"..	LD	A,(TE722H)
 T8755h	B7......  ....	OR	A	
 T8756h	C0......  ....	RET	NZ		
 
-T8757h	CDE34D..  ..M.	CALL	T4DE3H	
+T8757h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T875Ah	E601....  ....	AND	001h	
 T875Ch	C0......  ....	RET	NZ		
 
@@ -6157,6 +6307,8 @@ T876Dh	DD362120  .6!.	LD	(IX+021h),020h
 T8771h	DD360A1A  .6..	LD	(IX+00Ah),01Ah
 T8775h	DDCB02A6  ....	RES	4,(IX+002h)
 T8779h	C9......  ....	RET			
+
+
 
 T877Ah	DD361B08  .6..	LD	(IX+01Bh),008h
 T877Eh	DD360101  .6..	LD	(IX+001h),001h
@@ -6222,7 +6374,7 @@ T880Fh	1180FF..  ....	LD	DE,0FF80h
 T8812h	C3A37F..  ....	JP	T7FA3H		
 
 T8815h	3A01E7..  :...	LD	A,(TE701H)
-T8818h	CD4041..  .@A.	CALL	switch	
+T8818h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x8825
 defw 0x885f
 defw 0x8883
@@ -6249,7 +6401,7 @@ T8846h	BE......  ....	CP	(HL)
 T8847h	062E....  ....	LD	B,02Eh	
 T8849h	D0......  ....	RET	NC		
 
-T884Ah	CDE34D..  ..M.	CALL	T4DE3H	
+T884Ah	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T884Dh	E603....  ....	AND	003h	
 T884Fh	C8......  ....	RET	Z		
 
@@ -6288,7 +6440,7 @@ T889Bh	1180FE..  ....	LD	DE,0FE80h
 T889Eh	CDA37F..  ....	CALL	T7FA3H	
 T88A1h	114000..  .@..	LD	DE,00040h
 T88A4h	CDBE7F..  ....	CALL	T7FBEH	
-T88A7h	CDE34D..  ..M.	CALL	T4DE3H	
+T88A7h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T88AAh	E603....  ....	AND	003h	
 T88ACh	FE01....  ....	CP	001h	
 T88AEh	1180FB..  ....	LD	DE,0FB80h
@@ -6421,6 +6573,8 @@ T89CFh	DD361820  .6..	LD	(IX+018h),020h
 T89D3h	DD3401..  .4..	INC	(IX+001h)		;
 T89D6h	C9......  ....	RET			
 
+
+
 T89D7h	DD3518..  .5..	DEC	(IX+018h)
 T89DAh	280F....  (...	JR	Z,00Fh			; Jump to 089EBH
 T89DCh	DD360E00  .6..	LD	(IX+00Eh),000h
@@ -6431,14 +6585,18 @@ T89E5h	D0......  ....	RET	NC
 T89E6h	DD360E80  .6..	LD	(IX+00Eh),080h
 T89EAh	C9......  ....	RET			
 
+
+
 T89EBh	DD360100  .6..	LD	(IX+001h),000h
 T89EFh	1180FF..  ....	LD	DE,0FF80h
 T89F2h	C3A37F..  ....	JP	T7FA3H		
 
+
+
 T89F5h	DD3516..  .5..	DEC	(IX+016h)
 T89F8h	C0......  ....	RET	NZ		
 
-T89F9h	CDE34D..  ..M.	CALL	T4DE3H	
+T89F9h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T89FCh	E61F....  ....	AND	01Fh	
 T89FEh	C603....  ....	ADD	A,003h	
 T8A00h	3216E7..  2...	LD	(TE716H),A
@@ -6521,7 +6679,7 @@ T8AA1h	C31A87..  ....	JP	T871AH
 T8AA4h	CD8C8C..  ....	CALL	T8C8CH	
 T8AA7h	3A01E7..  :...	LD	A,(TE701H)
 T8AAAh	21B08A..  !...	LD	HL,08AB0h
-T8AADh	CD4041..  .@A.	CALL	switch	
+T8AADh	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x8ac0
 defw 0x8b14
 defw 0x8b3a
@@ -6799,7 +6957,7 @@ T8D29h	DD7702..  .w..	LD	(IX+002h),A
 T8D2Ch	C9......  ....	RET			
 
 T8D2Dh	DD7E01..  .~..	LD	A,(IX+001h)
-T8D30h	CD4041..  .@A.	CALL	switch	
+T8D30h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x8d3d
 defw 0x8d65
 defw 0x8d8b
@@ -6845,7 +7003,7 @@ T8D8Ah	C9......  ....	RET
 T8D8Bh	DD3508..  .5..	DEC	(IX+008h)
 T8D8Eh	C0......  ....	RET	NZ		
 
-T8D8Fh	CDE34D..  ..M.	CALL	T4DE3H	
+T8D8Fh	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T8D92h	E607....  ....	AND	007h	
 T8D94h	21DF8E..  !...	LD	HL,08EDFh
 T8D97h	CD4C41..  .LA.	CALL	DE=*(HL+2*A)
@@ -6888,7 +7046,7 @@ T8DF0h	DD360100  .6..	LD	(IX+001h),000h
 T8DF4h	C3248D..  .$..	JP	T8D24H		
 
 T8DF7h	DD361730  .6.0	LD	(IX+017h),030h
-T8DFBh	CDE34D..  ..M.	CALL	T4DE3H	
+T8DFBh	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T8DFEh	E601....  ....	AND	001h	
 T8E00h	3E80....  >...	LD	A,080h	
 T8E02h	2001....  ....	JR	NZ,001h			; Jump to 08E05H
@@ -6898,7 +7056,7 @@ T8E08h	DD7725..  .w%.	LD	(IX+025h),A
 T8E0Bh	3E04....  >...	LD	A,004h	
 T8E0Dh	DD7722..  .w".	LD	(IX+022h),A
 T8E10h	DD771B..  .w..	LD	(IX+01Bh),A
-T8E13h	CDE34D..  ..M.	CALL	T4DE3H	
+T8E13h	CDE34D..  ..M.	CALL	T4DE3H_randomize_reg_A
 T8E16h	E60F....  ....	AND	00Fh	
 T8E18h	DD7720..  .w..	LD	(IX+020h),A
 T8E1Bh	AF......  ....	XOR	A			; Clear A and F
@@ -7064,7 +7222,7 @@ T8F40h	C35C94..  .\..	JP	T945CH
 
 T8F43h	3A90E6..  :...	LD	A,(current_god_screen)
 T8F46h	3D......  ....	DEC	A	
-T8F47h	CD4041..  .@A.	CALL	switch	
+T8F47h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x90c0	Demeter Password
 defw 0x9126		Hephaestus Mine
 defw 0x8f72	Death
@@ -7087,7 +7245,7 @@ defw 0x92e8	World 7: Demeter
 defw 0x92e8	World 9: Demeter
 
 T8F72h	3A91E6..  :...	LD	A,(TE691H)
-T8F75h	CD4041..  .@A.	CALL	switch	
+T8F75h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x8f84
 defw 0x8fe9
 defw 0x8fe9
@@ -7271,7 +7429,7 @@ T90BCh	3293E6..  2...	LD	(TE693H),A
 T90BFh	C9......  ....	RET			
 
 T90C0h	3A91E6..  :...	LD	A,(TE691H)
-T90C3h	CD4041..  .@A.	CALL	switch	
+T90C3h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x90ce
 defw 0x90de
 defw 0x910d
@@ -7321,7 +7479,7 @@ T9120h	CDEF94..  ....	CALL	show_god_message
 T9123h	C3E591..  ....	JP	T91E5H		
 
 T9126h	3A91E6..  :...	LD	A,(TE691H)
-T9129h	CD4041..  .@A.	CALL	switch	
+T9129h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0x9134
 defw 0x917c
 defw 0x918c
@@ -8721,7 +8879,7 @@ T99E4h	3D......  ....	DEC	A
 T99E5h	328CE6..  2...	LD	(TE68CH),A
 T99E8h	C9......  ....	RET			
 
-;; Data?
+;; Data? No.
 T99E9h	2189E6..  !...	LD	HL,0E689h		; HL = 0xe689
 T99ECh	CBC6....  ....	SET	0,(HL)			; *HL |= 1
 T99EEh	2D......  -...	DEC	L			; --HL
@@ -8785,7 +8943,7 @@ T9A41h	3A7CE0..  :|..	LD	A,(Necklace)
 T9A44h	B7......  ....	OR	A	
 T9A45h	C8......  ....	RET	Z		
 
-T9A46h	3A09E0..  :...	LD	A,(active_controls)
+T9A46h	3A09E0..  :...	LD	A,(TE009H)
 T9A49h	E602....  ....	AND	002h	
 T9A4Bh	C8......  ....	RET	Z		
 
@@ -8821,6 +8979,8 @@ T9A75h	C9......  ....	RET
 
 
 
+; We can get here from:
+;   0x541A (call)
 T9A76h	CDEA44..  ..D.	CALL	T44EAH	
 T9A79h	D8......  ....	RET	C		
 
@@ -8836,7 +8996,7 @@ T9A87h	B7......  ....	OR	A			; Test if any bit of A is set.
 T9A88h	C8......  ....	RET	Z			; if (A == 0) return
 
 ;; We only get here if the player has the salt item.
-T9A89h	3A09E0..  :...	LD	A,(active_controls)		; A = *(0xe009)
+T9A89h	3A09E0..  :...	LD	A,(TE009H)		; A = *(0xe009)
 T9A8Ch	E602....  ....	AND	002h			; A &= 2
 T9A8Eh	C8......  ....	RET	Z			; if (A == 0) return
 
@@ -9017,9 +9177,10 @@ T9BB9h	B7......  ....	OR	A
 T9BBAh	C8......  ....	RET	Z		
 
 T9BBBh	3A00E5..  :...	LD	A,(TE500H)	; state == ?
-T9BBEh	FE05....  ....	CP	005h	
-T9BC0h	C8......  ....	RET	Z		
+T9BBEh	FE05....  ....	CP	005h		;
+T9BC0h	C8......  ....	RET	Z		; if (*(0xe500) == 5) return, i.e. return is player dies.
 
+; Post: player is not dying.
 T9BC1h	3A15E6..  :...	LD	A,(TE615H)	; ?
 T9BC4h	B7......  ....	OR	A	
 T9BC5h	C0......  ....	RET	NZ		
@@ -9628,8 +9789,8 @@ T9EAFh	3A05E5..  :...	LD	A,(TE505H)
 T9EB2h	E6F8....  ....	AND	0F8h	
 T9EB4h	3205E5..  2...	LD	(TE505H),A
 T9EB7h	AF......  ....	XOR	A			; Clear A and F
-T9EB8h	3200E5..  2...	LD	(TE500H),A
-T9EBBh	320EE5..  2...	LD	(TE50EH),A
+T9EB8h	3200E5..  2...	LD	(TE500H),A		; *(0xE500) = 0
+T9EBBh	320EE5..  2...	LD	(TE50EH),A		; *(0xE50E) = 0
 T9EBEh	18CA....  ....	JR	0CAh			; Jump to 09E8AH
 
 T9EC0h	D9......  ....	EXX		
@@ -9916,6 +10077,8 @@ TA04Eh	CD885D..  ..].	CALL	T5D88H			; draw_item_in_vram_buffer
 TA051h	3E2E....  >...	LD	A,02Eh			; A = 0x2E
 TA053h	C31F4E..  ..N.	JP	T4E1FH			; Play sound id 0x2E ("item appeared" sound).
 
+
+
 ; Dagger: needed keypresses
 ; Code references to this list:
 ; * TA025h (dagger)
@@ -10032,7 +10195,7 @@ TA0FAh	CD24A1..  .$..	CALL	TA124H
 TA0FDh	CD15A7..  ....	CALL	TA715H	
 TA100h	C3F8A7..  ....	JP	TA7F8H		
 
-TA103h	3A01E5..  :...	LD	A,(am_I_Popolon)
+TA103h	3A01E5..  :...	LD	A,(TE510H)	; am_I_Popolon?
 TA106h	B7......  ....	OR	A	
 TA107h	200A....  ....	JR	NZ,00Ah			; Jump to 0A113H
 TA109h	2A41E0..  *A..	LD	HL,(WorldNumber)
@@ -10058,16 +10221,18 @@ TA125h	3215E5..  2...	LD	(TE515H),A
 TA128h	CDD9A8..  ....	CALL	TA8D9H	
 TA12Bh	CDF2A8..  ....	CALL	TA8F2H	
 TA12Eh	3A00E5..  :...	LD	A,(TE500H)
-TA131h	CD4041..  .@A.	CALL	switch	
-defw 0xa144
-defw 0xa2d2
-defw 0xa3ac
-defw 0xa608
-defw 0xa460
-defw 0xa566
-defw 0xa6ea
-defw 0xa5ba
+TA131h	CD4041..  .@A.	CALL	T4140H_switch
+defw 0xa144	; 0. Player is doing none of the below.
+defw 0xa2d2	; 1. Player is jumping (both rise and fall).
+defw 0xa3ac	; 2. Player is falling (but not because of a jump)
+defw 0xa608	; 3. Player is climbing a ladder.
+defw 0xa460	; 4. Player is hit (by spikes, bat, bamboo, whatever).
+defw 0xa566	; 5. Player dies.
+defw 0xa6ea	; 6. Player is hit by Frost Demon (world 2); player shakes
+defw 0xa5ba	; 7. Player is going through a door using a key.
 
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 0: Player is not jumping/falling/dying etc.
 TA144h	CDCEA8..  ....	CALL	TA8CEH	
 TA147h	2007....  ....	JR	NZ,007h			; Jump to 0A150H
 TA149h	2119E5..  !...	LD	HL,0E519h
@@ -10272,33 +10437,64 @@ TA2CEh	C0......  ....	RET	NZ
 
 TA2CFh	C358A4..  .X..	JP	TA458H		
 
-TA2D2h	2189A1..  !...	LD	HL,0A189h
+
+
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 1: Player is jumping (both rise and fall).
+TA2D2h	2189A1..  !...	LD	HL,0A189h		; HL = 0xA189
 TA2D5h	E5......  ....	PUSH	HL	
 TA2D6h	AF......  ....	XOR	A			; Clear A and F
-TA2D7h	3237E5..  27..	LD	(TE537H),A
-TA2DAh	3C......  <...	INC	A			;
-TA2DBh	3215E5..  2...	LD	(TE515H),A
-TA2DEh	3A0EE5..  :...	LD	A,(TE50EH)
-TA2E1h	CD4041..  .@A.	CALL	switch	
-defw 0xa2ec
-defw 0xa329
-defw 0xa437
-defw 0xa43d
+TA2D7h	3237E5..  27..	LD	(TE537H),A		; *(0xE537) = 0
+TA2DAh	3C......  <...	INC	A			; A = 1
+TA2DBh	3215E5..  2...	LD	(TE515H),A		; *(0xE515) = 1
+TA2DEh	3A0EE5..  :...	LD	A,(TE50EH)		; A = *(0xE50E)
+TA2E1h	CD4041..  .@A.	CALL	T4140h			; Call switch(): PC += 2*A
+defw 0xA2EC	; TA2E4h Index 0
+defw 0xA329	; TA2E6h Index 1
+defw 0xA437	; TA2E8h Index 2
+defw 0xA43D	; TA2EAh Index 3
 
-TA2ECh	0601....  ....	LD	B,001h	
-TA2EEh	3A09E0..  :...	LD	A,(active_controls)
-TA2F1h	1F......  ....	RRA		
-TA2F2h	1F......  ....	RRA		
-TA2F3h	E603....  ....	AND	003h	
-TA2F5h	280D....  (...	JR	Z,00Dh			; Jump to 0A304H
+
+
+; We can get here from:
+;   0xA2E1 (call) *(0xE50E) == 0
+TA2ECh	0601....  ....	LD	B,001h			;
+TA2EEh	3A09E0..  :...	LD	A,(TE009)		; 0xE009 == active_controls
+TA2F1h	1F......  ....	RRA				; Rotate right via carry: "ignore key up"
+TA2F2h	1F......  ....	RRA				; Rotate right via carry: "ignore key down"
+TA2F3h	E603....  ....	AND	003h			; Keep only key left and key right.
+TA2F5h	280D....  (...	JR	Z,00Dh			; if(neither left nor right pressed) jump to 0A304H
 TA2F7h	FE03....  ....	CP	003h	
-TA2F9h	2809....  (...	JR	Z,009h			; Jump to 0A304H
+TA2F9h	2809....  (...	JR	Z,009h			; if (both left and right pressed) jump to 0A304H
+; Post: Either right key or left key is pressed, but not both.
+; A == 0; Cannot happen because of 0xA2F5.
+; A == 1: Left  is pressed.
+; A == 2: Right is pressed.
+; A == 3: Cannot happen because of 0xA2F9.
+
 TA2FBh	3D......  ....	DEC	A	
+; Post:
+; A == 0: Left  is pressed.
+; A == 1; Right is pressed.
+
 TA2FCh	EE01....  ....	XOR	001h	
+; Post:
+; A == 0: Right is pressed.
+; A == 1: Left  is pressed.
+
 TA2FEh	3203E5..  2...	LD	(TE503H),A
 TA301h	3C......  <...	INC	A			;
 TA302h	3C......  <...	INC	A			;
+; Post:
+; A == 2: Right is pressed.
+; A == 3: Left  is pressed.
+
 TA303h	47......  G...	LD	B,A	
+
+; We can get here from:
+;   0xA2F5 (jump) B == 1 (Neither left key nor right key is  pressed.)
+;   0xA2F9 (jump) B == 1 (Both    left key and right key are pressed.)
+;   0xA302 (fall) B == 2 or 3 (2: right, 3: left)
 TA304h	210EE5..  !...	LD	HL,0E50Eh
 TA307h	70......  p...	LD	(HL),B	
 TA308h	3A12EC..  :...	LD	A,(TEC12H)
@@ -10311,11 +10507,21 @@ TA319h	A7......  ....	AND	A
 TA31Ah	0604....  ....	LD	B,004h	
 TA31Ch	2802....  (...	JR	Z,002h			; Jump to 0A320H
 TA31Eh	0606....  ....	LD	B,006h	
+
+; We can get here from:
+;   0xA31C (jump) *(0xE508) == 0 and B = 4
+;   0xAe1E (fall) *(0xE508) != 0 and B = 6
 TA320h	CD0AA9..  ....	CALL	TA90AH	
 TA323h	3E01....  >...	LD	A,001h	
-TA325h	3237E5..  27..	LD	(TE537H),A
+TA325h	3237E5..  27..	LD	(TE537H),A		; *(0xE537) = 1: Player is jumping.
 TA328h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0xA2E1 (call) *(0xE50E) == 1 (Jumping and not going left or right.)
+;   0xA437 (call) *(0xE50E) == 2 (Jumping and right key pressed. but not left key.)
+;   0xA43D (call) *(0xE50E) == 3 (Jumping and left key pressed, but not right key.)
 TA329h	3A01E5..  :...	LD	A,(am_I_Popolon)
 TA32Ch	A7......  ....	AND	A	
 TA32Dh	3A09E5..  :...	LD	A,(TE509H)
@@ -10325,7 +10531,7 @@ TA334h	060D....  ....	LD	B,00Dh
 TA336h	C5......  ....	PUSH	BC	
 TA337h	B8......  ....	CP	B	
 TA338h	383C....  8<..	JR	C,03Ch			; Jump to 0A376H
-TA33Ah	3A09E0..  :...	LD	A,(active_controls)
+TA33Ah	3A09E0..  :...	LD	A,(TE009H)
 TA33Dh	1F......  ....	RRA		
 TA33Eh	1F......  ....	RRA		
 TA33Fh	E603....  ....	AND	003h	
@@ -10371,7 +10577,7 @@ TA389h	2807....  (...	JR	Z,007h			; Jump to 0A392H
 TA38Bh	3A09E5..  :...	LD	A,(TE509H)
 TA38Eh	FE06....  ....	CP	006h	
 TA390h	3807....  8...	JR	C,007h			; Jump to 0A399H
-TA392h	3A09E0..  :...	LD	A,(active_controls)
+TA392h	3A09E0..  :...	LD	A,(TE009H)
 TA395h	E601....  ....	AND	001h	
 TA397h	280E....  (...	JR	Z,00Eh			; Jump to 0A3A7H
 TA399h	3A05E5..  :...	LD	A,(TE505H)
@@ -10384,6 +10590,9 @@ TA3A7h	78......  x...	LD	A,B
 TA3A8h	3209E5..  2...	LD	(TE509H),A
 TA3ABh	C9......  ....	RET			
 
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 2: Player is falling (but not because of a jump).
+;   0xA37D (jump)
 TA3ACh	CDCEA8..  ....	CALL	TA8CEH	
 TA3AFh	2017....  ....	JR	NZ,017h			; Jump to 0A3C8H
 TA3B1h	3A19E5..  :...	LD	A,(TE519H)
@@ -10456,9 +10665,13 @@ TA432h	09......  ....	ADD	HL,BC
 TA433h	2204E5..  "...	LD	(TE504H),HL
 TA436h	C9......  ....	RET			
 
+; We can get here from:
+;   0xA2E1 (call) *(0xE50E) == 2 (Jumping and right key is pressed. Left key is not pressed.)
 TA437h	CD29A3..  .)..	CALL	TA329H	
 TA43Ah	C301A2..  ....	JP	TA201H		
 
+; We can get here from:
+;   0xA2E1 (call) *(0xE50E) == 3 (Jumping and left key is pressed. Left key is not pressed.
 TA43Dh	CD29A3..  .)..	CALL	TA329H	
 TA440h	C3B6A1..  ....	JP	TA1B6H		
 
@@ -10480,6 +10693,10 @@ TA458h	3A02E5..  :...	LD	A,(TE502H)
 TA45Bh	EE01....  ....	XOR	001h	
 TA45Dh	C312A9..  ....	JP	TA912H		
 
+
+
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 4: Player is hit (by spikes, bat, bamboo, whatever).
 TA460h	3E01....  >...	LD	A,001h	
 TA462h	3215E5..  2...	LD	(TE515H),A
 TA465h	3A0EE5..  :...	LD	A,(TE50EH)
@@ -10606,6 +10823,10 @@ TA560h	3E01....  >...	LD	A,001h
 TA562h	3230E5..  20..	LD	(TE530H),A
 TA565h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 5: Player dies.
 TA566h	3A03E5..  :...	LD	A,(TE503H)
 TA569h	A7......  ....	AND	A	
 TA56Ah	0617....  ....	LD	B,017h	
@@ -10658,6 +10879,10 @@ TA5B4h	AF......  ....	XOR	A			; Clear A and F
 TA5B5h	3219E0..  2...	LD	(TE019H),A
 TA5B8h	189D....  ....	JR	09Dh			; Jump to 0A557H
 
+
+
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 7: Player is going through a door using a key.
 TA5BAh	3A01EA..  :...	LD	A,(TEA01H)
 TA5BDh	3D......  ....	DEC	A	
 TA5BEh	2006....  ....	JR	NZ,006h			; Jump to 0A5C6H
@@ -10703,6 +10928,10 @@ TA603h	3A00E5..  :...	LD	A,(TE500H)
 TA606h	3D......  ....	DEC	A	
 TA607h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 3: Player is climbing a ladder.
 TA608h	3A22E5..  :"..	LD	A,(TE522H)
 TA60Bh	A7......  ....	AND	A	
 TA60Ch	2840....  (@..	JR	Z,040h			; Jump to 0A64EH
@@ -10827,6 +11056,10 @@ TA6E3h	2802....  (...	JR	Z,002h			; Jump to 0A6E7H
 TA6E5h	0610....  ....	LD	B,010h	
 TA6E7h	C3F4A5..  ....	JP	TA5F4H		
 
+
+
+; We can get here from:
+;   0xA131 (call) *(0xE500) == 6: Player is hit by Frost Demon (world 2); player shakes.
 TA6EAh	AF......  ....	XOR	A			; Clear A and F
 TA6EBh	321BE5..  2...	LD	(TE51BH),A
 TA6EEh	3226E5..  2&..	LD	(TE526H),A
@@ -11085,28 +11318,35 @@ TA8A6h	3A82E0..  :...	LD	A,(TE082H)	; Robe
 TA8A9h	B7......  ....	OR	A	
 TA8AAh	C0......  ....	RET	NZ		
 
-TA8ABh	3A09E0..  :...	LD	A,(active_controls)
-TA8AEh	CDBEA8..  ....	CALL	flip_controls	
-TA8B1h	3209E0..  2...	LD	(active_controls),A
-TA8B4h	3A08E0..  :...	LD	A,(pressed_controls)
-TA8B7h	CDBEA8..  ....	CALL	flip_controls	
-TA8BAh	3208E0..  2...	LD	(pressed_controls),A
+TA8ABh	3A09E0..  :...	LD	A,(TE009H)		; A = active_controls
+TA8AEh	CDBEA8..  ....	CALL	TA8BEH			; Call flip_controls()
+TA8B1h	3209E0..  2...	LD	(TE009H),A		; Store flipped controls.
+TA8B4h	3A08E0..  :...	LD	A,(TE008H)		; A = pressed_controls
+TA8B7h	CDBEA8..  ....	CALL	TA8BEH			; Call flip_controls()
+TA8BAh	3208E0..  2...	LD	(pressed_controls),A	; Store flipped controls.
 TA8BDh	C9......  ....	RET			
 
+
+
 flip_controls:
-TA8BEh	47......  G...	LD	B,A		; xxMSRLDU
+; We can get here from:
+;   0xA8AE (call) A == *(0xE009) "active_controls"
+;   0xA8B7 (call) A == *(0xE008) "pressed_controls"
+TA8BEh	47......  G...	LD	B,A		; xxMSRLDU, M=M key, S=Space, R=Right, L=Left, D=Down, U=up
 TA8BFh	17......  ....	RLA			; xMSRLDUx
 TA8C0h	E608....  ....	AND	008h		; 0000L000
-TA8C2h	4F......  O...	LD	C,A	
-TA8C3h	78......  x...	LD	A,B	
-TA8C4h	1F......  ....	RRA
-TA8C5h	E604....  ....	AND	004h	
-TA8C7h	B1......  ....	OR	C		; 0000LR00
+TA8C2h	4F......  O...	LD	C,A		; C = 8 (if left) or C = 0 (otherwise)
+TA8C3h	78......  x...	LD	A,B		; xxMSRLDU
+TA8C4h	1F......  ....	RRA			; xxxMSRLD
+TA8C5h	E604....  ....	AND	004h		; 00000R00
+TA8C7h	B1......  ....	OR	C		; 0000LR00, left and right are now swapped.
 TA8C8h	4F......  O...	LD	C,A	
-TA8C9h	78......  x...	LD	A,B	
-TA8CAh	E6F3....  ....	AND	0F3h		; xxMS00DU
+TA8C9h	78......  x...	LD	A,B		; xxMSRLDU
+TA8CAh	E6F3....  ....	AND	0F3h		; xxMS00DU, left and right are now cleared.
 TA8CCh	B1......  ....	OR	C		; xxMSLRDU
 TA8CDh	C9......  ....	RET			
+
+
 
 TA8CEh	3A12EC..  :...	LD	A,(TEC12H)
 TA8D1h	4F......  O...	LD	C,A	
@@ -11115,11 +11355,13 @@ TA8D5h	B1......  ....	OR	C
 TA8D6h	CB47....  .G..	BIT	0,A	
 TA8D8h	C9......  ....	RET			
 
+
+
 TA8D9h	212EE5..  !...	LD	HL,0E52Eh
-TA8DCh	3A09E0..  :...	LD	A,(active_controls)
-TA8DFh	E60F....  ....	AND	00Fh	
+TA8DCh	3A09E0..  :...	LD	A,(TE009H)		; 0xE009 == active_controls
+TA8DFh	E60F....  ....	AND	00Fh			; Only keep up, down, left, right
 TA8E1h	47......  G...	LD	B,A	
-TA8E2h	280C....  (...	JR	Z,00Ch			; Jump to 0A8F0H
+TA8E2h	280C....  (...	JR	Z,00Ch			; if (no u/d/l/r pressed) jump to 0A8F0H
 TA8E4h	3A08E0..  :...	LD	A,(pressed_controls)
 TA8E7h	E60F....  ....	AND	00Fh	
 TA8E9h	2005....  ....	JR	NZ,005h			; Jump to 0A8F0H
@@ -11127,8 +11369,16 @@ TA8EBh	78......  x...	LD	A,B
 TA8ECh	A6......  ....	AND	(HL)	
 TA8EDh	2001....  ....	JR	NZ,001h			; Jump to 0A8F0H
 TA8EFh	78......  x...	LD	A,B	
-TA8F0h	77......  w...	LD	(HL),A	
+
+; We can get here from:
+;   0xA8E2 (jump) A == 0, B == 0: no u/d/l/r pressed
+;   0xA8E9 (jump)
+;   0xA8ED (jump)
+;   0xA8EF (fall)
+TA8F0h	77......  w...	LD	(HL),A			; *(0xE52E) = A
 TA8F1h	C9......  ....	RET			
+
+
 
 TA8F2h	3A33E5..  :3..	LD	A,(TE533H)
 TA8F5h	A7......  ....	AND	A	
@@ -11145,13 +11395,24 @@ TA903h	C9......  ....	RET
 
 TA904h	3A02E5..  :...	LD	A,(TE502H)
 TA907h	320DE5..  2...	LD	(TE50DH),A
-TA90Ah	3A03E5..  :...	LD	A,(TE503H)
+
+; We can get here from:
+;   0xA320 (call) B == 4 or B == 6
+;   0xA784 (call) B == 6
+;   0xA907 (fall) 
+TA90Ah	3A03E5..  :...	LD	A,(TE503H)		; 0: facing right, 1: facing left (2: climbing ladder)
 TA90Dh	A7......  ....	AND	A	
-TA90Eh	2801....  (...	JR	Z,001h			; Jump to 0A911H
-TA910h	04......  ....	INC	B			;
+TA90Eh	2801....  (...	JR	Z,001h			; if (facing right) jump to 0A911H
+TA910h	04......  ....	INC	B			; Increase index, so "left" sprite is chosen.
+
+; We can get here from:
+;   0xA90E (jump)
+;   0xA910 (fall)
 TA911h	78......  x...	LD	A,B	
 TA912h	3202E5..  2...	LD	(TE502H),A
 TA915h	C9......  ....	RET			
+
+
 
 TA916h	DD2110EC  .!..	LD	IX,0EC10h
 TA91Ah	D9......  ....	EXX		
@@ -11294,12 +11555,12 @@ TAA12h	A7......  ....	AND	A
 TAA13h	C8......  ....	RET	Z		
 
 TAA14h	3D......  ....	DEC	A	
-TAA15h	CD4041..  .@A.	CALL	switch	
-defw 0xaa22
-defw 0xaac8
-defw 0xaaf2
-defw 0xabfb
-defw 0xac92
+TAA15h	CD4041..  .@A.	CALL	T4140H_switch	
+defw 0xaa22	; 0.
+defw 0xaac8	; 1.
+defw 0xaaf2	; 2.
+defw 0xabfb	; 3.
+defw 0xac92	; 4.
 
 TAA22h	FD7E01..  .~..	LD	A,(IY+001h)
 TAA25h	3D......  ....	DEC	A	
@@ -12063,58 +12324,90 @@ TAFFFh	3E01....  >...	LD	A,001h
 TB001h	321AE5..  2...	LD	(TE51AH),A
 TB004h	C9......  ....	RET			
 
-TB005h	3A11E5..  :...	LD	A,(TE511H)
+
+
+TB005h	3A11E5..  :...	LD	A,(TE511H)		; 0xE511: is player in water 0:no, 1=yes
 TB008h	3230F0..  20..	LD	(TF030H),A
 TB00Bh	AF......  ....	XOR	A			; Clear A and F
-TB00Ch	3211E5..  2...	LD	(TE511H),A
-TB00Fh	322AE5..  2*..	LD	(TE52AH),A
-TB012h	3A07E5..  :...	LD	A,(TE507H)
-TB015h	67......  g...	LD	H,A	
-TB016h	3A05E5..  :...	LD	A,(TE505H)
-TB019h	6F......  o...	LD	L,A	
-TB01Ah	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y
-TB01Dh	3A19E5..  :...	LD	A,(TE519H)
-TB020h	CB5F....  ._..	BIT	3,A	
-TB022h	2804....  (...	JR	Z,004h			; Jump to 0B028H
-TB024h	11E0FF..  ....	LD	DE,0FFE0h
-TB027h	19......  ....	ADD	HL,DE	
-TB028h	7E......  ~...	LD	A,(HL)	
-TB029h	D6B6....  ....	SUB	0B6h	
-TB02Bh	280A....  (...	JR	Z,00Ah			; Jump to 0B037H
-TB02Dh	3D......  ....	DEC	A	
-TB02Eh	2828....  ((..	JR	Z,028h			; Jump to 0B058H
-TB030h	FE03....  ....	CP	003h	
-TB032h	D0......  ....	RET	NC		
+TB00Ch	3211E5..  2...	LD	(TE511H),A		; *(0xE511) = 0
+TB00Fh	322AE5..  2*..	LD	(TE52AH),A		; *(0xE52A) = 0
+TB012h	3A07E5..  :...	LD	A,(TE507H)		; 0xE507: X. X position of player.
+TB015h	67......  g...	LD	H,A			;
+TB016h	3A05E5..  :...	LD	A,(TE505H)		; 0xE509: Y. Height (of player's feet), measured in pixels.
+TB019h	6F......  o...	LD	L,A			;
+TB01Ah	CDA14D..  ..M.	CALL	HL=ED00+H_as_X+L_as_Y	; 0xED00: Start of screenbuffer.
+TB01Dh	3A19E5..  :...	LD	A,(TE519H)		; A = *(0xE519)
+TB020h	CB5F....  ._..	BIT	3,A			; Test bit 3 (mask 0x08)
+TB022h	2804....  (...	JR	Z,004h			; if (A & 0x08 == 0) Jump to 0B028H: not walking on water?
+TB024h	11E0FF..  ....	LD	DE,0FFE0h		; +0xFFE0 == -0x20
+TB027h	19......  ....	ADD	HL,DE			; Subtract 0x20 from HL? Compensate for header?
 
-TB033h	3E02....  >...	LD	A,002h	
-TB035h	1823....  .#..	JR	023h			; Jump to 0B05AH
+; We can get here from:
+;   0xB022 (jump) *(0xE519) & 0x08 == 0 (bit 3 isn't set)
+;   0xB027 (fall)
+TB028h	7E......  ~...	LD	A,(HL)			; Get value from screenbuffer
+TB029h	D6B6....  ....	SUB	0B6h			; A -= 0xB6 (0xB6 means "surface of water".
+TB02Bh	280A....  (...	JR	Z,00Ah			; if (*(HL) == 0xB6) jump to 0B037H, i.e. if on surface of water.
+TB02Dh	3D......  ....	DEC	A			; --A
+TB02Eh	2828....  ((..	JR	Z,028h			; if (*(HL) == 0xB7) jump to 0B058H, i.e. if in water.
+TB030h	FE03....  ....	CP	003h			; Compute A - 3 and set flags.
+TB032h	D0......  ....	RET	NC			; if (*(HL) >= 0xBA) return, i.e. if on rock.
 
-TB037h	3A7FE0..  :...	LD	A,(TE07FH)	; Oar
+TB033h	3E02....  >...	LD	A,002h			; A = 2
+TB035h	1823....  .#..	JR	023h			; Jump to 0B05AH: player is in water
+
+
+
+; We can get here from:
+;   0xB02B (jump)
+TB037h	3A7FE0..  :...	LD	A,(TE07FH)		; Item: Oar
 TB03Ah	A7......  ....	AND	A	
-TB03Bh	281B....  (...	JR	Z,01Bh			; Jump to 0B058H
+TB03Bh	281B....  (...	JR	Z,01Bh			; Jump to 0B058H: player does not have the oar.
 TB03Dh	2A41E0..  *A..	LD	HL,(WorldNumber)
 TB040h	7D......  }...	LD	A,L	
-TB041h	FE06....  ....	CP	006h	
-TB043h	2013....  ....	JR	NZ,013h			; Jump to 0B058H
-TB045h	7C......  |...	LD	A,H	
-TB046h	D60C....  ....	SUB	00Ch	
-TB048h	FE02....  ....	CP	002h	
-TB04Ah	300C....  0...	JR	NC,00Ch			; Jump to 0B058H
-TB04Ch	3E01....  >...	LD	A,001h	
-TB04Eh	322AE5..  2*..	LD	(TE52AH),A
+TB041h	FE06....  ....	CP	006h			; 6 means world 5.
+TB043h	2013....  ....	JR	NZ,013h			; Jump to 0B058H: player has the oar, but is not in world 5.
+TB045h	7C......  |...	LD	A,H			; A = room_number
+TB046h	D60C....  ....	SUB	00Ch			; A -= 0xC (12 in decimal)
+TB048h	FE02....  ....	CP	002h			; Compute A - 2 and set flags.
+; Note: Carry flag is ONLY set if A is not negative AND A - 2 is negative, i.e. A >= 0 AND A - 2 < 0.
+;
+; So, the carry flag is only set if A is 0 or 1.
+;
+; So, the carry flag is only set if the room number is 12 or 13.
+TB04Ah	300C....  0...	JR	NC,00Ch			; Jump to 0B058H: player has the oar, is in world 5, but is not in room 12 nor room 13.
+;
+; Post: Carry flag is set, so in either room number 12 or 13.
+TB04Ch	3E01....  >...	LD	A,001h			;
+TB04Eh	322AE5..  2*..	LD	(TE52AH),A		; *(0xE52A) = 1
 TB051h	2119E5..  !...	LD	HL,0E519h
 TB054h	CBDE....  ....	SET	3,(HL)	
 TB056h	AF......  ....	XOR	A			; Clear A and F
 TB057h	C9......  ....	RET			
 
+; Player is in water.
+;
+; We can get here from:
+;   0xB02E (jump)
+;   0xB03B (jump) Player has no oar.
+;   0xB043 (jump) Player has oar, but is not in world 5.
+;   0xB04A (jump) Player has oar, is in world 5, but is not in room 12 nor 13.
 TB058h	3E01....  >...	LD	A,001h	
-TB05Ah	3211E5..  2...	LD	(TE511H),A
-TB05Dh	2130F0..  !0..	LD	HL,0F030h
-TB060h	BE......  ....	CP	(HL)	
+
+; We can get here from:
+;   0xB035 (jump) A = 2
+;   0xB058 (fall) A = 1
+TB05Ah	3211E5..  2...	LD	(TE511H),A		; *(0xE511) = 1 or 2
+TB05Dh	2130F0..  !0..	LD	HL,0F030h		; HL = 0xF030
+TB060h	BE......  ....	CP	(HL)			;
 TB061h	2805....  (...	JR	Z,005h			; Jump to 0B068H
 TB063h	3E24....  >$..	LD	A,024h			; A = 0x24
-TB065h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x24 (sound for???)
-TB068h	CDEA44..  ..D.	CALL	T44EAH	
+TB065h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x24 (sound for in water)
+TB068h	CDEA44..  ..D.	CALL	T44EAH			;
+
+; We can get here from:
+;   0xB061 (jump)
+;   0xB068 (fall)
 TB06Bh	3F......  ?...	CCF				; Complement Carry Flag, i.e. flip C / invert C / C=!C
 TB06Ch	D0......  ....	RET	NC		
 
@@ -12124,7 +12417,7 @@ TB071h	0103FE..  ....	LD	BC,0FE03h
 TB074h	2802....  (...	JR	Z,002h			; Jump to 0B078H
 TB076h	0600....  ....	LD	B,000h	
 TB078h	3A11E5..  :...	LD	A,(TE511H)
-TB07Bh	3D......  ....	DEC	A	
+TB07Bh	3D......  ....	DEC	A			; To set Z flag?	
 TB07Ch	78......  x...	LD	A,B	
 TB07Dh	2801....  (...	JR	Z,001h			; Jump to 0B080H
 TB07Fh	79......  y...	LD	A,C	
@@ -12521,40 +12814,61 @@ TB33Dh	6F......  o...	LD	L,A
 TB33Eh	67......  g...	LD	H,A	
 TB33Fh	32C5E1..  2...	LD	(TE1C5H),A
 TB342h	200E....  ....	JR	NZ,00Eh			; Jump to 0B352H
+; Post: *(0xE1C5) == 0, i.e. use standard frequency divider table 0x62D0@DEF.
 TB344h	3250E0..  2P..	LD	(TE050H),A
 TB347h	3252E0..  2R..	LD	(TE052H),A
 TB34Ah	225CE0..  "\..	LD	(TE05CH),HL
 TB34Dh	325EE0..  2^..	LD	(TE05EH),A
 TB350h	180C....  ....	JR	00Ch			; Jump to 0B35EH
 
+
+
+; We can get here from:
+;   0xB342 (jump) *(0xE1C5) != 0, i.e. do NOT use standard frequency divider table 0x62D0@DEF (but 0x62E8@DEF or 0x6300@DEF).
 TB352h	3254E0..  2T..	LD	(TE054H),A
 TB355h	3256E0..  2V..	LD	(TE056H),A
 TB358h	225FE0..  "_..	LD	(TE05FH),HL
 TB35Bh	3261E0..  2a..	LD	(TE061H),A
-TB35Eh	3E05....  >...	LD	A,005h	
+
+; We can get here from:
+;   0xB350 (jump) Use standard    frequency divider table.
+;   0xB35B (fall) Use alternative frequency divider table.
+TB35Eh	3E05....  >...	LD	A,005h			; A = 5
 TB360h	CD66B3..  .f..	CALL	TB366H	
 TB363h	C33258..  .2X.	JP	T5832H		
 
+
+
+; We can get here from:
+;   0xB360 (call) A == 5
+;   0xB38B (jump) A == 4
+;   0xBEFB (call) A == 0
 TB366h	3200E5..  2...	LD	(TE500H),A
 TB369h	AF......  ....	XOR	A			; Clear A and F
-TB36Ah	320EE5..  2...	LD	(TE50EH),A
-TB36Dh	3233E5..  23..	LD	(TE533H),A
-TB370h	3208E5..  2...	LD	(TE508H),A
-TB373h	3230E5..  20..	LD	(TE530H),A
-TB376h	321BE5..  2...	LD	(TE51BH),A
-TB379h	3226E5..  2&..	LD	(TE526H),A
-TB37Ch	3238E5..  28..	LD	(TE538H),A
-TB37Fh	3C......  <...	INC	A			;
-TB380h	3218E5..  2...	LD	(TE518H),A
+TB36Ah	320EE5..  2...	LD	(TE50EH),A		; *(0xE50E) = 0
+TB36Dh	3233E5..  23..	LD	(TE533H),A		; *(0xE533) = 0
+TB370h	3208E5..  2...	LD	(TE508H),A		; *(0xE508) = 0
+TB373h	3230E5..  20..	LD	(TE530H),A		; *(0xE530) = 0
+TB376h	321BE5..  2...	LD	(TE51BH),A		; *(0xE51B) = 0
+TB379h	3226E5..  2&..	LD	(TE526H),A		; *(0xE526) = 0
+TB37Ch	3238E5..  28..	LD	(TE538H),A		; *(0xE538) = 0
+TB37Fh	3C......  <...	INC	A			; A = 1
+TB380h	3218E5..  2...	LD	(TE518H),A		; *(0xE518) = 1
 TB383h	C3E3A3..  ....	JP	TA3E3H		
+
+
 
 TB386h	CD8DB3..  ....	CALL	TB38DH	
 TB389h	3E04....  >...	LD	A,004h	
 TB38Bh	18D9....  ....	JR	0D9h			; Jump to 0B366H
 
+
+
+; We can get here from:
+;   0xB386 (call)
 TB38Dh	DD7E07..  .~..	LD	A,(IX+007h)
-TB390h	92......  ....	SUB	D	
-TB391h	3E00....  >...	LD	A,000h	
+TB390h	92......  ....	SUB	D			; A -= D
+TB391h	3E00....  >...	LD	A,000h			; A = 0
 TB393h	3001....  0...	JR	NC,001h			; Jump to 0B396H
 TB395h	3C......  <...	INC	A			;
 TB396h	3214E5..  2...	LD	(TE514H),A
@@ -13199,86 +13513,128 @@ TB810h	35......  5...	DEC	(HL)
 TB811h	20F0....  ....	JR	NZ,0F0h			; Jump to 0B803H
 TB813h	C9......  ....	RET			
 
-TB814h	DD7E00..  .~..	LD	A,(IX+000h)
+
+
+; Rock stuff.
+;
+; We can get here from:
+;   0xB803 (call)
+;   0xB888 (call) DE' (shadow) is set to 0x0a03 at 0xB911
+;
+; IX should point to 0xEC30 or 0xEC38, etc.
+TB814h	DD7E00..  .~..	LD	A,(IX+000h)		; Is Rock?
 TB817h	B7......  ....	OR	A	
-TB818h	C8......  ....	RET	Z		
+TB818h	C8......  ....	RET	Z			; Not a rock (or already shattered).
 
-TB819h	DD7E01..  .~..	LD	A,(IX+001h)
-TB81Ch	3D......  ....	DEC	A	
-TB81Dh	C8......  ....	RET	Z		
+TB819h	DD7E01..  .~..	LD	A,(IX+001h)		; ?
+TB81Ch	3D......  ....	DEC	A			;
+TB81Dh	C8......  ....	RET	Z			; if (IX[1] == 1) return
 
-TB81Eh	010000..  ....	LD	BC,00000h
-TB821h	211014..  !...	LD	HL,01410h
-TB824h	7D......  }...	LD	A,L	
-TB825h	D9......  ....	EXX		
-TB826h	83......  ....	ADD	A,E	
-TB827h	3C......  <...	INC	A			;
-TB828h	D9......  ....	EXX		
-TB829h	6F......  o...	LD	L,A	
-TB82Ah	7C......  |...	LD	A,H	
-TB82Bh	D9......  ....	EXX		
-TB82Ch	82......  ....	ADD	A,D	
-TB82Dh	3C......  <...	INC	A			;
-TB82Eh	D9......  ....	EXX		
-TB82Fh	67......  g...	LD	H,A	
-TB830h	C384B9..  ....	JP	TB984H		
+; Post: IX[1] != 1 (typically 0)
+TB81Eh	010000..  ....	LD	BC,00000h		; BC = 0x0000
+TB821h	211014..  !...	LD	HL,01410h		; HL = 0x1410
+TB824h	7D......  }...	LD	A,L			; A = 0x10
+TB825h	D9......  ....	EXX				; To shadows registers BC/DE/HL.
+TB826h	83......  ....	ADD	A,E			; A += E'
+TB827h	3C......  <...	INC	A			; ++A
+TB828h	D9......  ....	EXX				; Back from shadow registers.
+TB829h	6F......  o...	LD	L,A			; L = 0x10 + E' + 1
+TB82Ah	7C......  |...	LD	A,H			; A = 0x14
+TB82Bh	D9......  ....	EXX				; To shadow registers BC/DE/HL.
+TB82Ch	82......  ....	ADD	A,D			; A += D'
+TB82Dh	3C......  <...	INC	A			; ++A
+TB82Eh	D9......  ....	EXX				; Back from shadow registers.
+TB82Fh	67......  g...	LD	H,A			; H = 0x14 + D' + 1
+TB830h	C384B9..  ....	JP	TB984H			;
+
+
 
 TB833h	FD7E00..  .~..	LD	A,(IY+000h)
 TB836h	FE05....  ....	CP	005h	
 TB838h	C8......  ....	RET	Z		
 
 TB839h	CD76AD..  .v..	CALL	TAD76H	
+; We can get here from:
+;   0xB839 (fall)
+;   0xB89D (jump)
 TB83Ch	3E1E....  >...	LD	A,01Eh			; A = 0x1E
 TB83Eh	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x1E (hit something with sword sound)
-TB841h	218EE0..  !...	LD	HL,0E08Eh		; Ring
-TB844h	CDDB4D..  ..M.	CALL	is_(HL)_nz	
-TB847h	0601....  ....	LD	B,001h	
-TB849h	2802....  (...	JR	Z,002h			; Jump to 0B84DH
-TB84Bh	0605....  ....	LD	B,005h			; Each hit counts for 5.
-TB84Dh	DD7E06..  .~..	LD	A,(IX+006h)
-TB850h	90......  ....	SUB	B	
-TB851h	DD7706..  .w..	LD	(IX+006h),A
-TB854h	2801....  (...	JR	Z,001h			; Jump to 0B857H
-TB856h	D0......  ....	RET	NC		
+TB841h	218EE0..  !...	LD	HL,0E08Eh		; Ring: Aphrodites rock hits count for 5.
+TB844h	CDDB4D..  ..M.	CALL	T4DDBH_nz_(HL)_or_am_Popolon;
+TB847h	0601....  ....	LD	B,001h			; Each hit counts for 1.
+TB849h	2802....  (...	JR	Z,002h			; if(!ring or player == Popolon) Jump to 0B84DH
 
+TB84Bh	0605....  ....	LD	B,005h			; Player has ring or is Popolon: Each hit counts for 5.
+; We can get here from:
+;   0xB849 (jump) B == 1: Shatter 1 hit point from rock each time.
+;   0xB849 (fall) B == 5: Shatter 5 hit points from rock each time.
+TB84Dh	DD7E06..  .~..	LD	A,(IX+006h)		; Load rock's remaining hit points.
+TB850h	90......  ....	SUB	B			; Calculate new remaining hit points.
+TB851h	DD7706..  .w..	LD	(IX+006h),A		; Store new remaining hit points.
+TB854h	2801....  (...	JR	Z,001h			; Jump to 0B857H
+TB856h	D0......  ....	RET	NC			; Rock still has hit points.
+
+; We can get here from:
+;   0xB854 (jump) Rock has no hitpoints left: it is destroyed.
+'   0xB856 (fall) Carry? Negative hit points?
 TB857h	3E20....  >...	LD	A,020h			; A = 0x20
 TB859h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x20 (final blow to boulder/enemy sound)
-TB85Ch	DD360101  .6..	LD	(IX+001h),001h
-TB860h	DD36060A  .6..	LD	(IX+006h),00Ah
-TB864h	DD7E07..  .~..	LD	A,(IX+007h)
+TB85Ch	DD360101  .6..	LD	(IX+001h),001h		;
+TB860h	DD36060A  .6..	LD	(IX+006h),00Ah		;
+TB864h	DD7E07..  .~..	LD	A,(IX+007h)		;
 TB867h	C605....  ....	ADD	A,005h	
 TB869h	C5......  ....	PUSH	BC	
-TB86Ah	47......  G...	LD	B,A	
-TB86Bh	AF......  ....	XOR	A			; Clear A and F
-TB86Ch	37......  7...	SCF		
-TB86Dh	17......  ....	RLA		
+TB86Ah	47......  G...	LD	B,A			; Set loop counter for DJNZ at 0xB86E.
+TB86Bh	AF......  ....	XOR	A			; A = 0
+TB86Ch	37......  7...	SCF				; SCF=set carry flag
+; We can get here from:
+;   0xB86C (fall) A == 0, carry is set
+;   0xB86E (djnz)
+TB86Dh	17......  ....	RLA				; Rotate left, via carry
 TB86Eh	10FD....  ....	DJNZ	0FDh			; Jump to 0B86DH
+; Post:
+;   if B was  5, then A == 0x10
+;   if B was  6, then A == 0x20
+;   if B was  7, then A == 0x40
+;   if B was  8, then A == 0x80
+;   if B was  9, then A == 0x80
+;   if B was 10, then A == 0x00
+;   if B was 11, then A == 0x01
 TB870h	C1......  ....	POP	BC	
 TB871h	2A0EE6..  *...	LD	HL,(TE60EH)
 TB874h	B6......  ....	OR	(HL)	
 TB875h	77......  w...	LD	(HL),A	
 TB876h	C9......  ....	RET			
 
+
+
 TB877h	3A26E5..  :&..	LD	A,(TE526H)
 TB87Ah	B7......  ....	OR	A	
 TB87Bh	C8......  ....	RET	Z		
 
 TB87Ch	CDFBB8..  ....	CALL	TB8FBH	
-TB87Fh	DD2130EC  .!0.	LD	IX,0EC30h
+TB87Fh	DD2130EC  .!0.	LD	IX,0EC30h		; 0xEC30 is the first rock struct.
 TB883h	3E03....  >...	LD	A,003h	
-TB885h	3223E6..  2#..	LD	(TE623H),A
+TB885h	3223E6..  2#..	LD	(TE623H),A		; *(0xE623) = 3, max 4 rocks?
+; We can get here from:
+;   0xB885 (fall)
+;   0xB896 (jump)
 TB888h	CD14B8..  ....	CALL	TB814H	
 TB88Bh	380C....  8...	JR	C,00Ch			; Jump to 0B899H
 TB88Dh	010800..  ....	LD	BC,00008h
-TB890h	DD09....  ....	ADD	IX,BC	
+TB890h	DD09....  ....	ADD	IX,BC			; IX points to next rock struct.
 TB892h	2123E6..  !#..	LD	HL,0E623h
 TB895h	35......  5...	DEC	(HL)	
 TB896h	20F0....  ....	JR	NZ,0F0h			; Jump to 0B888H
-TB898h	C9......  ....	RET			
+TB898h	C9......  ....	RET				; Handled all rocks. Done. Return.
 
-TB899h	AF......  ....	XOR	A			; Clear A and F
-TB89Ah	3226E5..  2&..	LD	(TE526H),A
+; We can get here from:
+;   0xB88B (jump)
+TB899h	AF......  ....	XOR	A			; A = 0
+TB89Ah	3226E5..  2&..	LD	(TE526H),A		; *(0xE526) = 0
 TB89Dh	C33CB8..  .<..	JP	TB83CH		
+
+
 
 TB8A0h	3A05E5..  :...	LD	A,(TE505H)
 TB8A3h	D60E....  ....	SUB	00Eh	
@@ -13290,6 +13646,8 @@ TB8ACh	D9......  ....	EXX
 TB8ADh	110C0C..  ....	LD	DE,00C0Ch
 TB8B0h	D9......  ....	EXX		
 TB8B1h	C9......  ....	RET			
+
+
 
 TB8B2h	FD5E05..  .^..	LD	E,(IY+005h)
 TB8B5h	FD5607..  .V..	LD	D,(IY+007h)
@@ -13319,6 +13677,8 @@ TB8E2h	14......  ....	INC	D			;
 TB8E3h	14......  ....	INC	D			;
 TB8E4h	C9......  ....	RET			
 
+
+
 TB8E5h	7A......  z...	LD	A,D	
 TB8E6h	57......  W...	LD	D,A	
 TB8E7h	7B......  {...	LD	A,E	
@@ -13328,6 +13688,8 @@ TB8EBh	D9......  ....	EXX
 TB8ECh	112020..  ....	LD	DE,02020h
 TB8EFh	D9......  ....	EXX		
 TB8F0h	C9......  ....	RET			
+
+
 
 TB8F1h	03......  ....	INC	BC			;
 TB8F2h	0C......  ....	INC	C			;
@@ -13355,6 +13717,8 @@ TB911h	11030A..  ....	LD	DE,00A03h
 TB914h	D9......  ....	EXX		
 TB915h	C9......  ....	RET			
 
+
+
 TB916h	010000..  ....	LD	BC,00000h
 TB919h	DD7E09..  .~..	LD	A,(IX+009h)
 TB91Ch	E607....  ....	AND	007h	
@@ -13366,6 +13730,8 @@ TB922h	6F......  o...	LD	L,A
 TB923h	2607....  &...	LD	H,007h	
 TB925h	C9......  ....	RET			
 
+
+
 TB926h	010000..  ....	LD	BC,00000h
 TB929h	2E08....  ....	LD	L,008h	
 TB92Bh	DD7E1F..  .~..	LD	A,(IX+01Fh)
@@ -13374,6 +13740,8 @@ TB92Fh	87......  ....	ADD	A,A
 TB930h	87......  ....	ADD	A,A	
 TB931h	67......  g...	LD	H,A	
 TB932h	C9......  ....	RET			
+
+
 
 TB933h	0600....  ....	LD	B,000h	
 TB935h	48......  H...	LD	C,B	
@@ -13395,6 +13763,8 @@ TB951h	87......  ....	ADD	A,A
 TB952h	6F......  o...	LD	L,A	
 TB953h	C9......  ....	RET			
 
+
+
 TB954h	CD0A42..  ..B.	CALL	SetMapperE	
 TB957h	DD6E11..  .n..	LD	L,(IX+011h)
 TB95Ah	2600....  &...	LD	H,000h	
@@ -13411,6 +13781,8 @@ TB967h	23......  #...	INC	HL			;
 TB968h	66......  f...	LD	H,(HL)	
 TB969h	6F......  o...	LD	L,A	
 TB96Ah	C3FF41..  ..A.	JP	SetMapper2		
+
+
 
 TB96Dh	7B......  {...	LD	A,E	
 TB96Eh	DD9605..  ....	SUB	A,(IX+005h)
@@ -13433,6 +13805,10 @@ TB981h	D8......  ....	RET	C
 TB982h	BC......  ....	CP	H	
 TB983h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0xB830 (jump)
 TB984h	7B......  {...	LD	A,E	
 TB985h	DD9602..  ....	SUB	A,(IX+002h)
 TB988h	91......  ....	SUB	C	
@@ -13443,6 +13819,8 @@ TB98Ch	3802....  8...	JR	C,002h			; Jump to 0B990H
 TB98Eh	BD......  ....	CP	L	
 TB98Fh	D0......  ....	RET	NC		
 
+
+
 TB990h	7A......  z...	LD	A,D	
 TB991h	DD9603..  ....	SUB	A,(IX+003h)
 TB994h	90......  ....	SUB	B	
@@ -13451,8 +13829,12 @@ TB996h	82......  ....	ADD	A,D
 TB997h	D9......  ....	EXX		
 TB998h	D8......  ....	RET	C		
 
+
+
 TB999h	BC......  ....	CP	H	
 TB99Ah	C9......  ....	RET			
+
+
 
 TB99Bh	7B......  {...	LD	A,E	
 TB99Ch	DD9612..  ....	SUB	A,(IX+012h)
@@ -13474,6 +13856,8 @@ TB9AFh	D8......  ....	RET	C
 
 TB9B0h	BC......  ....	CP	H	
 TB9B1h	C9......  ....	RET			
+
+
 
 TB9B2h	3A00E7..  :...	LD	A,(TE700H)
 TB9B5h	B7......  ....	OR	A	
@@ -13497,25 +13881,33 @@ TB9CFh	C38CB2..  ....	JP	TB28CH
 
 TB9D2h	3A00E7..  :...	LD	A,(TE700H)
 TB9D5h	3D......  ....	DEC	A	
-TB9D6h	CD4041..  .@A.	CALL	switch	
-defw 0xbade
-defw 0xb9ef
-defw 0xbade
-defw 0xbade
-defw 0
-defw 0xb9fa
-defw 0xbade
-defw 0xbade
-defw 0xbade
-defw 0xba1e
-defw 0xba42
+TB9D6h	CD4041..  .@A.	CALL	T4140H_switch	
+defw 0xbade	; TB9D9h 0.
+defw 0xb9ef	; TB9DBh 1.
+defw 0xbade	; TB9DDh 2.
+defw 0xbade	; TB9DFh 3.
+defw 0x0000	; TB9E1h 4.
+defw 0xb9fa	; TB9E3h 5.
+defw 0xbade	; TB9E5h 6.
+defw 0xbade	; TB9E7h 7.
+defw 0xbade	; TB9E9h 8.
+defw 0xba1e	; TB9EBh 9.
+defw 0xba42	; TB9EDh A.
 
-TB9EFh	3A05E5..  :...	LD	A,(TE505H)
+
+
+; We can get here from:
+;   0xB9D6 (call) A == 1
+TB9EFh	3A05E5..  :...	LD	A,(TE505H)	; Popolon/Aphrodite Y.
 TB9F2h	5F......  _...	LD	E,A	
-TB9F3h	3A07E5..  :...	LD	A,(TE507H)
+TB9F3h	3A07E5..  :...	LD	A,(TE507H)	; Popolon/Aphrodite X.
 TB9F6h	57......  W...	LD	D,A	
 TB9F7h	C398BD..  ....	JP	TBD98H		
 
+
+
+; We can get here from:
+;   0xB9D6 (call) A == 5
 TB9FAh	CDDEBA..  ....	CALL	TBADEH	
 TB9FDh	D8......  ....	RET	C		
 
@@ -13528,15 +13920,24 @@ TBA09h	2112BA..  !...	LD	HL,0BA12h
 TBA0Ch	90......  ....	SUB	B	
 TBA0Dh	87......  ....	ADD	A,A	
 TBA0Eh	87......  ....	ADD	A,A	
-TBA0Fh	C33641..  .6A.	JP	HL+=A		
+TBA0Fh	C33641..  .6A.	JP	HL+=A
+; Post:
+;   0xE70A == 0x34   -->   A == 0   -->   HL == 0x1010
+;   0xE70A == 0x35   -->   A == 4   -->   HL == 0x0810
+;   0xE70A == 0x36   -->   A == 8   -->   HL == 0x0030
 
-TBA12h	1010....  ....	DJNZ	010h			; Jump to 0BA24H
-TBA14h	1018....  ....	DJNZ	018h			; Jump to 0BA2EH
-TBA16h	1008....  ....	DJNZ	008h			; Jump to 0BA20H
-TBA18h	1824....  .$..	JR	024h			; Jump to 0BA3EH
+; Data, referenced by 0xBA09.
+defw 0x1010	; TBA12h
+defw 0x1810	; TBA14h
+defw 0x0810	; TBA16h
+defw 0x2418	; TBA18h
+defw 0x0030	; TBA1Ah
+defw 0x7810	; TBA1Ch
 
-TBA1Ah	3000....  0...	JR	NC,000h			; Jump to 0BA1CH
-TBA1Ch	1078....  .x..	DJNZ	078h			; Jump to 0BA96H
+
+
+; We can get here from:
+;   0xB9D6 (call) A == 9
 TBA1Eh	CDDEBA..  ....	CALL	TBADEH	
 TBA21h	D8......  ....	RET	C		
 
@@ -13548,23 +13949,21 @@ TBA2Bh	061E....  ....	LD	B,01Eh
 TBA2Dh	2132BA..  !2..	LD	HL,0BA32h
 TBA30h	18DA....  ....	JR	0DAh			; Jump to 0BA0CH
 
-TBA32h	08......  ....	EX	AF,AF'	
-TBA33h	00......  ....	NOP		
-TBA34h	08......  ....	EX	AF,AF'	
-TBA35h	1810....  ....	JR	010h			; Jump to 0BA47H
+; Data, referenced by 0xBA2D.
+defw 0x0008	; TBA32h
+defw 0x1808	; TBA34h
+defw 0x0010	; TBA36h
+defw 0x1808	; TBA38h
+defw 0x0018	; TBA3Ah
+defw 0x1808	; TBA3Ch
+defw 0x0020	; TBA3Eh
+defw 0x1808	; TBA40h
 
-TBA37h	00......  ....	NOP		
-TBA38h	08......  ....	EX	AF,AF'	
-TBA39h	1818....  ....	JR	018h			; Jump to 0BA53H
 
-TBA3Bh	00......  ....	NOP		
-TBA3Ch	08......  ....	EX	AF,AF'	
-TBA3Dh	1820....  ....	JR	020h			; Jump to 0BA5FH
 
-TBA3Fh	00......  ....	NOP		
-TBA40h	08......  ....	EX	AF,AF'	
-TBA41h	18CD....  ....	JR	0CDh			; Jump to 0BA10H
-
+; We can get here from:
+;   0xB9D6 (call) A == 0xA
+TBA42h	CDDEBA..  ....	CALL	TBADEH
 TBA43h	DEBA....  ....	SBC	A,0BAh	
 TBA45h	D8......  ....	RET	C		
 
@@ -13618,6 +14017,7 @@ TBA95h	3C......  <...	INC	A			;
 TBA96h	3214E5..  2...	LD	(TE514H),A
 TBA99h	C9......  ....	RET			
 
+; Data, referenced by 0xBA88.
 TBA9Ah	2020....  ....	JR	NZ,020h			; Jump to 0BABCH
 TBA9Ch	2020....  ....	JR	NZ,020h			; Jump to 0BABEH
 TBA9Eh	2020....  ....	JR	NZ,020h			; Jump to 0BAC0H
@@ -13650,6 +14050,7 @@ TBACCh	E67F....  ....	AND	07Fh
 TBACEh	ED44....  .D..	NEG		
 TBAD0h	C32C61..  .,a.	JP	T612CH		
 
+?Data?
 TBAD3h	08......  ....	EX	AF,AF'	
 TBAD4h	0C......  ....	INC	C			;
 TBAD5h	14......  ....	INC	D			;
@@ -13659,12 +14060,19 @@ TBAD8h	24......  $...	INC	H			;
 TBAD9h	1820....  ....	JR	020h			; Jump to 0BAFBH
 
 TBADBh	2810....  (...	JR	Z,010h			; Jump to 0BAEDH
+; Data? Since 0xBADE is called from elsewhere.
 TBADDh	10CD....  ....	DJNZ	0CDh			; Jump to 0BAACH
-TBADFh	04......  ....	INC	B			;
-TBAE0h	BB......  ....	CP	E	
+
+; We can get here from:
+;   0xB9D6 (call) A in [0, 2, 3, 6, 7, 8]
+;   0xB9FA (call)
+;   0xBA1E (call)
+TBADEh	CD04BB..  ....	CALL	TBB04H			;
 TBAE1h	CD0A42..  ..B.	CALL	SetMapperE	
 TBAE4h	CDEABA..  ....	CALL	TBAEAH	
 TBAE7h	C3FF41..  ..A.	JP	SetMapper2		
+
+
 
 TBAEAh	3A05E7..  :...	LD	A,(TE705H)
 TBAEDh	86......  ....	ADD	A,(HL)	
@@ -13757,7 +14165,7 @@ TBB6Eh	FE05....  ....	CP	005h
 TBB70h	CA25BC..  .%..	JP	Z,TBC25H	
 TBB73h	3A00E7..  :...	LD	A,(TE700H)
 TBB76h	3D......  ....	DEC	A	
-TBB77h	CD4041..  .@A.	CALL	switch	
+TBB77h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0xbbad
 defw 0xbb90
 defw 0xbbad
@@ -13876,7 +14284,7 @@ TBC25h	FDCB0256  ...V	BIT	2,(IY+002h)
 TBC29h	CA73BB..  .s..	JP	Z,TBB73H	
 TBC2Ch	3A00E7..  :...	LD	A,(TE700H)
 TBC2Fh	3D......  ....	DEC	A	
-TBC30h	CD4041..  .@A.	CALL	switch	
+TBC30h	CD4041..  .@A.	CALL	T4140H_switch	
 defw 0xbc69
 defw 0xbc4b
 defw 0xbc69
@@ -13935,24 +14343,30 @@ TBC94h	3E27....  >'..	LD	A,027h			; A = 0x27
 TBC96h	CD1F4E..  ..N.	CALL	T4E1FH			; Play sound id 0x27 (sound for???)
 TBC99h	DD3510..  .5..	DEC	(IX+010h)		; --IX[10]
 TBC9Ch	CA32BD..  .2..	JP	Z,TBD32H		;
-TBC9Fh	3A10E7..  :...	LD	A,(TE710H)		; A = *(0xe710)
-TBCA2h	47......  G...	LD	B,A			; B = A == *(0xe710)
+TBC9Fh	3A10E7..  :...	LD	A,(TE710H)		;
+TBCA2h	47......  G...	LD	B,A			; B = boss_hitpoints_left
 TBCA3h	0E00....  ....	LD	C,000h			; C = 0
 TBCA5h	3A00E7..  :...	LD	A,(TE700H)		; A = *(0xe700). Offset/HL[A].
 TBCA8h	21977F..  !...	LD	HL,07F97h		; HL = 0x7F97. Some lookup table. Actual start is at 0x7F98 though.
 TBCABh	CD5541..  .UA.	CALL	A=HL[A]	
-TBCAEh	CB3F....  .?..	SRL	A	
-TBCB0h	CB3F....  .?..	SRL	A	
+TBCAEh	CB3F....  .?..	SRL	A			; A >>= 1
+TBCB0h	CB3F....  .?..	SRL	A			; A >>= 1
 TBCB2h	B8......  ....	CP	B	
 TBCB3h	3807....  8...	JR	C,007h			; if ((HL[A] / 4) < B) Jump to 0BCBCH: *0xe1c5 = 0
 TBCB5h	0C......  ....	INC	C			;
-TBCB6h	CB3F....  .?..	SRL	A			;
+TBCB6h	CB3F....  .?..	SRL	A			; A >>= 1
 TBCB8h	B8......  ....	CP	B			;
 TBCB9h	3801....  8...	JR	C,001h			; if ((HL[A] / 8) < B) Jump to 0BCBCH: *0xe1c5 = 1 (else *0xe1c5 = 2)
 TBCBBh	0C......  ....	INC	C			; C = 2
-TBCBCh	79......  y...	LD	A,C			;
-TBCBDh	32C5E1..  2...	LD	(TE1C5H),A		; ???Set channel???
+; We can get here from:
+;   0xBCB3 (jump) C == 0 (Means: use standard   frequency divider table 0x62D0@DEF, starts at C.)
+;   0xBCB9 (jump) C == 1 (Means: use pitched up frequency divider table 0x62E8@DEF, starts at D#. 3 pitches up compared to base.)
+;   0xBCBB (fall) C == 2 (Means: use pitched up frequency divider table 0x6300@DEF, starts at F#. 6 pitches up compared to base.)
+TBCBCh	79......  y...	LD	A,C			; A = C
+TBCBDh	32C5E1..  2...	LD	(TE1C5H),A		; Store which frequency divider table to use.
 TBCC0h	C9......  ....	RET			
+
+
 
 TBCC1h	B7......  ....	OR	A	
 TBCC2h	0601....  ....	LD	B,001h	

@@ -656,6 +656,8 @@ T6370h	C630....  .0..	ADD	A,030h
 T6372h	77......  w...	LD	(HL),A	
 T6373h	C9......  ....	RET			
 
+; We can get here from:
+;   0x62E7 (call)
 T6374h	3A11E5..  :...	LD	A,(TE511H)
 T6377h	A7......  ....	AND	A	
 T6378h	C0......  ....	RET	NZ		
@@ -4230,15 +4232,20 @@ T7D39h	C9......  ....	RET
 
 T7D3Ah	DD7E01..  .~..	LD	A,(IX+001h)
 T7D3Dh	CD5040..  .P@.	CALL	switch_hook	
-defw 0x7d4a
-defw 0x7d53
-defw 0x7d71
-defw 0x7d8e
-defw 0x7db3
+defw 0x7d4a	; T7D40h 0.
+defw 0x7d53	; T7D42h 1.
+defw 0x7d71	; T7D44h 2.
+defw 0x7d8e	; T7D46h 3. 
+defw 0x7db3	; T7D48h 4.
 
+; We can get here from:
+;   0x7D3D (call) switch_hook 0
 T7D4Ah	DD3401..  .4..	INC	(IX+001h)		;
 T7D4Dh	DDCB1946  ...F	BIT	0,(IX+019h)
 T7D51h	200C....  ....	JR	NZ,00Ch			; Jump to 07D5FH
+; We can get here from:
+;   0x7D3D (call) switch_hook 1
+;   0x7D51 (fall) switch_hook 0
 T7D53h	CD177E..  ..~.	CALL	T7E17H	
 T7D56h	D2BD7D..  ..}.	JP	NC,T7DBDH
 T7D59h	CD0697..  ....	CALL	T9706H	
@@ -4249,6 +4256,10 @@ T7D67h	DD361167  .6.g	LD	(IX+011h),067h
 T7D6Bh	CD24B1..  .$..	CALL	TB124H	
 T7D6Eh	C3079A..  ....	JP	T9A07H		
 
+
+
+; We can get here from:
+;   0x7D3D (call) switch_hook 2
 T7D71h	DD3508..  .5..	DEC	(IX+008h)
 T7D74h	C0......  ....	RET	NZ		
 
@@ -4260,6 +4271,10 @@ T7D85h	110001..  ....	LD	DE,00100h
 T7D88h	CD37B1..  .7..	CALL	TB137H	
 T7D8Bh	C3079A..  ....	JP	T9A07H		
 
+
+
+; We can get here from:
+;   0x7D3D (call) switch_hook 3
 T7D8Eh	1E06....  ....	LD	E,006h	
 T7D90h	CDD67D..  ..}.	CALL	T7DD6H	
 T7D93h	DD3514..  .5..	DEC	(IX+014h)
@@ -4277,10 +4292,16 @@ T7DADh	C610....  ....	ADD	A,010h
 T7DAFh	DD7715..  .w..	LD	(IX+015h),A
 T7DB2h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0x7D3D (call) switch_hook 4
 T7DB3h	DD3517..  .5..	DEC	(IX+017h)
 T7DB6h	2005....  ....	JR	NZ,005h			; Jump to 07DBDH
 T7DB8h	DD360101  .6..	LD	(IX+001h),001h
 T7DBCh	C9......  ....	RET			
+
+
 
 T7DBDh	CDDD7D..  ..}.	CALL	T7DDDH	
 T7DC0h	1E04....  ....	LD	E,004h	
@@ -4325,13 +4346,21 @@ T7E0Ch	DD361510  .6..	LD	(IX+015h),010h
 T7E10h	DD361C01  .6..	LD	(IX+01Ch),001h
 T7E14h	C35FB1..  ._..	JP	TB15FH		
 
-T7E17h	DD6607..  .f..	LD	H,(IX+007h)
-T7E1Ah	DD6E05..  .n..	LD	L,(IX+005h)
-T7E1Dh	2D......  -...	DEC	L	
-T7E1Eh	CD6E40..  .n@.	CALL	T406EH	
+
+
+; We can get here from
+;   0x7D2A (call)
+;   0x7D53 (call)
+; Callers set IX to enemy info (0xe800-0xe99f range)
+T7E17h	DD6607..  .f..	LD	H,(IX+007h)		; X
+T7E1Ah	DD6E05..  .n..	LD	L,(IX+005h)		; Y
+T7E1Dh	2D......  -...	DEC	L			;
+T7E1Eh	CD6E40..  .n@.	CALL	T406EH			;
 T7E21h	D0......  ....	RET	NC		
 
 T7E22h	C37140..  .q@.	JP	T4071H		
+
+
 
 T7E25h	F5......  ....	PUSH	AF	
 T7E26h	21497E..  !I~.	LD	HL,07E49h
@@ -7480,27 +7509,38 @@ T96FEh	DD661E..  .f..	LD	H,(IX+01Eh)
 T9701h	DD6E1F..  .n..	LD	L,(IX+01Fh)
 T9704h	1806....  ....	JR	006h			; Jump to 0970CH
 
-T9706h	DD6607..  .f..	LD	H,(IX+007h)
-T9709h	DD6E05..  .n..	LD	L,(IX+005h)
+
+
+; We can get here from:
+;   0x7D2E (call)
+;   0x7D59 (call)
+; IX: enemy data (like bats)
+T9706h	DD6607..  .f..	LD	H,(IX+007h)		; X
+T9709h	DD6E05..  .n..	LD	L,(IX+005h)		; Y
 T970Ch	CD6E40..  .n@.	CALL	T406EH	
-T970Fh	3F......  ?...	CCF		
+T970Fh	3F......  ?...	CCF				; Flip/complement carry flag.
 T9710h	D0......  ....	RET	NC		
 
+; ?Look right?
 T9711h	23......  #...	INC	HL			;
 T9712h	BE......  ....	CP	(HL)	
 T9713h	3F......  ?...	CCF		
 T9714h	D0......  ....	RET	NC		
 
+; ?Look down?
 T9715h	011F00..  ....	LD	BC,0001Fh
 T9718h	09......  ....	ADD	HL,BC	
 T9719h	BE......  ....	CP	(HL)	
 T971Ah	3F......  ?...	CCF		
 T971Bh	D0......  ....	RET	NC		
 
+; ?Look south east?
 T971Ch	23......  #...	INC	HL			;
 T971Dh	BE......  ....	CP	(HL)	
 T971Eh	3F......  ?...	CCF		
 T971Fh	C9......  ....	RET			
+
+
 
 T9720h	2848....  (H..	JR	Z,048h			; Jump to 0976AH
 T9722h	68......  h...	LD	L,B	

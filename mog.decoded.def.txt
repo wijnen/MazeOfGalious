@@ -6,6 +6,8 @@
 
 ;Addr	Hexa	  ASCII	Z80 Mnemonic			Comments
 
+
+
 ; We can only get here from:
 ;   T6045h (jump)
 setAto0x0A_jump6049:
@@ -20,14 +22,14 @@ SoundHandling:
 ; Input:
 ;   0xE1B1: the value to write to register 7 of the PSG.
 ;   0xE1B2: ?
-;
+;   0xE1C0: ?
 
-; Select which tone channels to mute and which noise channels to mute.
+# {{{ Select which tone channels to mute and which noise channels to mute.
 T6004h	3AB1E1..  :...	LD	A,(TE1B1H)		; Load value to write to PSG register 7.
 T6007h	5F......  _...	LD	E,A			; 
 T6008h	3E07....  >...	LD	A,007h			; PSG register 7: enable/disable noise and/or tone
 T600Ah	CD9300..  ....	CALL	T0093H			; WRTPSG
-
+# }}}
 T600Dh	3AB2E1..  :...	LD	A,(TE1B2H)
 T6010h	CB47....  .G..	BIT	0,A	
 T6012h	C29960..  ..`.	JP	NZ,T6099H		; if (A&1) jump to jump_to_pointer_in_E10A()
@@ -35,14 +37,17 @@ T6015h	CB4F....  .O..	BIT	1,A
 T6017h	C29D60..  ..`.	JP	NZ,T609DH		; if (A&2) jump to A=0_B=4_load_0xE108_jump_to_0x6063()
 T601Ah	3AC0E1..  :...	LD	A,(TE1C0H)
 T601Dh	3D......  ....	DEC	A	
-T601Eh	FA4C60..  .L`.	JP	M,T604CH		; Jump if A < 0 ?End of something?
-T6021h	C24960..  .I`.	JP	NZ,T6049H		; Jump if A > 0
+T601Eh	FA4C60..  .L`.	JP	M,T604CH		; Jump if A < 0 (signed) A >= 128 (unsigned) ?End of something?
+T6021h	C24960..  .I`.	JP	NZ,T6049H		; Jump if A != 0
 ; Post: A == 0, and thus *(0xE1C0) == -1
-T6024h	3AC1E1..  :...	LD	A,(TE1C1H)		;
+# {{{ *(0xE1C1) -= 1
+T6024h	3AC1E1..  :...	LD	A,(TE1C1H)		; Load volume?
 T6027h	3D......  ....	DEC	A			;
-T6028h	32C1E1..  2...	LD	(TE1C1H),A
-T602Bh	FEF0....  ....	CP	0F0h	
-T602Dh	C24060..  .@`.	JP	NZ,T6040H
+T6028h	32C1E1..  2...	LD	(TE1C1H),A		; Store new volume?
+# }}}
+T602Bh	FEF0....  ....	CP	0F0h			; Compute A - 0xF0 and set flags.
+T602Dh	C24060..  .@`.	JP	NZ,T6040H		; if (A != 0xF0) jump
+; Post: A == 0xF0
 T6030h	217560..  !u`.	LD	HL,06075h		; 0x6075 == mute_channel code
 T6033h	2200E1..  "...	LD	(TE100H),HL		; *(0xe100) = 0x6075 (code ref)
 T6036h	2202E1..  "...	LD	(TE102H),HL		; *(0xe102) = 0x6075 (code ref)
@@ -51,23 +56,25 @@ T603Ch	AF......  ....	XOR	A			; Clear A and F
 T603Dh	C34960..  .I`.	JP	T6049H			; Unconditional jump.
 
 ; We can only get here from:
-;   T602Dh (jump)
+;   T602Dh (jump) A != 0xF0
 T6040h	3AC4E1..  :...	LD	A,(TE1C4H)
 T6043h	FEFA....  ....	CP	0FAh	
-T6045h	28B9....  (...	JR	Z,0B9h			; Jump to 06000H: setAto0x0A_jump6049
+T6045h	28B9....  (...	JR	Z,0B9h			; if (*(0xe1c4) == 0xFA) jump to 06000H: setAto0x0A_jump6049
 T6047h	3E30....  >0..	LD	A,030h			; A = 0x30
 
 ; We can get here from:
-;   T6002h (jump)    A = 0x0A (10)
-;   T6021h (jump)    A >= 0        and A = *(0xE1C0) - 1
-;   T603Dh (jump)    A = 0x00 ( 0)
-;   T6047h (no jump) A = 0x30 (48)
+;   T6002h (jump) A = 0x0A (10)
+;   T6021h (jump) A >= 0        and A = *(0xE1C0) - 1
+;   T603Dh (jump) A = 0x00 ( 0)
+;   T6047h (fall) A = 0x30 (48)
 T6049h	32C0E1..  2...	LD	(TE1C0H),A
 
-; We can also get here by a jump from 0x601E.
+; We can get here from:
+;   0x601E (jump)
+;   0x6049 (fall)
 T604Ch	AF......  ....	XOR	A			; A = 0 (select channel A)
 T604Dh	47......  G...	LD	B,A			; B = 0
-T604Eh	2A00E1..  *...	LD	HL,(TE100H)		; Will jump to HL.
+T604Eh	2A00E1..  *...	LD	HL,(TE100H)		; Will jump to value of HL in next call.
 T6051h	CD6D60..  .m`.	CALL	T606DH			; TE1AEH=A,TE1AFH=B,jump2HL
 
 T6054h	3E01....  >...	LD	A,001h			; A = 1 (select channel B)
@@ -80,8 +87,8 @@ T605Fh	47......  G...	LD	B,A			; B = 2
 T6060h	2A04E1..  *...	LD	HL,(TE104H)		; Will jump to HL.
 
 ; We can get here from:
-;   T6060h (no jump, A == 2, B == 2)
-;   T60A3h (jump,    A == 0, B == 4)
+;   T6060h (fall) A == 2, B == 2)
+;   T60A3h (jump) A == 0, B == 4)
 T6063h	CD6D60..  .m`.	CALL	T606DH			; TE1AEH=A,TE1AFH=B,jump2HL
 
 T6066h	3E02....  >...	LD	A,002h			; A = 2 (select channel C)
@@ -131,7 +138,7 @@ T607Eh	32B0E1..  2...	LD	(TE1B0H),A		; *(0xe1b0) = 0
 T6081h	3AAFE1..  :...	LD	A,(TE1AFH)		;
 # }}}
 T6084h	07......  ....	RLCA				; A *= 2
-# {{{ HL = 0xE100 + 2*A
+# {{{ HL = 0xE100 + A
 T6085h	2100E1..  !...	LD	HL,0E100h
 T6088h	85......  ....	ADD	A,L	
 T6089h	6F......  o...	LD	L,A	
@@ -144,6 +151,8 @@ T6091h	23......  #...	INC	HL			;
 T6092h	72......  r...	LD	(HL),D	
 T6093h	1E00....  ....	LD	E,000h			; E = 0 (volume)
 T6095h	C3B260..  ..`.	JP	T60B2H			; jump to change_psg_volume(). Set volume to 0.
+
+
 
 ; The easiest sound code: do nothing.
 ; 
@@ -225,22 +234,31 @@ change_psg_volume:
 ;   0x657C (call)
 T60B2h	3AAEE1..  :...	LD	A,(TE1AEH)
 T60B5h	C608....  ....	ADD	A,008h			; reg 8 == volA, reg 9 == volB, reg 10 == volC
-T60B7h	C39300..  ....	JP	T0093H			; Write PSG. Change volume of channel A/B/C.
+T60B7h	C39300..  ....	JP	T0093H			; Write PSG. Change volume of channel A/B/C. Issues RET (return).
 
 
 
+; We can get here from:
+;   0x655A (call) ToneNo_NoiseNo, via SetOrDisableNoise_SetOrDisableTone, via sample opcode 0x20 (and 0x24, 0x28, 0x2c).
 T60BAh	E5......  ....	PUSH	HL	
 T60BBh	21FE60..  !.`.	LD	HL,060FEh		; Tone=no, noise=no.
 T60BEh	C3D360..  ..`.	JP	T60D3H			; change_psg_mixer_setting()
 
+; We can get here from:
+;   0x6571 (call) NoiseYes_ToneYes, via SetOrDisableNoise_SetOrDisableTone, via sample opcode 0x23 (and 0x27, 0x2b, 0x2f).
 T60C1h	E5......  ....	PUSH	HL	
 T60C2h	21F860..  !.`.	LD	HL,060F8h		; Tone=yes, noise=yes.
 T60C5h	C3D360..  ..`.	JP	T60D3H			; change_psg_mixer_setting()
 
+; We can get here from:
+;   0x656B (call) NoiseYes_ToneNo, via SetOrDisableNoise_SetOrDisableTone, via sample opcode 0x21 (and 0x25, 0x29, 0x2d).
 T60C8h	E5......  ....	PUSH	HL	
 T60C9h	21F260..  !.`.	LD	HL,060F2h		; Tone=no, noise=yes.
 T60CCh	C3D360..  ..`.	JP	T60D3H			; change_psg_mixer_setting()
 
+; We can get here from:
+;   0x6277 (jump)
+;   0x6560 (call) NoiseNo_ToneYes, via SetOrDisableNoise_SetOrDisableTone, via sample opcode 0x22 (and 0x26, 0x2a, 0x2e).
 T60CFh	E5......  ....	PUSH	HL	
 T60D0h	21EC60..  !.`.	LD	HL,060ECh		; Tone=yes, noise=no.
 
@@ -329,71 +347,115 @@ defb 0x12	; T6101h. Set bit 1 and bit 4 == Channel B: Disable tone generator, de
 defb 0xFF	; T6102h. Don't clear any bits.
 defb 0x24	; T6103h. Set bit 2 and bit 5 == Channel C: Disable tone generator, detach noise generator from channel.
 
-# {{{ Set IX to start of memory for sound for channel ?X?.
+
+
+# {{{ Set IX to start of memory for sound for channel F.
+; We can get here from:
+;   0x4FFA-0x4FFD (indirectly) *(0xE10A) is set to 0x6104
 T6104h	DD2193E1  .!..	LD	IX,0E193h
 T6108h	C31D61..  ..a.	JP	T611DH		; Jump to code that only depends on IX.
 # }}}
+
 # {{{ Set IX to start of memory for sound for channel A.
+; We can get here from:
+;   0x4ECD-0x4ED0 (indirectly) *(0xE100) is set to 0x610B
 T610Bh	DD210CE1  .!..	LD	IX,0E10Ch	; 0xe10c-0xe126 is memory for sound for channel A.
 T610Fh	C31D61..  ..a.	JP	T611DH		; Jump to code that only depends on IX.
 # }}}
+
 # {{{ Set IX to start of memory for sound for channel B.
+; We can get here from:
+;   0x4ED3-0x4ED6 (indirectly) *(0xE102) is set to 0x6112
 T6112h	DD2127E1  .!'.	LD	IX,0E127h	; 0xe127-0xe141 is memory for sound for channel B.
 T6116h	C31D61..  ..a.	JP	T611DH		; Jump to code that only depends on IX.
 # }}}
-# {{{ Set IX to start of memory for sound for channel B.
-T6119h	DD2142E1  .!B.	LD	IX,0E142h	; 0xe127-0xe141 is memory for sound for channel C.
+
+# {{{ Set IX to start of memory for sound for channel C.
+; We can get here from:
+;   0x4ED9-0x4EDC (indirectly) *(0xE104) is set to 0x6119
+T6119h	DD2142E1  .!B.	LD	IX,0E142h	; 0xe142-0xe15c is memory for sound for channel C.
 # }}}
+
 ; Channel independent code, since it uses IX only.
+; 
+; We can get here from:
+;   0x6108 (jump) IX == 0xE193 (channel F)
+;   0x610F (jump) IX == 0xE10C (channel A)
+;   0x6116 (jump) IX == 0xE127 (channel B)
+;   0x6119 (fall) IX == 0xE142 (channel C)
 T611Dh	3AAFE1..  :...	LD	A,(TE1AFH)
 T6120h	FE02....  ....	CP	002h	
 T6122h	C23061..  .0a.	JP	NZ,T6130H		; if (*(0xE1AF) != 0x02) jump
+; Post: *(0xE1AF) == 0x02
 T6125h	3AB0E1..  :...	LD	A,(TE1B0H)
 T6128h	B7......  ....	OR	A	
-T6129h	CA3061..  .0a.	JP	Z,T6130H	
+T6129h	CA3061..  .0a.	JP	Z,T6130H		; if (*(0xE1B0) == 0) jump
 T612Ch	DDCB02EE  ....	SET	5,(IX+002h)
+
+; We can get here from:
+;   0x6122 (jump) *(0xE1AF) != 0x02
+;   0x6129 (jump) *(0xE1AF) == 0x02 and *(0xE1B0) == 0
+;   0x612C (fall) *(0xE1AF) == 0x02 and *(0xE1B0) != 0 and bit 5 is set in IX[2]
 T6130h	DD3509..  .5..	DEC	(IX+009h)		; Decrement number of VDP ticks left for current sound.
 T6133h	CA9161..  ..a.	JP	Z,T6191H		; if(zero ticks left) jump
 T6136h	DDCB0246  ...F	BIT	0,(IX+002h)
 T613Ah	CA6F61..  .oa.	JP	Z,T616FH	
+
+; IX[2] & 0x01 == 0x01, caused by sound_opcode 0xE9 or ldir initialisation.
 T613Dh	DD7E16..  .~..	LD	A,(IX+016h)
 T6140h	B7......  ....	OR	A	
-T6141h	C44964..  .Id.	CALL	NZ,T6449H
-T6144h	DD7E09..  .~..	LD	A,(IX+009h)
-T6147h	DDBE0B..  ....	CP	(IX+00Bh)
-T614Ah	D25161..  .Qa.	JP	NC,T6151H
-T614Dh	DDBE06..  ....	CP	(IX+006h)
-T6150h	D0......  ....	RET	NC		
+T6141h	C44964..  .Id.	CALL	NZ,T6449H		; if (IX[16] != 0) jump to 0x6449
 
-T6151h	DD5E0A..  .^..	LD	E,(IX+00Ah)
-T6154h	1D......  ....	DEC	E	
-T6155h	F8......  ....	RET	M		
+; IX[16] == 0
+T6144h	DD7E09..  .~..	LD	A,(IX+009h)		; Number of VDP ticks left for current sound.
+T6147h	DDBE0B..  ....	CP	(IX+00Bh)		; Compute A - IX[0xB] and set flags.
+T614Ah	D25161..  .Qa.	JP	NC,T6151H		; If remaining duration >= duration at 0xFx yz - y, jump.
+T614Dh	DDBE06..  ....	CP	(IX+006h)		; Compute A - IX[0x6] and set flags.
+T6150h	D0......  ....	RET	NC			; If remaining duration >= z of 0xFx yz, return.
 
-T6156h	DD730A..  .s..	LD	(IX+00Ah),E		; Save volume
-T6159h	DDCB026E  ...n	BIT	5,(IX+002h)
-T615Dh	C0......  ....	RET	NZ		
+; Decrement volume.
+T6151h	DD5E0A..  .^..	LD	E,(IX+00Ah)		; Load volume.
+T6154h	1D......  ....	DEC	E			; Decrease volume.
+T6155h	F8......  ....	RET	M			; if (volume < 0) return
+
+T6156h	DD730A..  .s..	LD	(IX+00Ah),E		; Save decremented volume.
+T6159h	DDCB026E  ...n	BIT	5,(IX+002h)		; Test bit 5 in IX[2].
+T615Dh	C0......  ....	RET	NZ			; if (IX[2] & 0x20) return
 
 T615Eh	3AC6E1..  :...	LD	A,(TE1C6H)
 T6161h	B7......  ....	OR	A	
-T6162h	2808....  (...	JR	Z,008h			; Jump to 0616CH
+T6162h	2808....  (...	JR	Z,008h			; if (*(0xe1c6) == 0) jump to 0x616C
 T6164h	3AC9E1..  :...	LD	A,(TE1C9H)
 T6167h	B7......  ....	OR	A	
-T6168h	2002....  ....	JR	NZ,002h			; Jump to 0616CH
+T6168h	2002....  ....	JR	NZ,002h			; if (*(0xe1c9) != 0) jump to 0x616C
 T616Ah	1E00....  ....	LD	E,000h			; E = 0 (volume)
+
+; We can get here from:
+;   0x6162 (jump)        *(0xE1C6) == 0
+;   0x6168 (jump)        *(0xE1C6) != 0 and *(0xE1C9) != 0
+;   0x616A (fallthrough) E == 0 (volume)
 T616Ch	C3B260..  ..`.	JP	T60B2H			; jump to change_psg_volume(). Unconditional jump!
 
-; We get here by a jump from T613Ah, meaning BIT 0,(IX+002h) is zero.
-T616Fh	DDCB026E  ...n	BIT	5,(IX+002h)
-T6173h	C0......  ....	RET	NZ		
 
-T6174h	DDCB027E  ...~	BIT	7,(IX+002h)
-T6178h	C0......  ....	RET	NZ		
 
+; We can get here from:
+;   0x613A (jump) BIT 0,(IX+002h) is zero/unset.
+T616Fh	DDCB026E  ...n	BIT	5,(IX+002h)		; Test bit 5 in IX[2].
+T6173h	C0......  ....	RET	NZ			; if (IX[2] & 0x20) return
+
+T6174h	DDCB027E  ...~	BIT	7,(IX+002h)		; Test bit 7 in IX[2].
+T6178h	C0......  ....	RET	NZ			; if (IX[2] & 0x80) return
+
+; IX[2]: bit 5 isn't set, bit 7 isn't set.
 T6179h	3AC6E1..  :...	LD	A,(TE1C6H)
 T617Ch	B7......  ....	OR	A	
-T617Dh	2805....  (...	JR	Z,005h			; Jump to 06184H
-T617Fh	3E01....  >...	LD	A,001h	
-T6181h	DD771A..  .w..	LD	(IX+01Ah),A
+T617Dh	2805....  (...	JR	Z,005h			; if (*(0xe1c6) == 0) jump to 0x6184
+T617Fh	3E01....  >...	LD	A,001h			; A = 1
+T6181h	DD771A..  .w..	LD	(IX+01Ah),A		; IX[0x1A] = 1
+
+; We can get here from:
+;   0x617D (jump)        *(0xe1c6) == 0
+;   0x6181 (fallthrough)
 T6184h	CDB064..  ..d.	CALL	T64B0H			; Carry set means "end of sound definition" (seen 0xFF)
 T6187h	D0......  ....	RET	NC			; Return if sound definition not at end.
 
@@ -409,19 +471,20 @@ ParseAndExecuteSoundDefinition:
 ;   T6133h
 T6191h	DD6E00..  .n..	LD	L,(IX+000h)		;
 T6194h	DD6601..  .f..	LD	H,(IX+001h)		;
-ParseAndExecuteSoundDefinitionWithoutChangingHL:
-T6197h	7E......  ~...	LD	A,(HL)			; A = *(IX)
+ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst:
+T6197h	7E......  ~...	LD	A,(HL)			;
 T6198h	23......  #...	INC	HL			;
-T6199h	4F......  O...	LD	C,A			; C = *(IX)
+T6199h	4F......  O...	LD	C,A			;
 T619Ah	FED0....  ....	CP	0D0h			;
 T619Ch	D24863..  .Hc.	JP	NC,T6348H		; if (A >= 0xd0) jump to 0x6348
 T619Fh	DD7500..  .u..	LD	(IX+000h),L		; Store increased HL.
 T61A2h	DD7401..  .t..	LD	(IX+001h),H		; Store increased HL.
 T61A5h	FEC0....  ....	CP	0C0h			;
 T61A7h	D21863..  ..c.	JP	NC,T6318H		; if (A >= 0xc0) jump to 0x6318
+; Post: A < 0xc0. ?"Normal" opcode?
 T61AAh	E60F....  ....	AND	00Fh			; A &= 0x0F (low nybble, reset high nybble)
 T61ACh	3C......  <...	INC	A			; ++A
-T61ADh	47......  G...	LD	B,A			; Set number of loops for DJNZ.
+T61ADh	47......  G...	LD	B,A			; Set number of loops for DJNZ at T61C8h.
 T61AEh	DD5E03..  .^..	LD	E,(IX+003h)		; E = duration factor
 T61B1h	3AC5E1..  :...	LD	A,(TE1C5H)		; 
 T61B4h	B7......  ....	OR	A			; 
@@ -433,100 +496,176 @@ T61BDh	3AC5E1..  :...	LD	A,(TE1C5H)		;
 T61C0h	FE02....  ....	CP	002h			; 
 T61C2h	2001....  ....	JR	NZ,001h			; if (*(0xE1C5) != 2) Jump to 061C5H
 T61C4h	1D......  ....	DEC	E			; 
+; We can get here from:
+;   0x61C2 (jump) E == IX[3]
+;   0x61C4 (fall) E == IX[3] - 1
 T61C5h	1D......  ....	DEC	E			; 
+; We can get here from:
+;   0x61B5 (jump) E == IX[3]
+;   0x61BB (jump) E == IX[3]
+;   0x61C5 (fall) E == IX[3] - 1 or E == IX[3] - 2
 T61C6h	AF......  ....	XOR	A			; Clear A and F
-T61C7h	83......  ....	ADD	A,E			; 
+; We can get here from:
+;   0x61C6 (fall) Start of loop
+;   0x61C8 (djnz) Next loop
+T61C7h	83......  ....	ADD	A,E			; A += E (loop)
 T61C8h	10FD....  ....	DJNZ	0FDh			; if (--B != 0) Jump to 061C7H
 # }}}
 T61CAh	DD7709..  .w..	LD	(IX+009h),A		; Store number of VDP ticks left for this note/sound.
 T61CDh	3AAFE1..  :...	LD	A,(TE1AFH)
 T61D0h	FE02....  ....	CP	002h	
-T61D2h	C2E061..  ..a.	JP	NZ,T61E0H
+T61D2h	C2E061..  ..a.	JP	NZ,T61E0H		; if (*(0xE1AF) != 2) jump to T61E0H.
+; Post: *(0xE1AF) == 2
 T61D5h	3AB0E1..  :...	LD	A,(TE1B0H)
 T61D8h	B7......  ....	OR	A	
-T61D9h	C2E061..  ..a.	JP	NZ,T61E0H
-T61DCh	DDCB02AE  ....	RES	5,(IX+002h)
-T61E0h	DDCB0246  ...F	BIT	0,(IX+002h)
-T61E4h	CA7A62..  .zb.	JP	Z,T627AH	
-T61E7h	DD7E09..  .~..	LD	A,(IX+009h)
-T61EAh	DD9605..  ....	SUB	A,(IX+005h)
-T61EDh	DD770B..  .w..	LD	(IX+00Bh),A
-T61F0h	DDCB026E  ...n	BIT	5,(IX+002h)
-T61F4h	C0......  ....	RET	NZ		
+T61D9h	C2E061..  ..a.	JP	NZ,T61E0H		; if (*(0xE1B0) != 0) jump to T61E0H.
+T61DCh	DDCB02AE  ....	RES	5,(IX+002h)		; Clear bit 5 in IX[2].
+; We can get here from:
+;   0x61D2 (jump) *(0xE1AF) != 2
+;   0x61D9 (jump) *(0xE1B0) != 0
+;   0x61DC (fall) *(0xE1AF) == 2 or *(0xE1B0) == 0
+T61E0h	DDCB0246  ...F	BIT	0,(IX+002h)		; Test bit 0 in IX[2].
+T61E4h	CA7A62..  .zb.	JP	Z,T627AH		; if (IX[2] & 1 == 0) jump to select_sample_and_return (T627Ah).
+; Post: IX[2] & 1 == 1 (bit 0 is set)
+T61E7h	DD7E09..  .~..	LD	A,(IX+009h)		; A = IX[9]
+T61EAh	DD9605..  ....	SUB	A,(IX+005h)		; A = IX[9] - IX[5]
+T61EDh	DD770B..  .w..	LD	(IX+00Bh),A		; IX[0xB] = IX[9] - IX[5]
+T61F0h	DDCB026E  ...n	BIT	5,(IX+002h)		; Test bit 5 in IX[2].
+T61F4h	C0......  ....	RET	NZ			; if (IX[2] & 0x20 != 0) return
 
-T61F5h	3AC5E1..  :...	LD	A,(TE1C5H)
-T61F8h	B7......  ....	OR	A	
-T61F9h	2823....  (#..	JR	Z,023h			; Jump to 0621EH
-T61FBh	3AC9E1..  :...	LD	A,(TE1C9H)
-T61FEh	B7......  ....	OR	A	
-T61FFh	201D....  ....	JR	NZ,01Dh			; Jump to 0621EH
-T6201h	3AC5E1..  :...	LD	A,(TE1C5H)
-T6204h	FE02....  ....	CP	002h	
-T6206h	200B....  ....	JR	NZ,00Bh			; Jump to 06213H
-T6208h	79......  y...	LD	A,C	
-T6209h	E6F0....  ....	AND	0F0h	
-T620Bh	0F......  ....	RRCA		
-T620Ch	0F......  ....	RRCA		
-T620Dh	0F......  ....	RRCA		
-T620Eh	210063..  !.c.	LD	HL,06300h
-T6211h	1814....  ....	JR	014h			; Jump to 06227H
+T61F5h	3AC5E1..  :...	LD	A,(TE1C5H)		;
+T61F8h	B7......  ....	OR	A			;
+T61F9h	2823....  (#..	JR	Z,023h			; if (*(0xE1C5) == 0) jump to T621Eh.
+T61FBh	3AC9E1..  :...	LD	A,(TE1C9H)		;
+T61FEh	B7......  ....	OR	A			;
+T61FFh	201D....  ....	JR	NZ,01Dh			; if (*(0xE1C9) != 0) jump to T621Eh.
+T6201h	3AC5E1..  :...	LD	A,(TE1C5H)		;
+T6204h	FE02....  ....	CP	002h			;
+T6206h	200B....  ....	JR	NZ,00Bh			; if (*(0xE1C5) != 2) jump to T6213h.
+T6208h	79......  y...	LD	A,C			; A = current sound opcode.
+T6209h	E6F0....  ....	AND	0F0h			; A = C & 0xF0. Clears low nybble.
+T620Bh	0F......  ....	RRCA				;
+T620Ch	0F......  ....	RRCA				;
+T620Dh	0F......  ....	RRCA				;
+; Post: A is now the note index into the/a frequency divider table.
+T620Eh	210063..  !.c.	LD	HL,06300h		; HL = FrequencyDividerTableForOctave0ButStartAtFis
+T6211h	1814....  ....	JR	014h			; Jump to 06227H, unconditionally!
 
-T6213h	79......  y...	LD	A,C	
-T6214h	E6F0....  ....	AND	0F0h	
-T6216h	0F......  ....	RRCA		
-T6217h	0F......  ....	RRCA		
-T6218h	0F......  ....	RRCA		
-T6219h	21E862..  !.b.	LD	HL,062E8h
-T621Ch	1809....  ....	JR	009h			; Jump to 06227H
+
 
 ; We can get here via:
-;   0x61F9 (jump)
+;   0x6206 (jump) C = current_opcode and C < 0xC0 and *(0xE1C5) != 0x23 and *(0xE1C9) == 0 and *(0xE1C5) != 2
+T6213h	79......  y...	LD	A,C			; A = C
+T6214h	E6F0....  ....	AND	0F0h			; Zero the low nybble.
+T6216h	0F......  ....	RRCA				;
+T6217h	0F......  ....	RRCA				;
+T6218h	0F......  ....	RRCA				;
+; Post: A is now the note index into the/a frequency divider table.
+T6219h	21E862..  !.b.	LD	HL,062E8h		; HL = FrequencyDividerTableForOctave0ButStartAtDis
+; Dis: HL[0] + HL[1] << 8
+; E  : HL[2] + HL[3] << 8
+; etc...
+T621Ch	1809....  ....	JR	009h			; Jump to 06227H
+
+
+
+; We can get here via:
+;   0x61F9 (jump) *(0xE1C5) == 0
+;   0x61FF (jump) *(0xE1C9) != 0
 T621Eh	79......  y...	LD	A,C			; A = C
-T621Fh	E6F0....  ....	AND	0F0h			; A &= 0xF0, select high nybble.
+T621Fh	E6F0....  ....	AND	0F0h			; 
 T6221h	0F......  ....	RRCA				; rotate_right(A), carry is only assigned, not shifted in.
 T6222h	0F......  ....	RRCA				; rotate_right(A), carry is only assigned, not shifted in.
 T6223h	0F......  ....	RRCA				; rotate_right(A), carry is only assigned, not shifted in.
+; Post: A is now the note index into the/a frequency divider table.
 T6224h	21D062..  !.b.	LD	HL,062D0h		; HL = 0x62D0, HL=FrequencyDividerTableForOctave0
+
+; We can get here via:
+;   0x6224 (fall) HL == 0x62D0 (FrequencyDividerTableForOctave0)
+;   0x6211 (jump) HL == 0x6300 (FrequencyDividerTableForOctave0ButStartAtFis)
+;   0x621C (jump) HL == 0x62E8 (FrequencyDividerTableForOctave0ButStartAtDis)
+;
+; A is the offset to HL, to select the right frequency divider.
+; 
+; Compute HL += A
 T6227h	85......  ....	ADD	A,L			; A += L, assign carry flag.
 T6228h	6F......  o...	LD	L,A			; L = A
 T6229h	3001....  0...	JR	NC,001h			; if (no overflow) Jump to 0622CH.
 T622Bh	24......  $...	INC	H			; ++H, manually add carry.
+; Post: HL points to the correct frequency divider (but in wrong octave).
+; 
+; DE = *HL
 T622Ch	5E......  ^...	LD	E,(HL)			; E = *(HL)
 T622Dh	23......  #...	INC	HL			; ++HL
 T622Eh	56......  V...	LD	D,(HL)			; D = *(HL)
-T622Fh	DD4607..  .F..	LD	B,(IX+007h)		; B = IX[7], the number of repeats in DJNZ.
+; Octave up means divide frequency by 2 (implemented via bitshifting to the right).
+T622Fh	DD4607..  .F..	LD	B,(IX+007h)		; B = IX[7] (octave), the number of repeats in DJNZ.
 T6232h	CB3A....  .:..	SRL	D			; Part 1 of 16 bit shift right.
 T6234h	CB1B....  ....	RR	E			; Part 2 of 16 bit shift right.
 T6236h	10FA....  ....	DJNZ	0FAh			; if(--B == 0) Jump to 06232H
+; Post: DE is the correct frequency divider for the correct octave.
 T6238h	AF......  ....	XOR	A			; Clear A and F
-T6239h	DD7718..  .w..	LD	(IX+018h),A
-T623Ch	DD7E16..  .~..	LD	A,(IX+016h)
-T623Fh	B7......  ....	OR	A	
-T6240h	2805....  (...	JR	Z,005h			; Jump to 06247H
-T6242h	3EEC....  >...	LD	A,0ECh	
-T6244h	DD7716..  .w..	LD	(IX+016h),A
-T6247h	DDCB0276  ...v	BIT	6,(IX+002h)
-T624Bh	CA4F62..  .Ob.	JP	Z,T624FH	
-T624Eh	13......  ....	INC	DE			;
-T624Fh	DD7214..  .r..	LD	(IX+014h),D
-T6252h	DD7315..  .s..	LD	(IX+015h),E
+T6239h	DD7718..  .w..	LD	(IX+018h),A		; IX[18] = 0
+T623Ch	DD7E16..  .~..	LD	A,(IX+016h)		; A = IX[16]
+T623Fh	B7......  ....	OR	A			;
+T6240h	2805....  (...	JR	Z,005h			; if (IX[16] == 0) jump to T6247h.
+T6242h	3EEC....  >...	LD	A,0ECh			; A = 0xEC
+T6244h	DD7716..  .w..	LD	(IX+016h),A		; IX[16] = 0xEC
+; We can get here from:
+;   0x6240 (jump) A == 0x00
+;   0x6244 (fall) A == 0xEC
+T6247h	DDCB0276  ...v	BIT	6,(IX+002h)		; Test bit 6 of IX[2].
+T624Bh	CA4F62..  .Ob.	JP	Z,T624FH		; if (IX[2] & 0x40 == 0) jump to T624Fh.
+T624Eh	13......  ....	INC	DE			; Increase frequency divider (decrease frequency)
+T624Fh	DD7214..  .r..	LD	(IX+014h),D		; Store current frequency divider.
+T6252h	DD7315..  .s..	LD	(IX+015h),E		; Store current frequency divider.
 T6255h	CDA660..  ..`.	CALL	T60A6H			; write_PSG_frequency_divider_from_registerE_and_D
-T6258h	3AC1E1..  :...	LD	A,(TE1C1H)
-T625Bh	DD8604..  ....	ADD	A,(IX+004h)
-T625Eh	F26262..  .bb.	JP	P,T6262H	
+T6258h	3AC1E1..  :...	LD	A,(TE1C1H)		; A = *(0xe1c1)
+T625Bh	DD8604..  ....	ADD	A,(IX+004h)		; A += IX[0x4]
+T625Eh	F26262..  .bb.	JP	P,T6262H		; if (*(0xe1c1) + IX[0x4] <= 127) jump
 T6261h	AF......  ....	XOR	A			; Clear A and F
-T6262h	DD770A..  .w..	LD	(IX+00Ah),A
-T6265h	5F......  _...	LD	E,A	
-T6266h	3AC6E1..  :...	LD	A,(TE1C6H)
+
+; We can get here from:
+;   0x625E (jump) A <= 127 (i.e. bit 7 is not set)
+;   0x6261 (fall) A == 0
+T6262h	DD770A..  .w..	LD	(IX+00Ah),A		; A = IX[0xA]
+T6265h	5F......  _...	LD	E,A			; E = IX[0xA] (volume)
+T6266h	3AC6E1..  :...	LD	A,(TE1C6H)		; A = *(0xE1C6)
 T6269h	B7......  ....	OR	A	
-T626Ah	2808....  (...	JR	Z,008h			; Jump to 06274H
+T626Ah	2808....  (...	JR	Z,008h			; if (*(0xE1C6) == 0) jump to 06274H
+; Post: *(0xE1C6) != 0
 T626Ch	3AC9E1..  :...	LD	A,(TE1C9H)
 T626Fh	B7......  ....	OR	A	
-T6270h	2002....  ....	JR	NZ,002h			; Jump to 06274H
+T6270h	2002....  ....	JR	NZ,002h			; if (*(0xE1C9) != 0) jump to 06274H
+; Post: *(0xE1C9) == 0
 T6272h	1E00....  ....	LD	E,000h			; E = 0 (volume)
-T6274h	CDB260..  ..`.	CALL	T60B2H			; call change_psg_volume()
-T6277h	C3CF60..  ..`.	JP	T60CFH		
 
+; We can get here from:
+;   0x626A (jump) E == IX[0xA] and *(0xE1C6) == 0
+;   0x6270 (jump) E == IX[0xA] and *(0xE1C6) != 0 and *(0xE1C9) != 0
+;   0x6272 (fall) E == 0       and *(0xE1C6) != 0 and *(0xE1C9) == 0
+T6274h	CDB260..  ..`.	CALL	T60B2H			; call change_psg_volume()
+T6277h	C3CF60..  ..`.	JP	T60CFH			; Unconditional jump! Tone=yes, noise=no
+
+
+
+:select_sample_and_return
+; Set HL to point to the beginning of the sample.
+;
+; INPUT:
+;     IX[8]: The sample table number to use
+;     reg C: The index into the sample table (i.e. sample number)
+;
+; CHANGES:
+;     IX[0x2]: Bit 7 is cleared.
+;     IX[0xC] + IX[0xD]: Set to HL (beginning of the sample)
+;     IX[0xE]: Set to 1.
+;
+; DESTROYS:
+;     A, HL
+;
+; We can get here from:
+;   0x61E4 (jump) "BIT 0,(IX+002h)" == False, i.e. IX[2] & 1 == 0
 T627Ah	DD7E08..  .~..	LD	A,(IX+008h)
 T627Dh	FE01....  ....	CP	001h	
 T627Fh	2831....  (1..	JR	Z,031h			; Jump to 062B2H
@@ -538,16 +677,19 @@ T6289h	FE04....  ....	CP	004h
 T628Bh	2837....  (7..	JR	Z,037h			; Jump to 062C4H
 T628Dh	FE05....  ....	CP	005h	
 T628Fh	2839....  (9..	JR	Z,039h			; Jump to 062CAH
+; Post: IX[8] >= 6 (or IX[8] == 0)
 T6291h	211F66..  !.f.	LD	HL,0661Fh
-;; We can also get here from:
-;; jump from 0x62B5
-;; jump from 0x62BB
-;; jump from 0x62C1
-;; jump from 0x62C7
-;; jump from 0x62CD
+
+;; We can get here from:
+;;   0x6291 (fall) HL == 0x661F, IX[8] == 0 or IX[8] >= 6
+;;   0x62B5 (jump) HL == 0x65A7, IX[8] == 1
+;;   0x62BB (jump) HL == 0x65BF, IX[8] == 2
+;;   0x62C1 (jump) HL == 0x65D7, IX[8] == 3
+;;   0x62C7 (jump) HL == 0x65EF, IX[8] == 4
+;;   0x62CD (jump) HL == 0x6607, IX[8] == 5
 ;;
-;; {{ HL += C / 8 (which is 2 times the high nybble)
-;; This computes the pointer to the next note struct.
+## {{{ HL += C / 8 (which is 2 times the high nybble)
+## This computes the pointer to the next note struct.
 T6294h	79......  y...	LD	A,C	
 T6295h	E6F0....  ....	AND	0F0h	
 T6297h	0F......  ....	RRCA		
@@ -556,37 +698,66 @@ T6299h	0F......  ....	RRCA
 T629Ah	85......  ....	ADD	A,L	
 T629Bh	6F......  o...	LD	L,A	
 T629Ch	3001....  0...	JR	NC,001h			; Jump to 0629FH
-T629Eh	24......  $...	INC	H			;
-;; }}
+T629Eh	24......  $...	INC	H			; Add carry manually.
+## }}}
+## {{{ Save HL
 T629Fh	7E......  ~...	LD	A,(HL)	
 T62A0h	DD770C..  .w..	LD	(IX+00Ch),A		; IX[0xC] = *(HL)
 T62A3h	23......  #...	INC	HL			;
 T62A4h	7E......  ~...	LD	A,(HL)			;
 T62A5h	DD770D..  .w..	LD	(IX+00Dh),A		; IX[0xD] = *(HL)
+## }}}
 T62A8h	DDCB02BE  ....	RES	7,(IX+002h)
 T62ACh	3E01....  >...	LD	A,001h	
-T62AEh	DD770E..  .w..	LD	(IX+00Eh),A
+T62AEh	DD770E..  .w..	LD	(IX+00Eh),A		; IX[0xE] = 1
 T62B1h	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0x627F (jump) IX[8] == 1
 T62B2h	21A765..  !.e.	LD	HL,065A7h		; Load address of sound pointer table.
 T62B5h	C39462..  ..b.	JP	T6294H		
 
+; We can get here from:
+;   0x6283 (jump) IX[8] == 2
 T62B8h	21BF65..  !.e.	LD	HL,065BFh		; Load address of sound pointer table.
 T62BBh	C39462..  ..b.	JP	T6294H		
 
+; We can get here from:
+;   0x6287 (jump) IX[8] == 3
 T62BEh	21D765..  !.e.	LD	HL,065D7h		; Load address of sound pointer table.
 T62C1h	C39462..  ..b.	JP	T6294H		
 
+; We can get here from:
+;   0x628B (jump) IX[8] == 4
 T62C4h	21EF65..  !.e.	LD	HL,065EFh		; Load address of sound pointer table.
 T62C7h	C39462..  ..b.	JP	T6294H		
 
+; We can get here from:
+;   0x628F (jump) IX[8] == 5
 T62CAh	210766..  !.f.	LD	HL,06607h		; Load address of sound pointer table.
 T62CDh	C39462..  ..b.	JP	T6294H		
+
+
 
 ;; Frequency divider table for octave 0, loaded at T6224h.
 ;;
 ;; One octave up means dividing by 2, hence why bitshifting is used via 
 ;; IX[7].
+;; 
+;; Note 0x0: C
+;; Note 0x1: C#
+;; Note 0x2: D
+;; Note 0x3: D#
+;; Note 0x4: E
+;; Note 0x5: F
+;; Note 0x6: F#
+;; Note 0x7: G
+;; Note 0x8: G#
+;; Note 0x9: A
+;; Note 0xA: A#
+;; Note 0xB: B
 ;;				Note Octave 0 Octave 1 Octave 2 Octave 3 Octave 4 Octave 5 Octave 6 Octave 7 Octave 8
 defb 0xB8	; T62D0h,+00	C    0x1AB8   0xD5C    0x6AE    0x357    0x1AB    0x0D5    0x06A    0x035    0x01A
 defb 0x1A	; T62D1h
@@ -613,51 +784,62 @@ defb 0x0F	; T62E5h
 defb 0x28	; T62E6h,+16	B    0x0E28   0x714    0x38A    0x1C5    0x0E2    0x071    0x038    0x01C    0x00E
 defb 0x0E	; T62E7h
 
-; Data, referenced by T6219h.
-defb 0x78	; T62E8h
-defb 0x16	; T62E9h
-;T62E8h	78......  x...	LD	A,B		;
-;T62E9h	1634....  .4..	LD	D,034h		;
-T62EBh	15......  ....	DEC	D		;
-T62ECh	04......  ....	INC	B		;
-T62EDh	14......  ....	INC	D		;
-T62EEh	E412D4..  ....	CALL	PO,TD412H	;
-T62F1h	11D410..  ....	LD	DE,010D4h	;
-T62F4h	E40F00..  ....	CALL	PO,T000FH	;
-T62F7h	0F......  ....	RRCA			;
-T62F8h	280E....  (...	JR	Z,00Eh		; Jump to 06308H
-T62FAh	5C......  \...	LD	E,H		;
-T62FBh	0D......  ....	DEC	C		;
-T62FCh	9C......  ....	SBC	A,H		;
-T62FDh	0C......  ....	INC	C		;
-T62FEh	E8......  ....	RET	PE		;
 
-; Referenced by ???
-T62FFh	0B......  ....	DEC	BC		;
 
-; Data, referenced by T620Eh.
-defb 0xE4	; T6300h
-defb 0x12	; T6301h
-;T6300h	E412D4..  ....	CALL	PO,TD412H
-T6303h	11D410..  ....	LD	DE,010D4h
-T6306h	E40F00..  ....	CALL	PO,T000FH
-T6309h	0F......  ....	RRCA		
-T630Ah	280E....  (...	JR	Z,00Eh			; Jump to 0631AH
-T630Ch	5C......  \...	LD	E,H	
-T630Dh	0D......  ....	DEC	C	
-T630Eh	9C......  ....	SBC	A,H	
-T630Fh	0C......  ....	INC	C			;
-T6310h	E8......  ....	RET	PE		
+:FrequencyDividerTableForOctave0ButStartAtDis
 
-T6311h	0B......  ....	DEC	BC	
-T6312h	3C......  <...	INC	A			;
-T6313h	0B......  ....	DEC	BC	
-T6314h	9C......  ....	SBC	A,H	
-T6315h	0A......  ....	LD	A,(BC)	
-T6316h	04......  ....	INC	B			;
-T6317h	0A......  ....	LD	A,(BC)	
-; We can also get here from:
-; T61A7h (jump)
+;; Frequency divider table for octave 0 + 3 halve notes. So, it 
+;; basically the same as T62D0h, just modulated/transposed upwards with 
+;; 3 halve notes.
+;; 
+;; Referenced by T6219h.
+;;
+;; This table is used during a boss fight, when the boss has sustained a 
+;; fair amount of damage. Tempo of the music goes up (but not due to 
+;; this table) and the music is modulated/transposed by 3 halve notes.
+;;				Index	Note	Octave
+defw 0x1678	; T62E8h+T62E9h	0	D#	0
+defw 0x1534	; T62EAh+T62EBh	1	E	0
+defw 0x1404	; T62ECh+T62EDh	2	F	0
+defw 0x12E4	; T62EEh+T62EFh	3	F#	0
+defw 0x11D4	; T62F0h+T62F1h	4	G	0
+defw 0x10D4	; T62F2h+T62F3h	5	G#	0
+defw 0x0FE4	; T62F4h+T62F5h	6	A	0
+defw 0x0F00	; T62F6h+T62F7h	7	A#	0
+defw 0x0E28	; T62F8h+T62F9h	8	B	0
+defw 0x0D5C	; T62FAh+T62FBh	9	C	1
+defw 0x0C9C	; T62FCh+T62FDh	0xA	C#	1
+defw 0x0BE8	; T62FEh+T62FFh	0xB	D	1
+
+
+
+:FrequencyDividerTableForOctave0ButStartAtFis
+;; Frequency divider table for octave 0 + half an octave. So, it basically 
+;; the same as T62D0h, just transposed upwards with a half octave.
+;; 
+;; Referenced by T620Eh.
+;;
+;; This table is used during a boss fight, when the boss has sustained 
+;; near fatal damage. Tempo of the music goes up (but not due to this 
+;; table) and the music is modulated/transposed by a further 3 halve 
+;; notes. (6 halve notes since the start of the boss fight.)
+
+;;				Index	Note	Octave
+defw 0x12E4	; T6300h+T6301h	0	F#	0
+defw 0x11D4	; T6302h+T6303h	1	G	0
+defw 0x10D4	; T6304h+T6305h	2	G#	0
+defw 0x0FE4	; T6306h+T6307h	3	A	0
+defw 0x0F00	; T6308h+T6309h	4	A#	0
+defw 0x0E28	; T630Ah+T630Bh	5	B	0
+defw 0x0D5C	; T630Ch+T630Dh	6	C	1
+defw 0x0C9C	; T630Eh+T630Fh	7	C#	1
+defw 0x0BE8	; T6310h+T6311h	8	D	1
+defw 0x0B3C	; T6312h+T6313h	9	D#	1
+defw 0x0A9C	; T6314h+T6315h	0xA	E	1
+defw 0x0A04	; T6316h+T6317h	0xB	F	1
+
+; We can get here from:
+; T61A7h (jump) A >= 0xc0 and A < 0xd0, so high nybble is 0xC.
 T6318h	E60F....  ....	AND	00Fh	
 T631Ah	3C......  <...	INC	A			;
 T631Bh	47......  G...	LD	B,A	
@@ -672,9 +854,19 @@ T632Bh	3AC5E1..  :...	LD	A,(TE1C5H)
 T632Eh	FE02....  ....	CP	002h	
 T6330h	2001....  ....	JR	NZ,001h			; Jump to 06333H
 T6332h	1D......  ....	DEC	E	
+; We can get here from:
+;   0x6330 (jump)
+;   0x6332 (fall)
 T6333h	1D......  ....	DEC	E	
+; We can get here from:
+;   0x6323 (jump) E == IX[3], *(0xE1C5) == 0
+;   0x6329 (jump) E == IX[3], *(0xE1C9) != 0
+;   0x6333 (fall) E == IX[3] - 1 or E == IX[3] - 2
 T6334h	AF......  ....	XOR	A			; Clear A and F
-T6335h	83......  ....	ADD	A,E	
+; We can get here from:
+;   0x6334 (fall) Start of loop
+;   0x6336 (djnz) Next loop
+T6335h	83......  ....	ADD	A,E			; A += E
 T6336h	10FD....  ....	DJNZ	0FDh			; Jump to 06335H
 T6338h	DD7709..  .w..	LD	(IX+009h),A
 T633Bh	DDCB026E  ...n	BIT	5,(IX+002h)
@@ -684,14 +876,16 @@ T6340h	1E00....  ....	LD	E,000h			; E = 0 (volume)
 T6342h	DD730A..  .s..	LD	(IX+00Ah),E		; Store volume.
 T6345h	C3B260..  ..`.	JP	T60B2H			; jump to change_psg_volume(). Unconditional jump!
 
-;
+
+
 ; We can only get here from:
-;   0x619C (jump, happens when A >= 0x0d, i.e. IX[0] >= 0x0d)
+;   0x619C (jump) Happens when A >= 0xd0, where A is the current sample_opcode.
 T6348h	E6F0....  ....	AND	0F0h			; Select high nybble.
 T634Ah	FED0....  ....	CP	0D0h			;
-T634Ch	CA9A63..  ..c.	JP	Z,T639AH		; if (high nybble == 0xD) jump to 0x639A
+T634Ch	CA9A63..  ..c.	JP	Z,T639AH		; if (high nybble == 0xD) jump to SetDurationFactor.
 T634Fh	FEE0....  ....	CP	0E0h			;
 T6351h	CAA363..  ..c.	JP	Z,T63A3H		; if (high nybble == 0xE) jump to 0x63A3
+; Post: A >= 0xf0
 T6354h	79......  y...	LD	A,C			; A = IX[0]
 T6355h	E60F....  ....	AND	00Fh			; Select low nybble.
 T6357h	FE0F....  ....	CP	00Fh			;
@@ -714,19 +908,19 @@ T6372h	23......  #...	INC	HL			;
 T6373h	66......  f...	LD	H,(HL)	
 T6374h	6F......  o...	LD	L,A	
 # }}}
-T6375h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T6375h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
 T6378h	DD7710..  .w..	LD	(IX+010h),A		; Save A.
 T637Bh	23......  #...	INC	HL			; Skip?
 T637Ch	23......  #...	INC	HL			; Skip?
 T637Dh	23......  #...	INC	HL			; Skip?
-T637Eh	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T637Eh	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
 ; We can only get here from:
-;   0x635E (jump)
+;   0x635E (jump) current opcode is 0xF?, but not 0xFE and not 0xFF.
 T6381h	3C......  <...	INC	A			;
-T6382h	DD7704..  .w..	LD	(IX+004h),A		; Store low nybble of sound opcode.
-T6385h	7E......  ~...	LD	A,(HL)			; 
+T6382h	DD7704..  .w..	LD	(IX+004h),A		; Store low nybble + 1 of sound opcode.
+T6385h	7E......  ~...	LD	A,(HL)			; Read next sound opcode
 T6386h	0F......  ....	RRCA		
 T6387h	0F......  ....	RRCA		
 T6388h	0F......  ....	RRCA		
@@ -738,96 +932,115 @@ T6390h	7E......  ~...	LD	A,(HL)
 T6391h	23......  #...	INC	HL			;
 T6392h	E60F....  ....	AND	00Fh	
 T6394h	DD7706..  .w..	LD	(IX+006h),A		; *(IX + 6) = (*(HL_old) & 0x0F)
-T6397h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T6397h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+:SetDurationFactor
 ; We can only get here from
-;   0x634C (jump when (A & 0xF0) == 0xD0)
+;   0x634C (jump) (A & 0xF0) == 0xD0)
 T639Ah	79......  y...	LD	A,C			;
 T639Bh	E60F....  ....	AND	00Fh	
 T639Dh	DD7703..  .w..	LD	(IX+003h),A		; Set duration factor to C & 0x0F.
-T63A0h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T63A0h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
 ; We can only get here from
-;   0x6351 (jump when (A & 0xF0) == 0xE0, i.e. high nybble is 0xE)
-T63A3h	79......  y...	LD	A,C			; C is set to *(IX) at 0x6199.
+;   0x6351 (jump) (A & 0xF0) == 0xE0, i.e. high nybble is 0xE)
+; 
+T63A3h	79......  y...	LD	A,C			; A and C now contain the current sample opcode (0xE?).
 T63A4h	E60F....  ....	AND	00Fh	
 T63A6h	FE0C....  ....	CP	00Ch			; 
-T63A8h	285F....  (_..	JR	Z,05Fh			; if (C & 0x0F == 0x0C) Jump to 06409H
+T63A8h	285F....  (_..	JR	Z,05Fh			; if (C & 0x0F == 0x0C) Jump to SetIX16To0xECSetIX17ToNextOpcode (T6409h).
 T63AAh	FE06....  ....	CP	006h	
-T63ACh	DAE963..  ..c.	JP	C,T63E9H		; if (C & 0x0F <  0x06) jump
-T63AFh	CAF363..  ..c.	JP	Z,T63F3H		; if (C & 0x0F == 0x06) jump
+T63ACh	DAE963..  ..c.	JP	C,T63E9H		; if (C & 0x0F <  0x06) jump to SetOctave.
+T63AFh	CAF363..  ..c.	JP	Z,T63F3H		; if (C & 0x0F == 0x06) jump to Set0xE1C3to1.
 T63B2h	FE07....  ....	CP	007h	
-T63B4h	CA0264..  ..d.	JP	Z,T6402H		; if (C & 0x0F == 0x07) jump
+T63B4h	CA0264..  ..d.	JP	Z,T6402H		; if (C & 0x0F == 0x07) jump to SetBit6inIX2.
 T63B7h	FE0A....  ....	CP	00Ah	
-T63B9h	CA1664..  ..d.	JP	Z,T6416H		; if (C & 0x0F == 0x0A) jump
+T63B9h	CA1664..  ..d.	JP	Z,T6416H		; if (C & 0x0F == 0x0A) jump to SampleDefinitionContinuesAtValueOfHL.
 T63BCh	FE0B....  ....	CP	00Bh	
 T63BEh	CAFB63..  ..c.	JP	Z,T63FBH		; if (C & 0x0F == 0x0B) jump
 T63C1h	FE0D....  ....	CP	00Dh	
-T63C3h	CA1D64..  ..d.	JP	Z,T641DH		; if (C & 0x0F == 0x0D) jump
+T63C3h	CA1D64..  ..d.	JP	Z,T641DH		; if (C & 0x0F == 0x0D) jump to save_HL_in_IX12_and_IX13_continue_sound_at_argument (T641Dh)
 T63C6h	FE0E....  ....	CP	00Eh	
-T63C8h	CA2B64..  .+d.	JP	Z,T642BH		; if (C & 0x0F == 0x0E) jump
+T63C8h	CA2B64..  .+d.	JP	Z,T642BH		; if (C & 0x0F == 0x0E) jump to restore_HL_from_IX12_and_IX13 (T642Bh)
 ; Register A can still be any of: 0x08 0x09 0x0f
-T63CBh	E607....  ....	AND	007h	
-T63CDh	47......  G...	LD	B,A			; B = C & 7
+
+:ChangeLower3bitsInIX2
+T63CBh	E607....  ....	AND	007h			; Get least significant 3 bits of the current opcode.
+T63CDh	47......  G...	LD	B,A			; B = current_opcode & 7
+; Post:
+;   if current_opcode == 0x08 then B == 0
+;   if current_opcode == 0x09 then B == 1
+;   if current_opcode == 0x0F then B == 7
 T63CEh	DD7E02..  .~..	LD	A,(IX+002h)		; A = IX[2]
-T63D1h	E6F8....  ....	AND	0F8h			; Get most significant 5 bits
-T63D3h	B0......  ....	OR	B			; A = (*(IX+2) & 0xF8) | (C & 7)
+T63D1h	E6F8....  ....	AND	0F8h			; Get most significant 5 bits.
+T63D3h	B0......  ....	OR	B			; A = (IX[2] & 0xF8) | (current_opcode & 7)
 T63D4h	DD7702..  .w..	LD	(IX+002h),A		; IX[2] = A
 T63D7h	79......  y...	LD	A,C			; A = C
 T63D8h	E60F....  ....	AND	00Fh			; A &= 0xf
-T63DAh	FE08....  ....	CP	008h			; Compute A - 8 and set flags.
-T63DCh	2803....  (...	JR	Z,003h			; if (A - 8 == 0) Jump to 063E1H
-T63DEh	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T63DAh	FE08....  ....	CP	008h			; Compute A - 8 and set flags. Tests bit 3 of new IX[2].
+T63DCh	2803....  (...	JR	Z,003h			; if (A == 8) Jump to 063E1H
+T63DEh	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+; We can only get here from:
+;   0x63DC (jump) current_opcode == 0xE8 (switch to sample mode)
 T63E1h	7E......  ~...	LD	A,(HL)			; A = *HL
 T63E2h	23......  #...	INC	HL			; ++HL
 T63E3h	DD7708..  .w..	LD	(IX+008h),A		; IX[8] = A
-T63E6h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T63E6h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+:SetOctave
 ; We can only get here from:
 ;   0x63AC (jump)
 T63E9h	ED44....  .D..	NEG				; A = -A
 T63EBh	C606....  ....	ADD	A,006h			; A += 6
 T63EDh	DD7707..  .w..	LD	(IX+007h),A		; IX[7] = A, set the octave
-T63F0h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T63F0h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+:Set0xE1C3to1
 ; We can only get here from:
-;   0x63AF (jump)
+;   0x63AF (jump) current_opcode == 0xE6
 T63F3h	3E01....  >...	LD	A,001h			; A = 1
 T63F5h	32C3E1..  2...	LD	(TE1C3H),A		; *(0xe1c3) = 1
-T63F8h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T63F8h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+:Set0xE1C3to0
 ; We can only get here from:
-;   0x63BE (jump)
+;   0x63BE (jump) current_opcode == 0xEB
 T63FBh	AF......  ....	XOR	A			; A = 0
 T63FCh	32C3E1..  2...	LD	(TE1C3H),A		; *(0xe1c3) = 0
-T63FFh	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T63FFh	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+:SetBit6inIX2
 ; We can only get here from:
-;   0x63B4
+;   0x63B4 (jump) current_opcode == 0xE7
 T6402h	DDCB02F6  ....	SET	6,(IX+002h)		; IX[2] |= 0x40
-T6406h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T6406h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+SetIX16To0xECSetIX17ToNextOpcode
 ; We can only get here from:
-;    ???
+;   0x63A8 (jump) current_opcode == 0xEC
 T6409h	3EEC....  >...	LD	A,0ECh			; A = 0xEC
 T640Bh	DD7716..  .w..	LD	(IX+016h),A		; IX[0x16] = A
 T640Eh	7E......  ~...	LD	A,(HL)			; A = *(HL)
 T640Fh	23......  #...	INC	HL			; ++HL
 T6410h	DD7717..  .w..	LD	(IX+017h),A		; IX[0x17] = A
-T6413h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T6413h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
+:SampleDefinitionContinuesAtValueOfHL
 ; We can only get here from:
-;   0x63B9 (jumped when (C & 0x0f) == 0x0A)
+;   0x63B9 (jump) current_opcode = 0xEA
 # {{{ HL = *(HL)
 T6416h	7E......  ~...	LD	A,(HL)	
 T6417h	23......  #...	INC	HL			;
 T6418h	66......  f...	LD	H,(HL)	
 T6419h	6F......  o...	LD	L,A	
 # }}}
-T641Ah	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T641Ah	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
-# {{{ *(IX+12) = HL + 2, HL = *(HL)
+:save_HL_in_IX12_and_IX13_continue_sound_at_argument
+; We can only get here from:
+;   0x63C3 (jump) current_opcode = 0xED
+# {{{ *(IX+0x12) = HL + 2, HL = *(HL)
 T641Dh	5E......  ^...	LD	E,(HL)			; 
 T641Eh	23......  #...	INC	HL			;
 T641Fh	56......  V...	LD	D,(HL)			; 
@@ -836,13 +1049,20 @@ T6421h	DD7512..  .u..	LD	(IX+012h),L
 T6424h	DD7413..  .t..	LD	(IX+013h),H
 T6427h	EB......  ....	EX	DE,HL			; Restore HL
 # }}}
-T6428h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T6428h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
-# {{{ HL = *(IX + 12)
+
+
+:restore_HL_from_IX12_and_IX13
+; We can get here from:
+;   0x63C8 (jump) sound opcode == 0xEE ("return")
+; 
+; IX[0x12] and IX[0x13] are filled by soun opcode 0xED ("call")
+# {{{ HL = *(IX + 0x12)
 T642Bh	DD6E12..  .n..	LD	L,(IX+012h)
 T642Eh	DD6613..  .f..	LD	H,(IX+013h)
 # }}}
-T6431h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSoundDefinitionWithoutChangingHL
+T6431h	C39761..  ..a.	JP	T6197H			; ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst
 
 
 
@@ -867,170 +1087,232 @@ T643Eh	47......  G...	LD	B,A			; B is a mask with only 1 bit cleared somewhere
 T643Fh	3AC2E1..  :...	LD	A,(TE1C2H)		; Load from 0xe1c2.
 T6442h	A0......  ....	AND	B			; Clear that one bit.
 T6443h	32C2E1..  2...	LD	(TE1C2H),A		; Store back to 0xe1c2.
-T6446h	C37560..  .u`.	JP	T6075H			; Jump to mute_channel().
+T6446h	C37560..  .u`.	JP	T6075H			; Jump to mute_channel(). Unconditionally!
 
 
 
+; We can get here from:
+;   0x6141 (call) IX[0x16] != 0
 T6449h	DDCB1646  ...F	BIT	0,(IX+016h)
-T644Dh	200E....  ....	JR	NZ,00Eh			; Jump to 0645DH
-T644Fh	DD7E18..  .~..	LD	A,(IX+018h)
+T644Dh	200E....  ....	JR	NZ,00Eh			; if (IX[0x16] & 1) jump to 0645DH
+T644Fh	DD7E18..  .~..	LD	A,(IX+018h)		;
 T6452h	3C......  <...	INC	A			;
-T6453h	FE0A....  ....	CP	00Ah	
-T6455h	3843....  8C..	JR	C,043h			; Jump to 0649AH
-T6457h	DD3416..  .4..	INC	(IX+016h)		;
+T6453h	FE0A....  ....	CP	00Ah			; Compute IX[18] + 1 - 0xA and set flags.
+T6455h	3843....  8C..	JR	C,043h			; Jump to 0649AH (SaveAinIX18AndReturn)
+T6457h	DD3416..  .4..	INC	(IX+016h)		; ++IX[16]
 T645Ah	AF......  ....	XOR	A			; Clear A and F
-T645Bh	183D....  ....	JR	03Dh			; Jump to 0649AH
+T645Bh	183D....  ....	JR	03Dh			; Jump to 0649AH (SaveAinIX18AndReturn)
 
 ; We can only get here from:
-;   0x644D (jump when BIT 0,(IX+016h) is set)
+;   0x644D (jump when "BIT 0,(IX+016h)" is true) Seen during intro.
 T645Dh	DD7E17..  .~..	LD	A,(IX+017h)
 T6460h	E6F0....  ....	AND	0F0h	
 T6462h	0F......  ....	RRCA		
 T6463h	0F......  ....	RRCA		
 T6464h	0F......  ....	RRCA		
 T6465h	0F......  ....	RRCA		
-T6466h	5F......  _...	LD	E,A			; E = *(IX + 0x17) >> 4
+T6466h	5F......  _...	LD	E,A			; E = (IX[0x17] >> 4), E is high nybble of IX[0x17]
 T6467h	DD7E18..  .~..	LD	A,(IX+018h)
 T646Ah	3C......  <...	INC	A			;
-T646Bh	BB......  ....	CP	E	
-T646Ch	382C....  8,..	JR	C,02Ch			; if (A < E) Jump to 0649AH
+T646Bh	BB......  ....	CP	E			; Compute IX[0x18] + 1 - E and set flags.
+T646Ch	382C....  8,..	JR	C,02Ch			; if (IX[0x18] + 1 < E) jump SaveAinIX18AndReturn (T649Ah)
 T646Eh	DD5E15..  .^..	LD	E,(IX+015h)		; E = lower 8 bit of frequency divider (PSG)
 T6471h	DD5614..  .V..	LD	D,(IX+014h)		; D = upper 4 bit of frequency divider (PSG)
 T6474h	DD7E17..  .~..	LD	A,(IX+017h)
 T6477h	E60F....  ....	AND	00Fh	
-T6479h	47......  G...	LD	B,A			; B = *(IX + 0x17) & 0x0F
+T6479h	47......  G...	LD	B,A			; B = IX[0x17] & 0x0F, B is low nybble of IX[0x17]
+# {{{ Flip all bits of IX[0x19]. Typically 0x00 and 0xFF and vice versa.
 T647Ah	DD7E19..  .~..	LD	A,(IX+019h)
 T647Dh	2F......  /...	CPL				; Complement A: flip all bits: A = ~A
 T647Eh	DD7719..  .w..	LD	(IX+019h),A
-T6481h	A7......  ....	AND	A	
+# }}}
+T6481h	A7......  ....	AND	A			; Set flags.
 T6482h	7B......  {...	LD	A,E			; A = lower 8 bit of frequency divider (PSG)
-T6483h	2007....  ....	JR	NZ,007h			; if (*(IX + 0x19) > 0) Jump to 0648CH
-T6485h	80......  ....	ADD	A,B			; 
-T6486h	5F......  _...	LD	E,A	
+T6483h	2007....  ....	JR	NZ,007h			; if (IX[0x19] != 0) Jump to 0648CH
+
+T6485h	80......  ....	ADD	A,B			; A += B, increase frequency divider
+T6486h	5F......  _...	LD	E,A			; E = A
 T6487h	3008....  0...	JR	NC,008h			; Jump to 06491H
-T6489h	14......  ....	INC	D			;
-T648Ah	1805....  ....	JR	005h			; Jump to 06491H
+T6489h	14......  ....	INC	D			; Manually add carry.
+T648Ah	1805....  ....	JR	005h			; Jump to 06491H. Unconditionally.
 
-T648Ch	90......  ....	SUB	B	
-T648Dh	5F......  _...	LD	E,A	
+; We can get here from:
+;   0x6483 (jump) IX[0x19] != 0 (typically 0xFF)
+T648Ch	90......  ....	SUB	B			; A -= B
+T648Dh	5F......  _...	LD	E,A			; E = A
 T648Eh	3001....  0...	JR	NC,001h			; Jump to 06491H
-T6490h	15......  ....	DEC	D	
-T6491h	DDCB026E  ...n	BIT	5,(IX+002h)
-T6495h	C0......  ....	RET	NZ		
+T6490h	15......  ....	DEC	D			; Manually subtract carry.
 
-T6496h	CDA660..  ..`.	CALL	T60A6H	
+; We can get here from
+;   0x6487 (jump)		Frequency divider was INcreased.
+;   0x648A (unconditional jump)	Frequency divider was INcreased, with manual carry.
+;   0x648E (jump)		Frequency divider was DEcreased.
+;   0x6490 (fallthrough)	Frequency divider was DEcreased, with manual carry.
+T6491h	DDCB026E  ...n	BIT	5,(IX+002h)		; Test bit 5 of IX[0x2] and set flags.
+T6495h	C0......  ....	RET	NZ			; if (IX[2] & 0x20) return
+
+; Bit 5 of IX[2] is not set.
+T6496h	CDA660..  ..`.	CALL	T60A6H			; write_PSG_frequency_divider_from_registerE_and_D
 T6499h	AF......  ....	XOR	A			; Clear A and F
-T649Ah	DD7718..  .w..	LD	(IX+018h),A
+
+; We can get here from:
+;   0x6455 (jump) A == IX[0x18] + 1
+;   0x645B (jump) A == 0
+;   0x646C (jump) A == IX[0x18] + 1
+;   0x6499 (fallthrough)
+:SaveAinIX18AndReturn
+T649Ah	DD7718..  .w..	LD	(IX+018h),A		; IX[0x18] = A
 T649Dh	C9......  ....	RET			
 
-T649Eh	DD2178E1  .!x.	LD	IX,0E178h		; IX = 0xe178
+
+
+;; Referenced in page 0 at 0x509B.
+T649Eh	DD2178E1  .!x.	LD	IX,0E178h		; IX = 0xe178, start of channel E.
 T64A2h	C3A964..  ..d.	JP	T64A9H		
 
-T64A5h	DD215DE1  .!].	LD	IX,0E15Dh
+;; Referenced in page 0 at 0x4F4B.
+T64A5h	DD215DE1  .!].	LD	IX,0E15Dh		; IX = 0xe15d, start of channel D.
+
+; We can get here from:
+;   0x64A2 (jump)	IX = 0xe178 (channel E)
+;   0x64A5 (fall)	IX = 0xe15d (channel D)
 T64A9h	CDB064..  ..d.	CALL	T64B0H			; Carry set means "end of sound definition" (seen 0xFF)
-T64ACh	D0......  ....	RET	NC		
-; End of sound reached
+T64ACh	D0......  ....	RET	NC			; Return if not end of sound.
+; End of sound reached.
 T64ADh	C37560..  .u`.	JP	T6075H			; Jump to mute_channel().
 
 
 
 ; We can only get here from:
-;   0x6184 (call)
+;   0x6184 (call) A == 1
 ;   0x64A9 (call)
 T64B0h	DD350E..  .5..	DEC	(IX+00Eh)
-T64B3h	C2A365..  ..e.	JP	NZ,T65A3H		; if(non zero) OR_A_RET()
-T64B6h	DD7E0F..  .~..	LD	A,(IX+00Fh)
-T64B9h	DD770E..  .w..	LD	(IX+00Eh),A
-T64BCh	DD6E0C..  .n..	LD	L,(IX+00Ch)		; Load sound definition pointer 1/2.
-T64BFh	DD660D..  .f..	LD	H,(IX+00Dh)		; Load sound definition pointer 2/2.
+T64B3h	C2A365..  ..e.	JP	NZ,T65A3H		; if (IX[0xE] != 0) jump to OR_A_RET()
+; Post: IX[0xE] == 0
+T64B6h	DD7E0F..  .~..	LD	A,(IX+00Fh)		; A = IX[0xF]
+T64B9h	DD770E..  .w..	LD	(IX+00Eh),A		; IX[0xE] = IX[0xF]
+T64BCh	DD6E0C..  .n..	LD	L,(IX+00Ch)		; Load sample definition pointer 1/2.
+T64BFh	DD660D..  .f..	LD	H,(IX+00Dh)		; Load sample definition pointer 2/2.
 
 ; Noise+envelope related, based on *(HL) and *(HL + 1).
 ; 
 ; Low  nybble *(HL    ) << 1: Noise generator frequency
 ; High nybble *(HL + 1)     : Envelope shape
 ; 
-; We can also get here from:
-;   0x6544 (jump, unconditionally)
-;   0x654D (jump, unconditionally)
-;   0x658F (jump)
-T64C2h	7E......  ~...	LD	A,(HL)	
-T64C3h	FEFF....  ....	CP	0FFh			; 0xFF means: end of sound definition
-T64C5h	CAA565..  ..e.	JP	Z,T65A5H		; if (A == 0xFF) SCF_RET()   End of sound. Set carry flag and return
+; We can get here from:
+;   0x6544 (jump, unconditionally, 0xFE case) At end of loop_current_melody()
+;   0x654D (jump, unconditionally, 0xFE case) At end of sample_FE_definition_loop_done()
+;   0x658F (jump) A != 0x20 and A < 0x28
+;   0x65A0 (jump) A >= 0x28
+;   0x64BF (fall)
+;
+; Changes:
+;   HL
+; Trashes:
+;   A (becomes next sample opcode)
+;   C (becomes backup of A)
+;   E (becomes envelope shape)
+T64C2h	7E......  ~...	LD	A,(HL)			; Read next sample opcode.
+T64C3h	FEFF....  ....	CP	0FFh			; 0xFF means: end of sample definition.
+T64C5h	CAA565..  ..e.	JP	Z,T65A5H		; if (A == 0xFF) SCF_RET() End of sample. Set carry flag and return.
+; A != 0xFF: This is not the end of the sample definition.
 T64C8h	23......  #...	INC	HL			;
 T64C9h	4F......  O...	LD	C,A			; Save A.
+;; Example of 0xFE case: T66E9h (0xFE loops current sample)
 T64CAh	FEFE....  ....	CP	0FEh	
-T64CCh	CA3065..  .0e.	JP	Z,T6530H		; if (A == 0xFE) jump
+T64CCh	CA3065..  .0e.	JP	Z,T6530H		; if (A == 0xFE) jump loop_current_melody
 T64CFh	E6F0....  ....	AND	0F0h	
 T64D1h	FE20....  ....	CP	020h	
-T64D3h	CA5065..  .Pe.	JP	Z,T6550H		; if (A & 0xF0 == 0x20) jump
+T64D3h	CA5065..  .Pe.	JP	Z,T6550H		; if (A & 0xF0 == 0x20) jump SetOrDisableNoise_SetOrDisableTone
 T64D6h	FE10....  ....	CP	010h	
 T64D8h	C2EA64..  ..d.	JP	NZ,T64EAH		; if (A & 0xF0 != 0x10) jump
+
+; Post: A & 0xF0 == 0x10 (i.e. high nybble is 0x1)
+; Set noise frequency and read next opcode.
 T64DBh	79......  y...	LD	A,C			; Restore A.
 T64DCh	E60F....  ....	AND	00Fh			; Low nybble
 T64DEh	07......  ....	RLCA				; Low nybble * 2 (0x00..0x0F -> 0x00..0x1E)
 T64DFh	5F......  _...	LD	E,A			; Set the noise frequency.
-T64E0h	3E06....  >...	LD	A,006h			; PSG register 6: Noise generator frequency (0x00..0x1F)
+T64E0h	3E06....  >...	LD	A,006h			; PSG register 6: Noise generator frequency (0x00..0x1F, 5 bits)
 T64E2h	CD9300..  ....	CALL	T0093H			; WRTPSG
-T64E5h	7E......  ~...	LD	A,(HL)	
+T64E5h	7E......  ~...	LD	A,(HL)			; Read next sample opcode.
 T64E6h	23......  #...	INC	HL			;
 T64E7h	4F......  O...	LD	C,A			; Save A.
 T64E8h	E6F0....  ....	AND	0F0h			; Select high nybble (zero low nybble).
 
-; We can also get here from:
-;   0x64D8
+; We can get here from:
+;   0x64D8 (jump) A & 0xF0 != 0x20 and A & 0xF0 != 0x10). High nybble of A isn't 0x1 nor 0x2.
+;   0x64E8 (fall) A is argument of 0x1y opcode, with low nybble forced to 0.
 T64EAh	0F......  ....	RRCA				; Move high nybble to low nybble, part 1/4.
 T64EBh	0F......  ....	RRCA				; Move high nybble to low nybble, part 2/4.
 T64ECh	0F......  ....	RRCA				; Move high nybble to low nybble, part 3/4.
 T64EDh	0F......  ....	RRCA				; Move high nybble to low nybble, part 4/4.
-T64EEh	5F......  _...	LD	E,A			; Set envelope shape (0x00..0x0F).
-T64EFh	DDCB0A66  ...f	BIT	4,(IX+00Ah)		; Do we want to use envelope?
+T64EEh	5F......  _...	LD	E,A			; Either envelope shape or volume (0x00..0x0F)
+T64EFh	DDCB0A66  ...f	BIT	4,(IX+00Ah)		; Do we want to the volume to vary in proportion to the envelope shape defined by PSG resgiter 13?
 T64F3h	CAFE64..  ..d.	JP	Z,T64FEH		; if(dont want envelope) jump
+; Yes, use envelope.
 T64F6h	3E0D....  >...	LD	A,00Dh			; PSG register 0xD: Envelope shape
-T64F8h	CD9300..  ....	CALL	T0093H			; WRTPSG
+T64F8h	CD9300..  ....	CALL	T0093H			; WRTPSG: Set envelope shape to value of register E.
 T64FBh	C32165..  .!e.	JP	T6521H			; Unconditional!
 
+
+
 ; Input:
-;   HL: ?
-;   C: ?
-;   E: some sort of addition to 0xE1C1
+;   HL: Points to first unhandled sample definition byte.
+;   E:  Some sort of addition to 0xE1C1.
+;       It is the high nybble of the last handled sample definition byte (volume).
 ; 
 ; Output:
 ;   DE: ?
 ;   HL: ?
 ; 
 ; We can only get here from:
-;   0x64F3 (jump)
+;   0x64F3 (jump) Use E as volume, not as envelope.
 T64FEh	3AAFE1..  :...	LD	A,(TE1AFH)
 T6501h	FE03....  ....	CP	003h	
-T6503h	D20F65..  ..e.	JP	NC,T650FH		; if (A >= 3) jump
-T6506h	3AC1E1..  :...	LD	A,(TE1C1H)
-T6509h	83......  ....	ADD	A,E	
-T650Ah	F20E65..  ..e.	JP	P,T650EH		; if (overflow) jump   (i.e. skip A:=0)
+T6503h	D20F65..  ..e.	JP	NC,T650FH		; if (*(0xE1AF) >= 3) jump
+; A <= 2, but A is overwritten anyway.
+T6506h	3AC1E1..  :...	LD	A,(TE1C1H)		; Load volume?
+T6509h	83......  ....	ADD	A,E			; Increase volume.
+T650Ah	F20E65..  ..e.	JP	P,T650EH		; if (A & 80 == 0) jump
+; A < 0 (signed) or A >= 128 (unsigned)
+; Weird. Volume is maxed at 0x0F isn't it?
 T650Dh	AF......  ....	XOR	A			; Clear A and F
-T650Eh	5F......  _...	LD	E,A	
-; We can also get here from:
-;   0x6503 (jump)
+T650Eh	5F......  _...	LD	E,A			; E = 0, i.e. set volume to 0.
+
+; We can get here from:
+;   0x6503 (jump) *(0xE1AF) >= 3
+;   0x650E (fall) E == 0
 T650Fh	DD7E1A..  .~..	LD	A,(IX+01Ah)
 T6512h	B7......  ....	OR	A	
-T6513h	2809....  (...	JR	Z,009h			; Jump to 0651EH
+T6513h	2809....  (...	JR	Z,009h			; if (IX[0x1a] == 0) Jump to 0651EH
+
 T6515h	3AC7E1..  :...	LD	A,(TE1C7H)		; A = current sound ID
-T6518h	FE86....  ....	CP	086h			; 
-T651Ah	3802....  8...	JR	C,002h			; if (A - 0x86 < 0) Jump to 0651EH
+T6518h	FE86....  ....	CP	086h			;
+T651Ah	3802....  8...	JR	C,002h			; if (A < 0x86) Jump to 0651EH
+; Post: A >= 0x86
 T651Ch	1E00....  ....	LD	E,000h			; E = 0 (volume)
+
+; We can get here from:
+;   0x6513 (jump) IX[0x1a] == 0, ??E == volume from sample opcode + e1c1 booster??
+;   0x651C (fall) E == 0 (volume)
 T651Eh	CDB260..  ..`.	CALL	T60B2H			; Call change_psg_volume()
-; We can also get here from:
+
+; We can get here from:
 ;   0x64FB (jump)
-T6521h	79......  y...	LD	A,C	
-T6522h	E60F....  ....	AND	00Fh	
-T6524h	57......  W...	LD	D,A	
-T6525h	5E......  ^...	LD	E,(HL)	
+;   0x651E (fall)
+T6521h	79......  y...	LD	A,C			; Restore A
+T6522h	E60F....  ....	AND	00Fh			; Select low nybble.
+T6524h	57......  W...	LD	D,A			; D: Most significant bits of frequency divider (4 bit only).
+T6525h	5E......  ^...	LD	E,(HL)			; E: Least significant bits of frequency divider. Reads T66F0h (0x24) for instance.
 T6526h	23......  #...	INC	HL			;
-T6527h	DD750C..  .u..	LD	(IX+00Ch),L
-T652Ah	DD740D..  .t..	LD	(IX+00Dh),H
-T652Dh	C3A660..  ..`.	JP	T60A6H			; Unconditional!
+T6527h	DD750C..  .u..	LD	(IX+00Ch),L		; Save HL.
+T652Ah	DD740D..  .t..	LD	(IX+00Dh),H		; Save HL.
+T652Dh	C3A660..  ..`.	JP	T60A6H			; write_PSG_frequency_divider_from_registerE_and_D
 
 
 
+loop_current_melody:
 ; Input:
 ;   HL: ?
 ; 
@@ -1040,68 +1322,118 @@ T652Dh	C3A660..  ..`.	JP	T60A6H			; Unconditional!
 ; Changes:
 ;   A
 ;   HL
-;   (IX+011h)
+;   IX[0x11]
 ; 
 ; Always jumps to 0x64C2.
 ; 
 ; We can only get here from:
 ;   0x64CC (CP 0xFE, JP Z)
-T6530h	DD7E11..  .~..	LD	A,(IX+011h)		;
-T6533h	3D......  ....	DEC	A			; --A
-T6534h	CA4765..  .Ge.	JP	Z,T6547H		; if (A == 0) jump to saveA_inc3HL()
-T6537h	F23C65..  .<e.	JP	P,T653CH		; if (underflow) jump, ?i.e. A was 0 before decrement?
-T653Ah	7E......  ~...	LD	A,(HL)	
-T653Bh	3D......  ....	DEC	A	
-T653Ch	23......  #...	INC	HL			;
-T653Dh	DD7711..  .w..	LD	(IX+011h),A
-T6540h	7E......  ~...	LD	A,(HL)	
-T6541h	23......  #...	INC	HL			;
-T6542h	66......  f...	LD	H,(HL)	
-T6543h	6F......  o...	LD	L,A	
-T6544h	C3C264..  ..d.	JP	T64C2H			; Unconditional!
+;
+; Example of 0xFE case: T66E9h (0xFE means: loop current melody)
+T6530h	DD7E11..  .~..	LD	A,(IX+011h)	; A = IX[0x11]
+T6533h	3D......  ....	DEC	A		; --A
+T6534h	CA4765..  .Ge.	JP	Z,T6547H	; if (A == 0) jump to sample_definition_FE_loop_done()
+T6537h	F23C65..  .<e.	JP	P,T653CH	; if (A & 0x80 == 0x00) jump
+
+; Post: A & 0x80 == 0x80, so A >= 0x80 (unsigned) or A < 0 (signed).
+; 
+; IX[0x11] is initialized as 0 at the beginning of a tune. Which means A 
+; == -1 (0xFF) when we get here for the first time. This means the 
+; following is initialisation code.
+; 
+; HL[-1]: the 0xFE byte
+; HL[0]:  loop counter.
+; HL[1]:  low byte of where to continue
+; HL[2]:  High byte of where to continue
+T653Ah	7E......  ~...	LD	A,(HL)		; Load loop counter.
+T653Bh	3D......  ....	DEC	A		; 
+
+; We can get here from:
+;   0x6537 (jump) Register A has a positive loop counter (not zero).
+;   0x653B (fall) Register A has the active value of the loop counter. Intended to be positive probably.
+T653Ch	23......  #...	INC	HL		; Increment sample definition pointer.
+T653Dh	DD7711..  .w..	LD	(IX+011h),A	; Save value.
+T6540h	7E......  ~...	LD	A,(HL)		; Load pointer (low byte) from sample definition.
+T6541h	23......  #...	INC	HL		; Increment sample definition pointer.
+T6542h	66......  f...	LD	H,(HL)		; Load pointer (high byte) from sample definition.
+T6543h	6F......  o...	LD	L,A		; 
+T6544h	C3C264..  ..d.	JP	T64C2H		; Unconditional!
 
 
-:saveA_inc3HL
-T6547h	DD7711..  .w..	LD	(IX+011h),A
-T654Ah	23......  #...	INC	HL			;
-T654Bh	23......  #...	INC	HL			;
-T654Ch	23......  #...	INC	HL			;
-T654Dh	C3C264..  ..d.	JP	T64C2H			; Unconditional!
+
+:sample_FE_definition_loop_done
+T6547h	DD7711..  .w..	LD	(IX+011h),A	; IX[0x11] = 0
+T654Ah	23......  #...	INC	HL		; Skip loop counter.
+T654Bh	23......  #...	INC	HL		; Skip low byte of pointer.
+T654Ch	23......  #...	INC	HL		; Skip high byte of pointer.
+T654Dh	C3C264..  ..d.	JP	T64C2H		; Unconditional!
 
 
 
+:SetOrDisableNoise_SetOrDisableTone
+; Part of parsing a sample ("note").
+; 
+; We can only get here from:
+;   0x64D3 (CP 0x20, JP Z)
+; 
+; Sample opcode		Bit 1 (Tone)	Bit 0 (Noise)	Remarks
+; 0x20			0		0		Also: 0x24 0x28 0x2c
+; 0x21			0		1		Also: 0x25 0x29 0x2d
+; 0x22			1		0		Also: 0x26 0x2a 0x2e
+; 0x23			1		1		Also: 0x27 0x2b 0x2f
 T6550h	CB41....  .A..	BIT	0,C	
-T6552h	C26665..  .fe.	JP	NZ,T6566H
+T6552h	C26665..  .fe.	JP	NZ,T6566H		; if (C & 1) jump NoiseYes_ToneMaybe
 T6555h	CB49....  .I..	BIT	1,C	
-T6557h	C26065..  .`e.	JP	NZ,T6560H
-T655Ah	CDBA60..  ..`.	CALL	T60BAH			; Tone=no, noise=no.
+T6557h	C26065..  .`e.	JP	NZ,T6560H		; if (C & 2) jump NoiseNo_ToneYes
+
+:ToneNo_NoiseNo
+T655Ah	CDBA60..  ..`.	CALL	T60BAH			; Noise=no, tone=no. Silence?
 T655Dh	C37465..  .te.	JP	T6574H		
 
-T6560h	CDCF60..  ..`.	CALL	T60CFH			; Tone=yes, noise=no.
+:NoiseNo_ToneYes
+T6560h	CDCF60..  ..`.	CALL	T60CFH			; Noise=no, tone=yes.
 T6563h	C37465..  .te.	JP	T6574H		
 
+:NoiseYes_ToneMaybe
 T6566h	CB49....  .I..	BIT	1,C	
-T6568h	C27165..  .qe.	JP	NZ,T6571H
-T656Bh	CDC860..  ..`.	CALL	T60C8H			; Tone=no, noise=yes.
+T6568h	C27165..  .qe.	JP	NZ,T6571H		; if (C & 1) jump NoiseYes_ToneYes
+
+:NoiseYes_ToneNo
+T656Bh	CDC860..  ..`.	CALL	T60C8H			; Noise=yes, tone=no.
 T656Eh	C37465..  .te.	JP	T6574H		
 
-T6571h	CDC160..  ..`.	CALL	T60C1H			; Tone=yes, noise=yes.
+:NoiseYes_ToneYes
+T6571h	CDC160..  ..`.	CALL	T60C1H			; Noise=yes, tone=yes.
+
+
+
 ; Post: Tone and noise are correctly set for this channel in the PSG.
-T6574h	79......  y...	LD	A,C	
-T6575h	07......  ....	RLCA		
-T6576h	E610....  ....	AND	010h	
-T6578h	DD770A..  .w..	LD	(IX+00Ah),A		; Get volume.
+; 
+; We can get here from:
+;   T655Dh (jump)		noise=no  tone=no
+;   T6563h (jump)		noise=no  tone=yes
+;   T656Eh (jump)		noise=yes tone=no
+;   T6571h (fallthrough)	noise=yes tone=yes 
+T6574h	79......  y...	LD	A,C			; Restore original sample opcode (0x2y).
+
+; if (A & 0x08) let volume vary in proportion to the envelope shape defined by PSG register 13.
+; else set volume to 0.
+T6575h	07......  ....	RLCA				; A *= 2 (assuming carry bit is not set)
+T6576h	E610....  ....	AND	010h			; Select only bit 4 (the former bit 3).
+T6578h	DD770A..  .w..	LD	(IX+00Ah),A		; Save volume.
 T657Bh	5F......  _...	LD	E,A			; E = A (volume)
 T657Ch	CDB260..  ..`.	CALL	T60B2H			; Call change_psg_volume()
-T657Fh	7E......  ~...	LD	A,(HL)	
+
+T657Fh	7E......  ~...	LD	A,(HL)			; Read next sample opcode (1st argument to 0x2y opcode).
 T6580h	23......  #...	INC	HL			;
-T6581h	DD770E..  .w..	LD	(IX+00Eh),A
-T6584h	DD770F..  .w..	LD	(IX+00Fh),A
-T6587h	79......  y...	LD	A,C	
-T6588h	FE20....  ....	CP	020h	
+T6581h	DD770E..  .w..	LD	(IX+00Eh),A		; Store argument.
+T6584h	DD770F..  .w..	LD	(IX+00Fh),A		; Store argument.
+T6587h	79......  y...	LD	A,C			; Restore original sample opcode (0x2y).
+T6588h	FE20....  ....	CP	020h			;
 T658Ah	CAA365..  ..e.	JP	Z,T65A3H		; if(A == 0x20) OR_A_RET()
-T658Dh	FE28....  .(..	CP	028h	
-T658Fh	DAC264..  ..d.	JP	C,T64C2H	
+T658Dh	FE28....  .(..	CP	028h			;
+T658Fh	DAC264..  ..d.	JP	C,T64C2H		; if(A < 0x28) jump
+; Post: A >= 0x28, i.e. bit 3 is set, i.e. we want the volume to vary in proportion to the envelope shape defined by PSG register 13.
 T6592h	5E......  ^...	LD	E,(HL)			; E = *(HL) (LSB period)
 T6593h	23......  #...	INC	HL			;
 T6594h	3E0C....  >...	LD	A,00Ch			; PSG register 0xC: LSB of envelope
@@ -1125,104 +1457,112 @@ SCF_RET:
 T65A5h	37......  7...	SCF				; Set carry flag.
 T65A6h	C9......  ....	RET				; Return unconditionally!
 
-# {{{ Data: table with pointers to note structs.
+
+
+# {{{ Sample table 1: table with pointers to 12 samples.
 ## The start of this table (0x65A7) is loaded at 0x62B2.
-defw 0x6637	;; T65A7h: +00
-defw 0x663D	;; T65A9h: +02
-defw 0x664D	;; T65ABh: +04
-defw 0x6663	;; T65ADh: +06
-defw 0x6663	;; T65AFh: +08
-defw 0x6663	;; T65B1h: +0A
-defw 0x6663	;; T65B3h: +0C
-defw 0x6692	;; T65B5h: +0E
-defw 0x66CB	;; T65B7h: +10
-defw 0x674E	;; T65B9h: +12
-defw 0x67D1	;; T65BBh: +14
-defw 0x67D1	;; T65BDh: +16
+defw 0x6637	;; T65A7h: +00, Sample number  0.
+defw 0x663D	;; T65A9h: +02, Sample number  1.
+defw 0x664D	;; T65ABh: +04, Sample number  2.
+defw 0x6663	;; T65ADh: +06, Sample number  3.
+defw 0x6663	;; T65AFh: +08, Sample number  4.
+defw 0x6663	;; T65B1h: +0A, Sample number  5.
+defw 0x6663	;; T65B3h: +0C, Sample number  6.
+defw 0x6692	;; T65B5h: +0E, Sample number  7.
+defw 0x66CB	;; T65B7h: +10, Sample number  8. Contains a 0xFE case.
+defw 0x674E	;; T65B9h: +12, Sample number  9.
+defw 0x67D1	;; T65BBh: +14, Sample number 10.
+defw 0x67D1	;; T65BDh: +16, Sample number 11.
 # }}}
-# {{{ Data: table with pointers to note structs.
+# {{{ Sample table 2, with pointers to 12 samples.
 ## The start of this table (0x65BF) is loaded at 0x62B8.
-defw 0x67D1	;; T65BFh: +00
-defw 0x67E4	;; T65C1h: +02
-defw 0x67E4	;; T65C3h: +04
-defw 0x67F7	;; T65C5h: +06
-defw 0x67F7	;; T65C7h: +08
-defw 0x680A	;; T65C9h: +0A
-defw 0x680A	;; T65CBh: +0C
-defw 0x68D3	;; T65CDh: +0E
-defw 0x68E6	;; T65CFh: +10
-defw 0x68F9	;; T65D1h: +12
-defw 0x68F9	;; T65D3h: +14
-defw 0x680C	;; T65D5h: +16
+defw 0x67D1	;; T65BFh: +00, Sample number  0.
+defw 0x67E4	;; T65C1h: +02, Sample number  1.
+defw 0x67E4	;; T65C3h: +04, Sample number  2.
+defw 0x67F7	;; T65C5h: +06, Sample number  3.
+defw 0x67F7	;; T65C7h: +08, Sample number  4.
+defw 0x680A	;; T65C9h: +0A, Sample number  5.
+defw 0x680A	;; T65CBh: +0C, Sample number  6.
+defw 0x68D3	;; T65CDh: +0E, Sample number  7.
+defw 0x68E6	;; T65CFh: +10, Sample number  8.
+defw 0x68F9	;; T65D1h: +12, Sample number  9.
+defw 0x68F9	;; T65D3h: +14, Sample number 10.
+defw 0x680C	;; T65D5h: +16, Sample number 11.
 # }}}
-# {{{ Data: table with pointers to note structs.
+# {{{ Sample table 3, with pointers to 12 samples.
 ## The start of this table (0x65D7) is loaded at 0x62BE.
-defw 0x691F	;; T65D7h: +00
-defw 0x6932	;; T65D9h: +02
-defw 0x6932	;; T65DBh: +04
-defw 0x6945	;; T65DDh: +06
-defw 0x6958	;; T65DFh: +08
-defw 0x696B	;; T65E1h: +0A
-defw 0x697E	;; T65E3h: +0C
-defw 0x697E	;; T65E5h: +0E
-defw 0x6991	;; T65E7h: +10
-defw 0x69A4	;; T65E9h: +12
-defw 0x69A4	;; T65EBh: +14
-defw 0x69B7	;; T65EDh: +16
+defw 0x691F	;; T65D7h: +00, Sample number  0.
+defw 0x6932	;; T65D9h: +02, Sample number  1.
+defw 0x6932	;; T65DBh: +04, Sample number  2.
+defw 0x6945	;; T65DDh: +06, Sample number  3.
+defw 0x6958	;; T65DFh: +08, Sample number  4.
+defw 0x696B	;; T65E1h: +0A, Sample number  5.
+defw 0x697E	;; T65E3h: +0C, Sample number  6.
+defw 0x697E	;; T65E5h: +0E, Sample number  7.
+defw 0x6991	;; T65E7h: +10, Sample number  8.
+defw 0x69A4	;; T65E9h: +12, Sample number  9.
+defw 0x69A4	;; T65EBh: +14, Sample number 10.
+defw 0x69B7	;; T65EDh: +16, Sample number 11.
 # }}}
-# {{{ Data: table with pointers to note structs.
+# {{{ Sample table 4, with pointers to 12 samples.
 ## The start of this table (0x65EF) is loaded at 0x62C4.
-defw 0x69CA	;; T65EFh: +00,Index 0: C  in octave 5
-defw 0x6A37	;; T65F1h: +02,Index 1: F# in octave 5
-defw 0x6A37	;; T65F3h: +04
-defw 0x6A37	;; T65F5h: +06
-defw 0x6A37	;; T65F7h: +08
-defw 0x6A37	;; T65F9h: +0A
-defw 0x6A37	;; T65FBh: +0C
-defw 0x6A37	;; T65FDh: +0E
-defw 0x6AA4	;; T65FFh: +10
-defw 0x6B11	;; T6601h: +12 A5
-defw 0x6B7E	;; T6603h: +14
-defw 0x6BEB	;; T6605h: +16
+defw 0x69CA	;; T65EFh: +00, Sample number  0. C  in octave 5
+defw 0x6A37	;; T65F1h: +02, Sample number  1. F# in octave 5
+defw 0x6A37	;; T65F3h: +04, Sample number  2.
+defw 0x6A37	;; T65F5h: +06, Sample number  3.
+defw 0x6A37	;; T65F7h: +08, Sample number  4.
+defw 0x6A37	;; T65F9h: +0A, Sample number  5.
+defw 0x6A37	;; T65FBh: +0C, Sample number  6.
+defw 0x6A37	;; T65FDh: +0E, Sample number  7.
+defw 0x6AA4	;; T65FFh: +10, Sample number  8.
+defw 0x6B11	;; T6601h: +12, Sample number  9. A  in octave 5
+defw 0x6B7E	;; T6603h: +14, Sample number 10.
+defw 0x6BEB	;; T6605h: +16, Sample number 11.
 # }}}
-# {{{ Data: table with pointers to note structs.
+# {{{ Sample table 5, with pointers to 12 samples.
 ## The start of this table (0x6607) is loaded at 0x62CA.
-defw 0x6C58	;; T6607h: +00,Index  0: C  in octave 6
-defw 0x6CC5	;; T6609h: +02,Index  1: D  in octave 6
-defw 0x6CC5	;; T660Bh: +04,Index  2: D  in octave 6 (weird, same as index 1)
-defw 0x6D32	;; T660Dh: +06,Index  3: D# in octave 6
-defw 0x6D9F	;; T660Fh: +08,Index  4: E  in octave 6
-defw 0x6E0C	;; T6611h: +0A,Index  5: F  in octave 6
-defw 0x6E79	;; T6613h: +0C,Index  6: G  in octave 6
-defw 0x6E79	;; T6615h: +0E,Index  7: G  in octave 6 (weird, same as index 6)
-defw 0x6EE6	;; T6617h: +10,Index  8: G# in octave 6
-defw 0x6F53	;; T6619h: +12,Index  9: B  in octave 6
-defw 0x6F53	;; T661Bh: +14,Index  A: B  in octave 6 (weird, same as index 9)
-defw 0x6F53	;; T661Dh: +16,Index  B: B  in octave 6 (weird, same as index 9)
-defw 0x6FC0	;; T661Fh: +18,Index  C: C  in octave 7
-defw 0x702D	;; T6621h: +1A,Index  D: F  in octave 7
-defw 0x709A	;; T6623h: +1C,Index  E: D  in octave 7
-defw 0x7107	;; T6625h: +1E,Index  F: Not a constant note
-defw 0x7198	;; T6627h: +20,Index 10: C# in octave 7
-defw 0x7198	;; T6629h: +22,Index 11: C# in octave 7 (weird, same as index 0x10)
-defw 0x7198	;; T662Bh: +24,Index 12: C# in octave 7 (weird, same as index 0x10)
-defw 0x7205	;; T662Dh: +26,Index 13: E  in octave 7
-defw 0x7272	;; T662Fh: +28,Index 14: Not a constant note
-defw 0x72D5	;; T6631h: +2A,Index 15: Not a constant note
-defw 0x7338	;; T6633h: +2C,Index 16: Not a constant note
-defw 0x73D3	;; T6635h: +2E,Index 17: F in octave 7 (slow)
+defw 0x6C58	;; T6607h: +00, Sample number  0. C  in octave 6
+defw 0x6CC5	;; T6609h: +02, Sample number  1. D  in octave 6
+defw 0x6CC5	;; T660Bh: +04, Sample number  2. D  in octave 6 (weird, same as index 1)
+defw 0x6D32	;; T660Dh: +06, Sample number  3. D# in octave 6
+defw 0x6D9F	;; T660Fh: +08, Sample number  4. E  in octave 6
+defw 0x6E0C	;; T6611h: +0A, Sample number  5. F  in octave 6
+defw 0x6E79	;; T6613h: +0C, Sample number  6. G  in octave 6
+defw 0x6E79	;; T6615h: +0E, Sample number  7. G  in octave 6 (weird, same as index 6)
+defw 0x6EE6	;; T6617h: +10, Sample number  8. G# in octave 6
+defw 0x6F53	;; T6619h: +12, Sample number  9. B  in octave 6
+defw 0x6F53	;; T661Bh: +14, Sample number 10. B  in octave 6 (weird, same as index 9)
+defw 0x6F53	;; T661Dh: +16, Sample number 11. B  in octave 6 (weird, same as index 9)
 # }}}
 
-# {{{ Data: start of note found in 0x65A7.
-defb 0x21	;; T6637h
-defb 0x01	;; T6638h
+# {{{ Sample table 6 (and 0), with pointers to 12 samples.
+## The start of this table (0x661F) is loaded at 0x6291.
+defw 0x6FC0	;; T661Fh: +00, Sample number  0. C  in octave 7
+defw 0x702D	;; T6621h: +02, Sample number  1. F  in octave 7
+defw 0x709A	;; T6623h: +04, Sample number  2. D  in octave 7
+defw 0x7107	;; T6625h: +06, Sample number  3. Not a constant note
+defw 0x7198	;; T6627h: +08, Sample number  4. C# in octave 7
+defw 0x7198	;; T6629h: +0A, Sample number  5. C# in octave 7 (weird, same as index 4)
+defw 0x7198	;; T662Bh: +0C, Sample number  6. C# in octave 7 (weird, same as index 4)
+defw 0x7205	;; T662Dh: +0E, Sample number  7. E  in octave 7
+defw 0x7272	;; T662Fh: +10, Sample number  8. Not a constant note
+defw 0x72D5	;; T6631h: +12, Sample number  9. Not a constant note
+defw 0x7338	;; T6633h: +14, Sample number 10. Not a constant note
+defw 0x73D3	;; T6635h: +16, Sample number 11. F in octave 7 (slow)
+# }}}
+
+
+
+# {{{ Data: start of sample found in 0x65A7.
+defb 0x21	;; T6637h: noise=yes, tone=no
+defb 0x01	;; T6638h: Duration of note in VDP ticks.
 defb 0x10	;; T6639h
 defb 0xD0	;; T663Ah
 defb 0x00	;; T663Bh
-defb 0xFF	;; T663Ch
+defb 0xFF	;; T663Ch: End of note definition.
 # }}}
 
-# {{{ Data: start of note found in 0x65A9: X in octave x
+# {{{ Data: start of sample found in 0x65A9: X in octave x
 defb 0x21	;; T663Dh
 defb 0x02	;; T663Eh
 defb 0x10	;; T663Fh
@@ -1243,20 +1583,41 @@ defb 0x00	;; T664Bh
 defb 0xFF	;; T664Ch
 # }}}
 
-# {{{ Data: start of note found in 0x65AB: X in octave x
-T664Dh	210115..  !...	LD	HL,01501h
-T6650h	C0......  ....	RET	NZ		
+# {{{ Data: start of sample found in 0x65AB.
+defb	0x21	;; T664Dh: Enable NOISE, disable tone.
+defb	0x01	;; T664Eh: Duration of volume+tone/noise in VDP ticks.
+defb	0x15	;; T664Fh: Set noise generator frequency to 2*5.
 
-T6651h	0622....  ."..	LD	B,022h	
-T6653h	01C200..  ....	LD	BC,000C2h
-T6656h	210218..  !...	LD	HL,01802h
-T6659h	80......  ....	ADD	A,B	
-T665Ah	0670....  .p..	LD	B,070h	
-T665Ch	0621....  .!..	LD	B,021h	
-T665Eh	011360..  ..`.	LD	BC,06013h
-T6661h	06FF....  ....	LD	B,0FFh	
+defb	0xC0	;; T6650h
+defb	0x06	;; T6651h
+
+defb	0x22	;; T6652h: Disable noise, enable TONE.
+defb	0x01	;; T6653h: Duration of volume+tone/noise in VDP ticks.
+
+defb	0xC2	;; T6654h: Set volume to 0xC.
+defb	0x00	;; T6655h: Set divider to 0x200: A in octave 3.
+
+defb	0x21	;; T6656h: Enable NOISE, disable tone.
+defb	0x02	;; T6657h: Duration of volume+tone/noise in VDP ticks.
+defb	0x18	;; T6658h: Set noise generator frequency to 2*8.
+
+defb	0x80	;; T6659h
+defb	0x06	;; T665Ah
+
+defb	0x70	;; T665Bh
+defb	0x06	;; T665Ch
+
+defb	0x21	;; T665Dh: Enable NOISE, disable tone.
+defb	0x01	;; T665Eh: Duration of volume+tone/noise in VDP ticks.
+
+defb	0x13	;; T665Fh: Set noise generator frequency to 2*3.
+
+defb	0x60	;; T6660h
+defb	0x06	;; T6661h
+
+defb	0xFF	;; T6662h: End of sample definition.
 # }}}
-# {{{ Data: start of note found in 0x65AD,65AF,65B1,65B3: X in octave x
+# {{{ Data: start of sample found in 0x65AD,65AF,65B1,65B3: X in octave x
 T6663h	2201C2..  "...	LD	(TC201H),HL
 T6666h	00......  ....	NOP		
 T6667h	B2......  ....	OR	D	
@@ -1300,7 +1661,7 @@ T6690h	E0......  ....	RET	PO
 
 T6691h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65B5: X in octave x
+# {{{ Data: start of sample found in 0x65B5: X in octave x
 T6692h	2204D0..  "...	LD	(TD004H),HL
 T6695h	80......  ....	ADD	A,B	
 T6696h	D0......  ....	RET	NC		
@@ -1362,142 +1723,195 @@ T66C8h	50......  P...	LD	D,B
 T66C9h	48......  H...	LD	C,B	
 T66CAh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65B7: X in octave x
-T66CBh	2201E0..  "...	LD	(TE001H),HL
-T66CEh	30E0....  0...	JR	NC,0E0h			; Jump to 066B0H
-T66D0h	2AE024..  *.$.	LD	HL,(T24E0H)
-T66D3h	E0......  ....	RET	PO		
+# {{{ Data: start of sample found in 0x65B7: X in octave x
+defb	0x22	;; T66CBh: noise=no, tone=yes
+defb	0x01	;; T66CCh: Duration of note in VDP ticks.
 
-T66D4h	20E0....  ....	JR	NZ,0E0h			; Jump to 066B6H
-T66D6h	1C......  ....	INC	E			;
-T66D7h	E0......  ....	RET	PO		
+defb	0xE0	;; T66CDh: Volume 0xE
+defb	0x30	;; T66CEh: 0x030 == D#   in octave 7
 
-T66D8h	18E0....  ....	JR	0E0h			; Jump to 066BAH
+defb	0xE0	;; T66CFh: Volume 0xE
+defb	0x2A	;; T66D0h: 0x02A == E    in octave 7
 
-T66DAh	15......  ....	DEC	D	
-T66DBh	F0......  ....	RET	P		
+defb	0xE0	;; T66D1h: Volume 0xE
+defb	0x24	;; T66D2h: 0x024 == F#/G in octave 7
 
-T66DCh	90......  ....	SUB	B	
-T66DDh	F0......  ....	RET	P		
+defb	0xE0	;; T66D3h: Volume 0xE
+defb	0x20	;; T66D4h: 0x020 == G#/A in octave 7
 
-T66DEh	7E......  ~...	LD	A,(HL)	
-T66DFh	F0......  ....	RET	P		
+defb	0xE0	;; T66D5h: Volume 0xE
+defb	0x1C	;; T66D6h: 0x01C == B    in octave 7
 
-T66E0h	6E......  n...	LD	L,(HL)	
-T66E1h	F0......  ....	RET	P		
+defb	0xE0	;; T66D7h: Volume 0xE
+defb	0x18	;; T66D8h: 0x018 == C#/D in octave 8
 
-T66E2h	60......  `...	LD	H,B	
-T66E3h	F0......  ....	RET	P		
+defb	0xE0	;; T66D9h: Volume 0xE
+defb	0x15	;; T66DAh: 0x015 == E    in octave 8
 
-T66E4h	54......  T...	LD	D,H	
-T66E5h	F0......  ....	RET	P		
+defb	0xF0	;; T66DBh: Volume 0xF
+defb	0x90	;; T66DCh: 0x090 == G    in octave 5
 
-T66E6h	49......  I...	LD	C,C	
-T66E7h	F0......  ....	RET	P		
+defb	0xF0	;; T66DDh: Volume 0xF
+defb	0x7E	;; T66DEh: 0x07E == A    in octave 5
 
-T66E8h	40......  @...	LD	B,B	
-T66E9h	FE06....  ....	CP	006h	
-T66EBh	CB66....  .f..	BIT	4,(HL)	
-T66EDh	D0......  ....	RET	NC		
+defb	0xF0	;; T66DFh: Volume 0xF
+defb	0x6E	;; T66E0h: 0x06E == B    in octave 5 (or C in octave 6)
 
-T66EEh	30D0....  0...	JR	NC,0D0h			; Jump to 066C0H
-T66F0h	2AD024..  *.$.	LD	HL,(T24D0H)
-T66F3h	D0......  ....	RET	NC		
+defb	0xF0	;; T66E1h: Volume 0xF
+defb	0x60	;; T66E2h: 0x060 == D    in octave 6
 
-T66F4h	20D0....  ....	JR	NZ,0D0h			; Jump to 066C6H
-T66F6h	1C......  ....	INC	E			;
-T66F7h	D0......  ....	RET	NC		
+defb	0xF0	;; T66E3h: Volume 0xF
+defb	0x54	;; T66E4h: 0x054 == E    in octave 5
 
-T66F8h	18D0....  ....	JR	0D0h			; Jump to 066CAH
+defb	0xF0	;; T66E5h: Volume 0xF
+defb	0x49	;; T66E6h: 0x049 == G/F# in octave 6
 
-T66FAh	15......  ....	DEC	D	
-T66FBh	E0......  ....	RET	PO		
+defb	0xF0	;; T66E7h: Volume 0xF
+defb	0x40	;; T66E8h: 0x040 == A    in octave 6
 
-T66FCh	90......  ....	SUB	B	
-T66FDh	E0......  ....	RET	PO		
+defb	0xFE	;; T66E9h: Loop sample
+defb	0x06	;; T66EAh: Loop sample 6 times
+defw	0x66CB	;; T66EBh+T66ECh: Explicit pointer for the sample loop.
 
-T66FEh	7E......  ~...	LD	A,(HL)	
-T66FFh	E0......  ....	RET	PO		
+defb	0xD0	;; T66EDh: Volume 0xD
+defb	0x30	;; T66EEh: 0x030 == D    in octave 7
+defb	0x2A	;; T66F0h: 0x02A == E    in octave 7 ???2022-07-28???
 
-T6700h	6E......  n...	LD	L,(HL)	
-T6701h	E0......  ....	RET	PO		
+defb	0xD0	;; T66F1h: Volume 0xD
+defb	0x24	;; T66F2h: 0x024 == F#/G in octave 7
 
-T6702h	60......  `...	LD	H,B	
-T6703h	E0......  ....	RET	PO		
+defb	0xD0	;; T66F3h
+defb	0x20	;; T66F4h
 
-T6704h	54......  T...	LD	D,H	
-T6705h	E0......  ....	RET	PO		
+defb	0xD0	;; T66F5h
+defb	0x1C	;; T66F6h
 
-T6706h	49......  I...	LD	C,C	
-T6707h	E0......  ....	RET	PO		
+defb	0xD0	;; T66F7h
+defb	0x18	;; T66F8h
 
-T6708h	40......  @...	LD	B,B	
-T6709h	FE02....  ....	CP	002h	
-T670Bh	ED66....  .f..
-T670Dh	B0......  ....	OR	B	
-T670Eh	30B0....  0...	JR	NC,0B0h			; Jump to 066C0H
-T6710h	2AB024..  *.$.	LD	HL,(T24B0H)
-T6713h	B0......  ....	OR	B	
-T6714h	20B0....  ....	JR	NZ,0B0h			; Jump to 066C6H
-T6716h	1C......  ....	INC	E			;
-T6717h	B0......  ....	OR	B	
-T6718h	18B0....  ....	JR	0B0h			; Jump to 066CAH
+defb	0xD0	;; T66F9h
+defb	0x15	;; T66FAh
 
-T671Ah	15......  ....	DEC	D	
-T671Bh	C0......  ....	RET	NZ		
+defb	0xE0	;; T66FBh
+defb	0x90	;; T66FCh
 
-T671Ch	90......  ....	SUB	B	
-T671Dh	C0......  ....	RET	NZ		
+defb	0xE0	;; T66FDh
+defb	0x7E	;; T66FEh
 
-T671Eh	7E......  ~...	LD	A,(HL)	
-T671Fh	C0......  ....	RET	NZ		
+defb	0xE0	;; T66FFh
+defb	0x6E	;; T6700h
 
-T6720h	6E......  n...	LD	L,(HL)	
-T6721h	C0......  ....	RET	NZ		
+defb	0xE0	;; T6701h
+defb	0x60	;; T6702h
 
-T6722h	60......  `...	LD	H,B	
-T6723h	C0......  ....	RET	NZ		
+defb	0xE0	;; T6703h
+defb	0x54	;; T6704h
 
-T6724h	54......  T...	LD	D,H	
-T6725h	C0......  ....	RET	NZ		
+defb	0xE0	;; T6705h
+defb	0x49	;; T6706h
 
-T6726h	49......  I...	LD	C,C	
-T6727h	C0......  ....	RET	NZ		
+defb	0xE0	;; T6707h
+defb	0x40	;; T6708h
 
-T6728h	40......  @...	LD	B,B	
-T6729h	FE02....  ....	CP	002h	
-T672Bh	0D......  ....	DEC	C	
-T672Ch	67......  g...	LD	H,A	
-T672Dh	A0......  ....	AND	B	
-T672Eh	30A0....  0...	JR	NC,0A0h			; Jump to 066D0H
-T6730h	2AA024..  *.$.	LD	HL,(T24A0H)
-T6733h	A0......  ....	AND	B	
-T6734h	20A0....  ....	JR	NZ,0A0h			; Jump to 066D6H
-T6736h	1C......  ....	INC	E			;
-T6737h	A0......  ....	AND	B	
-T6738h	18A0....  ....	JR	0A0h			; Jump to 066DAH
+defb	0xFE	;; T6709h: Loop sample.
+defb	0x02	;; T670Ah: Loop sample 2 times.
+defw	0x66ED	;; T670Bh+T670Ch: Explicit pointer for the sample loop.
 
-T673Ah	15......  ....	DEC	D	
-T673Bh	90......  ....	SUB	B	
-T673Ch	90......  ....	SUB	B	
-T673Dh	90......  ....	SUB	B	
-T673Eh	7E......  ~...	LD	A,(HL)	
-T673Fh	90......  ....	SUB	B	
-T6740h	6E......  n...	LD	L,(HL)	
-T6741h	90......  ....	SUB	B	
-T6742h	60......  `...	LD	H,B	
-T6743h	90......  ....	SUB	B	
-T6744h	54......  T...	LD	D,H	
-T6745h	90......  ....	SUB	B	
-T6746h	49......  I...	LD	C,C	
-T6747h	90......  ....	SUB	B	
-T6748h	40......  @...	LD	B,B	
-T6749h	FE04....  ....	CP	004h	
-T674Bh	2D......  -...	DEC	L	
-T674Ch	67......  g...	LD	H,A	
-T674Dh	FF......  ....	RST	38h	
+defb	0xB0	;; T670Dh
+defb	0x30	;; T670Eh
+
+defb	0xB0	;; T670Fh
+defb	0x2A	;; T6710h
+
+defb	0xB0	;; T6711h
+defb	0x24	;; T6712h
+
+defb	0xB0	;; T6713h
+defb	0x20	;; T6714h
+
+defb	0xB0	;; T6715h
+defb	0x1C	;; T6716h
+
+defb	0xB0	;; T6717h
+defb	0x18	;; T6718h
+
+defb	0xB0	;; T6719h
+defb	0x15	;; T671Ah
+
+defb	0xC0	;; T671Bh
+defb	0x90	;; T671Ch
+
+defb	0xC0	;; T671Dh
+defb	0x7E	;; T671Eh
+
+defb	0xC0	;; T671Fh
+defb	0x6E	;; T6720h
+
+defb	0xC0	;; T6721h
+defb	0x60	;; T6722h
+
+defb	0xC0	;; T6723h
+defb	0x54	;; T6724h
+
+defb	0xC0	;; T6725h
+defb	0x49	;; T6726h
+
+defb	0xC0	;; T6727h
+defb	0x40	;; T6728h
+
+defb	0xFE	;; T6729h: Loop sample.
+defb	0x02	;; T672Ah: Loop sample 2 times.
+defw	0x670D	;; T672Bh+T672Ch: Loop sample back to 0x670D.
+
+defb	0xA0	;; T672Dh
+defb	0x30	;; T672Eh
+
+defb	0xA0	;; T672Fh
+defb	0x2A	;; T6730h
+
+defb	0xA0	;; T6731h
+defb	0x24	;; T6732h
+
+defb	0xA0	;; T6733h
+defb	0x20	;; T6734h
+
+defb	0xA0	;; T6735h
+defb	0x1C	;; T6736h
+
+defb	0xA0	;; T6737h
+defb	0x18	;; T6738h
+
+defb	0xA0	;; T6739h
+defb	0x15	;; T673Ah
+
+defb	0x90	;; T673Bh
+defb	0x90	;; T673Ch
+
+defb	0x90	;; T673Dh
+defb	0x7E	;; T673Eh
+
+defb	0x90	;; T673Fh
+defb	0x6E	;; T6740h
+
+defb	0x90	;; T6741h
+defb	0x60	;; T6742h
+
+defb	0x90	;; T6743h
+defb	0x54	;; T6744h
+
+defb	0x90	;; T6745h
+defb	0x49	;; T6746h
+
+defb	0x90	;; T6747h
+defb	0x40	;; T6748h
+
+defb	0xFE	;; T6749h: Loop sample.
+defb	0x04	;; T674Ah: Loop sample 4 times.
+defw	0x672D	;; T674Bh+T674Ch: Loop sample back to 0x672D.
+
+defb	0xFF	;; T674Dh: End of sample definition.
 # }}}
-# {{{ Data: start of note found in 0x65B9: X in octave x
+# {{{ Data: start of sample found in 0x65B9: X in octave x
 T674Eh	2201E0..  "...	LD	(TE001H),HL
 T6751h	18E0....  ....	JR	0E0h			; Jump to 06733H
 
@@ -1630,7 +2044,7 @@ T67CEh	B0......  ....	OR	B
 T67CFh	67......  g...	LD	H,A	
 T67D0h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65BB,0x65BD,0x65BF: C in octave 6
+# {{{ Data: start of sample found in 0x65BB,0x65BD,0x65BF: C in octave 6
 T67D1h	2204B0..  "...	LD	(TB004H),HL
 T67D4h	6B......  k...	LD	L,E	
 T67D5h	A0......  ....	AND	B	
@@ -1649,7 +2063,7 @@ T67E1h	40......  @...	LD	B,B
 T67E2h	6B......  k...	LD	L,E	
 T67E3h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65C1,0x65C3: D in octave 6
+# {{{ Data: start of sample found in 0x65C1,0x65C3: D in octave 6
 T67E4h	2204B0..  "...	LD	(TB004H),HL
 T67E7h	5F......  _...	LD	E,A	
 T67E8h	A0......  ....	AND	B	
@@ -1668,7 +2082,7 @@ T67F4h	40......  @...	LD	B,B
 T67F5h	5F......  _...	LD	E,A	
 T67F6h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65C5,0x65C7: E in octave 6
+# {{{ Data: start of sample found in 0x65C5,0x65C7: E in octave 6
 T67F7h	2204B0..  "...	LD	(TB004H),HL
 T67FAh	55......  U...	LD	D,L	
 T67FBh	A0......  ....	AND	B	
@@ -1687,7 +2101,7 @@ T6807h	40......  @...	LD	B,B
 T6808h	55......  U...	LD	D,L	
 T6809h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65C9,0x65CB: X in octave x
+# {{{ Data: start of sample found in 0x65C9,0x65CB: X in octave x
 T680Ah	2201F1..  "...	LD	(TF101H),HL
 T680Dh	40......  @...	LD	B,B	
 T680Eh	F1......  ....	POP	AF	
@@ -1897,7 +2311,7 @@ T68D1h	C0......  ....	RET	NZ
 
 T68D2h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65CD: G in octave 6
+# {{{ Data: start of sample found in 0x65CD: G in octave 6
 T68D3h	2204B0..  "...	LD	(TB004H),HL
 T68D6h	47......  G...	LD	B,A	
 T68D7h	A0......  ....	AND	B	
@@ -1916,7 +2330,7 @@ T68E3h	40......  @...	LD	B,B
 T68E4h	47......  G...	LD	B,A	
 T68E5h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65CF: G# in octave 6
+# {{{ Data: start of sample found in 0x65CF: G# in octave 6
 T68E6h	2204B0..  "...	LD	(TB004H),HL
 T68E9h	43......  C...	LD	B,E	
 T68EAh	A0......  ....	AND	B	
@@ -1935,7 +2349,7 @@ T68F6h	40......  @...	LD	B,B
 T68F7h	43......  C...	LD	B,E	
 T68F8h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65D1,0x65D3: A# in octave 6
+# {{{ Data: start of sample found in 0x65D1,0x65D3: A# in octave 6
 T68F9h	2204B0..  "...	LD	(TB004H),HL
 T68FCh	3C......  <...	INC	A			;
 T68FDh	A0......  ....	AND	B	
@@ -1954,7 +2368,7 @@ T6909h	40......  @...	LD	B,B
 T690Ah	3C......  <...	INC	A			;
 T690Bh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65D5: B in octave 6
+# {{{ Data: start of sample found in 0x65D5: B in octave 6
 T690Ch	2204B0..  "...	LD	(TB004H),HL
 T690Fh	39......  9...	ADD	HL,SP	
 T6910h	A0......  ....	AND	B	
@@ -1973,7 +2387,7 @@ T691Ch	40......  @...	LD	B,B
 T691Dh	39......  9...	ADD	HL,SP	
 T691Eh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65D7: C in octave 7
+# {{{ Data: start of sample found in 0x65D7: C in octave 7
 T691Fh	2204B0..  "...	LD	(TB004H),HL
 T6922h	36A0....  6...	LD	(HL),0A0h
 T6924h	3690....  6...	LD	(HL),090h
@@ -1984,7 +2398,7 @@ T692Ch	3650....  6P..	LD	(HL),050h
 T692Eh	3640....  6@..	LD	(HL),040h
 T6930h	36FF....  6...	LD	(HL),0FFh
 # }}}
-# {{{ Data: start of note found in 0x65D9,0x65DB: D in octave 7
+# {{{ Data: start of sample found in 0x65D9,0x65DB: D in octave 7
 T6932h	2204B0..  "...	LD	(TB004H),HL
 T6935h	2F......  /...	CPL		
 T6936h	A0......  ....	AND	B	
@@ -2003,7 +2417,7 @@ T6942h	40......  @...	LD	B,B
 T6943h	2F......  /...	CPL		
 T6944h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65DD: D# in octave 7
+# {{{ Data: start of sample found in 0x65DD: D# in octave 7
 T6945h	2204B0..  "...	LD	(TB004H),HL
 T6948h	2D......  -...	DEC	L	
 T6949h	A0......  ....	AND	B	
@@ -2022,7 +2436,7 @@ T6955h	40......  @...	LD	B,B
 T6956h	2D......  -...	DEC	L	
 T6957h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65DF: E in octave 7
+# {{{ Data: start of sample found in 0x65DF: E in octave 7
 T6958h	2204B0..  "...	LD	(TB004H),HL
 T695Bh	2AA02A..  *.*.	LD	HL,(T2AA0H)
 T695Eh	90......  ....	SUB	B	
@@ -2033,7 +2447,7 @@ T6966h	50......  P...	LD	D,B
 T6967h	2A402A..  *@*.	LD	HL,(T2A40H)
 T696Ah	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65E1: F in octave 7
+# {{{ Data: start of sample found in 0x65E1: F in octave 7
 T696Bh	2204B0..  "...	LD	(TB004H),HL
 T696Eh	28A0....  (...	JR	Z,0A0h			; Jump to 06910H
 T6970h	2890....  (...	JR	Z,090h			; Jump to 06902H
@@ -2044,7 +2458,7 @@ T6978h	2850....  (P..	JR	Z,050h			; Jump to 069CAH
 T697Ah	2840....  (@..	JR	Z,040h			; Jump to 069BCH
 T697Ch	28FF....  (...	JR	Z,0FFh			; Jump to 0697DH
 # }}}
-# {{{ Data: start of note found in 0x65E3,0x65E5: X in octave x
+# {{{ Data: start of sample found in 0x65E3,0x65E5: X in octave x
 T697Eh	2204B0..  "...	LD	(TB004H),HL
 T6981h	24......  $...	INC	H			;
 T6982h	A0......  ....	AND	B	
@@ -2063,7 +2477,7 @@ T698Eh	40......  @...	LD	B,B
 T698Fh	24......  $...	INC	H			;
 T6990h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65E7: G# in octave 7
+# {{{ Data: start of sample found in 0x65E7: G# in octave 7
 T6991h	2204B0..  "...	LD	(TB004H),HL
 T6994h	22A022..  ".".	LD	(T22A0H),HL
 T6997h	90......  ....	SUB	B	
@@ -2074,7 +2488,7 @@ T699Fh	50......  P...	LD	D,B
 T69A0h	224022..  "@".	LD	(T2240H),HL
 T69A3h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65E9,0x65EB: A# in octave 7
+# {{{ Data: start of sample found in 0x65E9,0x65EB: A# in octave 7
 T69A4h	2204B0..  "...	LD	(TB004H),HL
 T69A7h	1EA0....  ....	LD	E,0A0h	
 T69A9h	1E90....  ....	LD	E,090h	
@@ -2085,7 +2499,7 @@ T69B1h	1E50....  .P..	LD	E,050h
 T69B3h	1E40....  .@..	LD	E,040h	
 T69B5h	1EFF....  ....	LD	E,0FFh	
 # }}}
-# {{{ Data: start of note found in 0x65ED: B in octave 7
+# {{{ Data: start of sample found in 0x65ED: B in octave 7
 T69B7h	2204B0..  "...	LD	(TB004H),HL
 T69BAh	1C......  ....	INC	E			;
 T69BBh	A0......  ....	AND	B	
@@ -2104,7 +2518,7 @@ T69C7h	40......  @...	LD	B,B
 T69C8h	1C......  ....	INC	E			;
 T69C9h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65EF: C in octave 5
+# {{{ Data: start of sample found in 0x65EF: C in octave 5
 T69CAh	2201C0..  "...	LD	(TC001H),HL
 T69CDh	D6D0....  ....	SUB	0D0h	
 T69CFh	D6D0....  ....	SUB	0D0h	
@@ -2160,7 +2574,7 @@ T6A31h	D650....  .P..	SUB	050h
 T6A33h	D640....  .@..	SUB	040h	
 T6A35h	D6FF....  ....	SUB	0FFh	
 # }}}
-# {{{ Data: start of note found in 0x65F1,0x65F3,0x65F5,0x65F7,0x65F9,0x65FB,0x65FD: F# in octave 5
+# {{{ Data: start of sample found in 0x65F1,0x65F3,0x65F5,0x65F7,0x65F9,0x65FB,0x65FD: F# in octave 5
 T6A37h	2201C0..  "...	LD	(TC001H),HL
 T6A3Ah	97......  ....	SUB	A	
 T6A3Bh	D0......  ....	RET	NC		
@@ -2271,7 +2685,7 @@ T6AA1h	40......  @...	LD	B,B
 T6AA2h	97......  ....	SUB	A	
 T6AA3h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x65FF: G# in octave 5
+# {{{ Data: start of sample found in 0x65FF: G# in octave 5
 T6AA4h	2201C0..  "...	LD	(TC001H),HL
 T6AA7h	87......  ....	ADD	A,A	
 T6AA8h	D0......  ....	RET	NC		
@@ -2382,7 +2796,7 @@ T6B0Eh	40......  @...	LD	B,B
 T6B0Fh	87......  ....	ADD	A,A	
 T6B10h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x6601: A in octave 5
+# {{{ Data: start of sample found in 0x6601: A in octave 5
 T6B11h	2201C0..  "...	LD	(TC001H),HL
 T6B14h	7F......  ....	LD	A,A	
 T6B15h	D0......  ....	RET	NC		
@@ -2493,7 +2907,7 @@ T6B7Bh	40......  @...	LD	B,B
 T6B7Ch	7F......  ....	LD	A,A	
 T6B7Dh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x6603: A# in octave 5
+# {{{ Data: start of sample found in 0x6603: A# in octave 5
 T6B7Eh	2201C0..  "...	LD	(TC001H),HL
 T6B81h	78......  x...	LD	A,B	
 T6B82h	D0......  ....	RET	NC		
@@ -2604,7 +3018,7 @@ T6BE8h	40......  @...	LD	B,B
 T6BE9h	78......  x...	LD	A,B	
 T6BEAh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: start of note found in 0x6605: B in octave 5
+# {{{ Data: start of sample found in 0x6605: B in octave 5
 T6BEBh	2201C0..  "...	LD	(TC001H),HL
 T6BEEh	71......  q...	LD	(HL),C	
 T6BEFh	D0......  ....	RET	NC		
@@ -2715,8 +3129,8 @@ T6C55h	40......  @...	LD	B,B
 T6C56h	71......  q...	LD	(HL),C	
 T6C57h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6607 + 0x00: C in octave 6.
-defb 0x22	;; T6C58h
+# {{{ Data: start of sample found in 0x6607 + 0x00: C in octave 6.
+defb 0x22	;; T6C58h: noise=no, tone=yes
 defb 0x01	;; T6C59h: Duration of note in VDP ticks.
 defb 0xC0	;; T6C5Ah: Volume: 0xC
 defb 0x6B	;; T6C5Bh: Note: 0x06B (C in octave 6)
@@ -2826,7 +3240,7 @@ defb 0x40	;; T6CC2h
 defb 0x6B	;; T6CC3h: Note 0x06B (C in octave 6).
 defb 0xFF	;; T6CC4h: End of note definition.
 # }}}
-# {{{ Data: Start of note found in 0x6609,0x660B: D in octave 6.
+# {{{ Data: start of sample found in 0x6609,0x660B: D in octave 6.
 defb 0x22	;; T6CC5h
 defb 0x01	;; T6CC6h: Duration of note in VDP ticks.
 defb 0xC0	;; T6CC7h: Volume: 0xC
@@ -2939,7 +3353,7 @@ T6D2Fh	40......  @...	LD	B,B
 defb 0x5F	;; T6D30h: Note: 0x05F (D in octave 6).
 defb 0xFF	;; T6D31h: End of note definition.
 # }}}
-# {{{ Data: Start of note found in 0x660D: D# in octave 6.
+# {{{ Data: start of sample found in 0x660D: D# in octave 6.
 T6D32h	2201C0..  "...	LD	(TC001H),HL
 T6D35h	5A......  Z...	LD	E,D	
 T6D36h	D0......  ....	RET	NC		
@@ -3050,7 +3464,7 @@ T6D9Ch	40......  @...	LD	B,B
 T6D9Dh	5A......  Z...	LD	E,D	
 T6D9Eh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x660F: E in octave 6.
+# {{{ Data: start of sample found in 0x660F: E in octave 6.
 T6D9Fh	2201C0..  "...	LD	(TC001H),HL
 T6DA2h	55......  U...	LD	D,L	
 T6DA3h	D0......  ....	RET	NC		
@@ -3161,7 +3575,7 @@ T6E09h	40......  @...	LD	B,B
 T6E0Ah	55......  U...	LD	D,L	
 T6E0Bh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6611: F in octave 6.
+# {{{ Data: start of sample found in 0x6611: F in octave 6.
 T6E0Ch	2201C0..  "...	LD	(TC001H),HL
 T6E0Fh	50......  P...	LD	D,B	
 T6E10h	D0......  ....	RET	NC		
@@ -3273,7 +3687,7 @@ T6E77h	50......  P...	LD	D,B
 T6E78h	FF......  ....	RST	38h	
 # }}}
 # ???No definition for F# in octave 6???
-# {{{ Data: Start of note found in 0x6613,0x6615: G in octave 6.
+# {{{ Data: start of sample found in 0x6613,0x6615: G in octave 6.
 T6E79h	2201C0..  "...	LD	(TC001H),HL
 T6E7Ch	47......  G...	LD	B,A	
 T6E7Dh	D0......  ....	RET	NC		
@@ -3384,7 +3798,7 @@ T6EE3h	40......  @...	LD	B,B
 T6EE4h	47......  G...	LD	B,A	
 T6EE5h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6617: G# in octave 6.
+# {{{ Data: start of sample found in 0x6617: G# in octave 6.
 T6EE6h	2201C0..  "...	LD	(TC001H),HL
 T6EE9h	43......  C...	LD	B,E	
 T6EEAh	D0......  ....	RET	NC		
@@ -3497,7 +3911,7 @@ T6F52h	FF......  ....	RST	38h
 # }}}
 # ???No definition for A in octave 6???
 # ???No definition for A# in octave 6???
-# {{{ Data: Start of note found in 0x6619,0x661B,0x661D: B in octave 6.
+# {{{ Data: start of sample found in 0x6619,0x661B,0x661D: B in octave 6.
 T6F53h	2201C0..  "...	LD	(TC001H),HL
 T6F56h	39......  9...	ADD	HL,SP	
 T6F57h	D0......  ....	RET	NC		
@@ -3608,7 +4022,7 @@ T6FBDh	40......  @...	LD	B,B
 T6FBEh	39......  9...	ADD	HL,SP	
 T6FBFh	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x661F: C in octave 7.
+# {{{ Data: start of sample found in 0x661F: C in octave 7.
 T6FC0h	2201C0..  "...	LD	(TC001H),HL
 T6FC3h	36D0....  6...	LD	(HL),0D0h
 T6FC5h	36D0....  6...	LD	(HL),0D0h
@@ -3667,7 +4081,7 @@ T702Bh	36FF....  6...	LD	(HL),0FFh
 # ???No definition for C# in octave 7???
 # ???No definition for D in octave 7???
 # ???No definition for E in octave 7???
-# {{{ Data: Start of note found in 0x6621: F in octave 7.
+# {{{ Data: start of sample found in 0x6621: F in octave 7.
 T702Dh	2201B0..  "...	LD	(TB001H),HL
 T7030h	28C0....  (...	JR	Z,0C0h			; Jump to 06FF2H
 T7032h	28C0....  (...	JR	Z,0C0h			; Jump to 06FF4H
@@ -3723,7 +4137,7 @@ T7094h	2840....  (@..	JR	Z,040h			; Jump to 070D6H
 T7096h	2830....  (0..	JR	Z,030h			; Jump to 070C8H
 T7098h	28FF....  (...	JR	Z,0FFh			; Jump to 07099H
 # }}}
-# {{{ Data: Start of note found in 0x6623: D in octave 7.
+# {{{ Data: start of sample found in 0x6623: D in octave 7.
 T709Ah	2201C0..  "...	LD	(TC001H),HL
 T709Dh	2F......  /...	CPL		
 T709Eh	D0......  ....	RET	NC		
@@ -3834,8 +4248,8 @@ T7104h	40......  @...	LD	B,B
 T7105h	2F......  /...	CPL		
 T7106h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of sound fragment found in 0x6625: Not a constant note. Tune for entering world in channel B.
-defb 0x22	;; T7107h: ?
+# {{{ Data: Start of sample in 0x6625 (sample table 6, sample 3): Not a constant note.
+defb 0x22	;; T7107h: Disable noise, enable tone.
 defb 0x01	;; T7108h: Duration of note in VDP ticks.
 defb 0x90	;; T7109h: Volume: 0x9
 defb 0x40	;; T710Ah: Note: 0x040 (A in octave 6).
@@ -3996,7 +4410,7 @@ T7195h	70......  p...	LD	(HL),B
 T7196h	60......  `...	LD	H,B	
 T7197h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6627,0x6629,0x662B: C# in octave 7.
+# {{{ Data: start of sample found in 0x6627,0x6629,0x662B: C# in octave 7.
 T7198h	2201B0..  "...	LD	(TB001H),HL
 T719Bh	32C032..  2.2.	LD	(T32C0H),A
 T719Eh	C0......  ....	RET	NZ		
@@ -4053,7 +4467,7 @@ T71FFh	324032..  2@2.	LD	(T3240H),A
 T7202h	3032....  02..	JR	NC,032h			; Jump to 07236H
 T7204h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x662D: E in octave 7.
+# {{{ Data: start of sample found in 0x662D: E in octave 7.
 T7205h	2201B0..  "...	LD	(TB001H),HL
 T7208h	2AC02A..  *.*.	LD	HL,(T2AC0H)
 T720Bh	C0......  ....	RET	NZ		
@@ -4110,7 +4524,7 @@ T726Ch	2A402A..  *@*.	LD	HL,(T2A40H)
 T726Fh	302A....  0*..	JR	NC,02Ah			; Jump to 0729BH
 T7271h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x662F: ???
+# {{{ Data: start of sample found in 0x662F: ???
 T7272h	2201B1..  "...	LD	(TB101H),HL
 T7275h	EEB1....  ....	XOR	0B1h	
 T7277h	CF......  ....	RST	8h	
@@ -4199,7 +4613,7 @@ T72D2h	90......  ....	SUB	B
 T72D3h	96......  ....	SUB	(HL)	
 T72D4h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6631: ???
+# {{{ Data: start of sample found in 0x6631: ???
 T72D5h	2201D0..  "...	LD	(TD001H),HL
 T72D8h	F0......  ....	RET	P		
 
@@ -4329,7 +4743,7 @@ T7335h	B0......  ....	OR	B
 T7336h	4C......  L...	LD	C,H	
 T7337h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6633: ???
+# {{{ Data: start of sample found in 0x6633: ???
 T7338h	2202B0..  "...	LD	(TB002H),HL
 T733Bh	33......  3...	INC	SP			;
 T733Ch	B0......  ....	OR	B	
@@ -4465,7 +4879,7 @@ T73CFh	1070....  .p..	DJNZ	070h			; Jump to 07441H
 T73D1h	0C......  ....	INC	C			;
 T73D2h	FF......  ....	RST	38h	
 # }}}
-# {{{ Data: Start of note found in 0x6635: F in octave 7 (slow)
+# {{{ Data: start of sample found in 0x6635: F in octave 7 (slow)
 defb 0x22	;; T73D3h
 defb 0x26	;; T73D4h: Duration of note in VDP ticks.
 defb 0x60	;; T73D5h: Volume: 0x6
@@ -4557,43 +4971,43 @@ T743Ah	9F......  ....	SBC	A,A
 T743Bh	7D......  }...	LD	A,L	
 T743Ch	B0......  ....	OR	B	
 T743Dh	7D......  }...	LD	A,L	
-## Start of table, loaded at 0x4EAE
-# {{{ Data: Sound ID 0x01: Player jumps.
+## Start of melody table, loaded at 0x4EAE.
+# {{{ Data: Melody ID 0x00: Silence.
 defw 0x7E02	;; T743Eh
 defw 0x7E02	;; T7440h
 defw 0x7E02	;; T7442h
 # }}}
-# {{{ Data: Sound ID 0x02: Player lands.
+# {{{ Data: Melody ID 0x01: After typing correct name in world boss room, during flickering screen.
 defw 0x7E03	;; T7444h
 defw 0x7E06	;; T7446h
 defw 0x7E0C	;; T7448h
 # }}}
-# {{{ Data: Sound ID 0x03: jumping frog plant?
+# {{{ Data: Melody ID 0x02: Entering a shrine/world. (While using the ladder.)
 defw 0x7E12	;; T744Ah
 defw 0x7E14	;; T744Ch
 defw 0x7E1B	;; T744Eh
 # }}}
-# {{{ Data: Sound ID 0x03: jumping frog plant?
+# {{{ Data: Melody ID 0x03: Fairy appears.
 defw 0x7E1C	;; T7450h
 defw 0x7E2F	;; T7452h
 defw 0x7E3F	;; T7454h
 # }}}
-# {{{ Data: Sound ID 0x04: ?
+# {{{ Data: Melody ID 0x04: World boss beaten.
 defw 0x7E50	;; T7456h
 defw 0x7E53	;; T7458h
 defw 0x7E59	;; T745Ah
 # }}}
-# {{{ Data: Sound ID 0x05: ?
+# {{{ Data: Melody ID 0x05: Great key picked up (castle+world).
 defw 0x7E5A	;; T745Ch
 defw 0x7E5D	;; T745Eh
 defw 0x7E63	;; T7460h
 # }}}
-# {{{ Data: Sound ID 0x06: ?
+# {{{ Data: Melody ID 0x06: Intro.
 defw 0x7E64	;; T7462h
 defw 0x7EA4	;; T7464h
 defw 0x7F2C	;; T7466h
 # }}}
-# {{{ Data: Sound ID 0x07: After hitting space to begin game.
+# {{{ Data: Melody ID 0x07: After hitting space to begin game, afterwards main castle theme.
 ## Channel A: A  in octave 5
 ## Channel B: E  in octave 6
 ## Channel C: G  in octave 6
@@ -4603,82 +5017,82 @@ defw 0x7F40	;; T7468h: Pointer to notes+volumes for channel A.
 defw 0x8036	;; T746Ah: Pointer to notes+volumes for channel B.
 defw 0x81F0	;; T746Ch: Pointer to notes+volumes for channel C.
 # }}}
-# {{{ Data: Sound ID 0x08: "THE" Castle theme.
+# {{{ Data: Melody ID 0x08: Main castle theme.
 defw 0x7F4B	;; T746Eh
 defw 0x8043	;; T7470h
 defw 0x81FA	;; T7472h
 # }}}
-# {{{ Data: Sound ID 0x09: ?
+# {{{ Data: Melody ID 0x09: After fairy appeared. Fairy is roaming.
 defw 0x835C	;; T7474h
 defw 0x838C	;; T7476h
 defw 0x83BB	;; T7478h
 # }}}
-# {{{ Data: Sound ID 0x0A: ?
+# {{{ Data: Melody ID 0x0A: World theme.
 defw 0x8590	;; T747Ah
 defw 0x8687	;; T747Ch
 defw 0x8745	;; T747Eh
 # }}}
-# {{{ Data: Sound ID 0x0B: ?
+# {{{ Data: Melody ID 0x0B: Victorious sound after picking up great key after defeating world boss.
 defw 0x8B7F	;; T7480h
 defw 0x8BA8	;; T7482h
 defw 0x8BEA	;; T7484h
 # }}}
-# {{{ Data: Sound ID 0x0C: ?
+# {{{ Data: Melody ID 0x0C: Use magnifying glass.
 defw 0x83E0	;; T7486h
 defw 0x8422	;; T7488h
 defw 0x843D	;; T748Ah
 # }}}
-# {{{ Data: Sound ID 0x0D: ?
+# {{{ Data: Melody ID 0x0D: Inside a shrine.
 defw 0x8453	;; T748Ch
 defw 0x849A	;; T748Eh
 defw 0x851E	;; T7490h
 # }}}
-# {{{ Data: Sound ID 0x0E: ?
+# {{{ Data: Melody ID 0x0E: From Castle to World, during black screen saying "World N !!"
 defw 0x856B	;; T7492h
 defw 0x8577	;; T7494h
 defw 0x8585	;; T7496h
 # }}}
-# {{{ Data: Sound ID 0x0F: ?
+# {{{ Data: Melody ID 0x0F: Entered World boss room.
 defw 0x8855	;; T7498h
 defw 0x88D2	;; T749Ah
 defw 0x8958	;; T749Ch
 # }}}
-# {{{ Data: Sound ID 0x10: Hedgehog fires spikes?
+# {{{ Data: Melody ID 0x10: After flickering boss room, boss in gas clouds.
 defw 0x89D7	;; T749Eh
 defw 0x8A7B	;; T74A0h
 defw 0x8B06	;; T74A2h
 # }}}
-# {{{ Data: Sound ID 0x11: ?
+# {{{ Data: Melody ID 0x11: World boss beaten, awaiting pick-up of great key.
 defw 0x8B35	;; T74A4h
 defw 0x8B58	;; T74A6h
 defw 0x8B62	;; T74A8h
 # }}}
-# {{{ Data: Sound ID 0x12: ?
+# {{{ Data: Melody ID 0x12: End demo part 1, afer picking up Pamperse.
 defw 0x8C1A	;; T74AAh
 defw 0x8C8C	;; T74ACh
 defw 0x8CB8	;; T74AEh
 # }}}
-# {{{ Data: Sound ID 0x13: Fling sword
+# {{{ Data: Melody ID 0x13: End demo part 2, epilogue.
 defw 0x8CDD	;; T74B0h
 defw 0x8D75	;; T74B2h
 defw 0x8F03	;; T74B4h
 # }}}
-# {{{ Data: Sound ID 0x14: Fire arrow
+# {{{ Data: Melody ID 0x14: Player dies. Same melody for both Aphrodite and Popolon.
 defw 0x8F1F	;; T74B6h
 defw 0x8F3F	;; T74B8h
 defw 0x8F5F	;; T74BAh
 # }}}
-# {{{ Data: Sound ID 0x15: ?
+# {{{ Data: Melody ID 0x15: Game over.
 defw 0x8F7F	;; T74BCh
 defw 0x8FA1	;; T74BEh
 defw 0x8FDC	;; T74C0h
 # }}}
-# {{{ Data: Sound ID 0x16: ?
+# {{{ Data: Melody ID 0x16: Silence? Or table already ended?
 defw 0x9005	;; T74C2h
 defw 0x9005	;; T74C4h
 defw 0x9005	;; T74C6h
 # }}}
-# {{{ Data: Sound ID 0x17: ?
+# {{{ Data: Melody ID 0x17: ?
 defw 0x9005	;; T74C8h
 # }}}
 T74CAh	23......  #...	INC	HL			;
@@ -6626,19 +7040,26 @@ T7DE1h	00......  ....	NOP
 T7DE2h	70......  p...	LD	(HL),B	
 T7DE3h	25......  %...	DEC	H	
 T7DE4h	FF......  ....	RST	38h	
-T7DE5h	D1......  ....	POP	DE	
-T7DE6h	FD88....  ....
-T7DE8h	E1......  ....	POP	HL	
-T7DE9h	04......  ....	INC	B			;
-T7DEAh	74......  t...	LD	(HL),H	
-T7DEBh	44......  D...	LD	B,H	
-T7DECh	74......  t...	LD	(HL),H	
-T7DEDh	FD23....  .#..	INC	IY			;
-T7DEFh	E0......  ....	RET	PO		
 
-T7DF0h	09......  ....	ADD	HL,BC	
-T7DF1h	FF......  ....	RST	38h	
-T7DF2h	2201E0..  "...	LD	(TE001H),HL
+; Data, referenced by T500Bh. For sound channel F.
+defb 0xD1	; T7DE5h
+defb 0xFD	; T7DE6h
+defb 0x88	; T7DE7h
+defb 0xE1	; T7DE8h
+defb 0x04	; T7DE9h
+defb 0x74	; T7DEAh
+defb 0x44	; T7DEBh
+defb 0x74	; T7DECh
+defb 0xFD	; T7DEDh
+defb 0x23	; T7DEEh
+defb 0xE0	; T7DEFh
+defb 0x09	; T7DF0h
+defb 0xFF	; T7DF1h
+
+; Data, Referenced by 0x50AC.
+defb 0x22	; T7DF2h.
+defb 0x01	; T7DF3h
+defb 0xE0	; T7DF4h
 T7DF5h	5F......  _...	LD	E,A	
 T7DF6h	90......  ....	SUB	B	
 T7DF7h	5F......  _...	LD	E,A	
@@ -6649,30 +7070,56 @@ T7DFAh	222D00..  "-..	LD	(T002DH),HL
 T7DFDh	00......  ....	NOP		
 T7DFEh	FEFE....  ....	CP	0FEh	
 T7E00h	F27DFF..  .}..	JP	P,TFF7DH	
-T7E03h	E9......  ....	JP	(HL)		
 
-T7E04h	D1......  ....	POP	DE	
-T7E05h	C0......  ....	RET	NZ		
+;; Melody ID 0x00, channel A, defined at T743Eh.
+;; Melody ID 0x00, channel B, defined at T7440h.
+;; Melody ID 0x00, channel C, defined at T7442h.
+defb 0xFF	;; T7E02h
 
-T7E06h	E9......  ....	JP	(HL)		
 
-T7E07h	DEE8....  ....	SBC	A,0E8h	
-T7E09h	018DFF..  ....	LD	BC,0FF8Dh
-T7E0Ch	E9......  ....	JP	(HL)		
 
-T7E0Dh	DEE8....  ....	SBC	A,0E8h	
-T7E0Fh	019DFF..  ....	LD	BC,0FF9Dh
-T7E12h	D1......  ....	POP	DE	
-T7E13h	C0......  ....	RET	NZ		
+;; Melody ID 0x01, channel A, defined at T7444h.
+defb 0xE9	;; T7E03h
+defb 0xD1	;; T7E04h
+defb 0xC0	;; T7E05h
 
-T7E14h	D5......  ....	PUSH	DE	
-T7E15h	E8......  ....	RET	PE		
+;; Melody ID 0x01, channel B, defined at T7446h.
+defb 0xE9	;; T7E06h
+defb 0xDE	;; T7E07h
+defb 0xE8	;; T7E08h
+defb 0x01	;; T7E09h
+defb 0x8D	;; T7E0Ah
+defb 0xFF	;; T7E0Bh
 
-T7E16h	063F....  .?..	LD	B,03Fh	
-T7E18h	D1......  ....	POP	DE	
-T7E19h	C1......  ....	POP	BC	
-T7E1Ah	FF......  ....	RST	38h	
-T7E1Bh	FF......  ....	RST	38h	
+;; Melody ID 0x01, channel C, defined at T7448h.
+defb 0xE9	;; T7E0Ch
+defb 0xDE	;; T7E0Dh
+defb 0xE8	;; T7E0Eh
+defb 0x01	;; T7E0Fh
+defb 0x9D	;; T7E10h
+defb 0xFF	;; T7E11h
+
+
+
+;; Melody ID 0x02, channel A, defined at T744Ah. Entering a shrine/world. (While using the ladder.)
+defb 0xD1	;; T7E12h Set duration factor to 1.
+defb 0xC0	;; T7E13h Rest (silence)
+
+;; Melody ID 0x02, channel B, defined at T744Ch. Entering a shrine/world. (While using the ladder.)
+defb 0xD5	;; T7E14h Set duration factor to 5.
+defb 0xE8	;; T7E15h Switch to sample mode.
+defb 0x06	;; T7E16h Use sample table 6.
+defb 0x3F	;; T7E17h
+defb 0xD1	;; T7E18h
+defb 0xC1	;; T7E19h
+defb 0xFF	;; T7E1Ah
+
+;; Melody ID 0x02, channel C, defined at T744Eh. Entering a shrine/world. (While using the ladder.)
+defb 0xFF	;; T7E1Bh
+
+
+
+;; Melody ID 0x03, channel A, defined at T7450h. Fairy appears.
 T7E1Ch	E6DC....  ....	AND	0DCh	
 T7E1Eh	E8......  ....	RET	PE		
 
@@ -6730,17 +7177,29 @@ T7E56h	02......  ....	LD	(BC),A
 T7E57h	6D......  m...	LD	L,L	
 T7E58h	FF......  ....	RST	38h	
 T7E59h	FF......  ....	RST	38h	
-T7E5Ah	E9......  ....	JP	(HL)		
+;; Melody ID 0x05, channel A.
+defb 0xE9	;; T7E5Ah
+defb 0xD4	;; T7E5Bh
+defb 0xC0	;; T7E5Ch
 
-T7E5Bh	D4C0E9..  ....	CALL	NC,TE9C0H
-T7E5Eh	D9......  ....	EXX		
-T7E5Fh	E8......  ....	RET	PE		
+;; Melody ID 0x05, channel B.
+defb 0xE9	;; T7E5Dh
+defb 0xD9	;; T7E5Eh
+defb 0xE8	;; T7E5Fh
+defb 0x01	;; T7E60h
+defb 0x7B	;; T7E61h
+defb 0xFF	;; T7E62h
 
-T7E60h	017BFF..  .{..	LD	BC,0FF7Bh
-T7E63h	FF......  ....	RST	38h	
-T7E64h	E9......  ....	JP	(HL)		
+;; Melody ID 0x05, channel C.
+defb 0xFF	;; T7E63h
 
-T7E65h	EC31D7..  .1..	CALL	PE,TD731H
+;; Melody ID 0x06, channel A. Intro.
+defb 0x09	;; T7E64h Note 0, duration 9.
+
+defb 0xEC	;; T7E65h Start vibrato?
+defb 0x31	;; T7E66h
+
+defb 0xD7	;; T7E67h
 T7E68h	FB......  ....	EI		
 T7E69h	23......  #...	INC	HL			;
 T7E6Ah	ED72....  .r..	SBC	HL,SP	
@@ -6782,7 +7241,10 @@ T7E9Bh	015141..  .QA.	LD	BC,04151h
 T7E9Eh	2101E2..  !...	LD	HL,0E201h
 T7EA1h	B1......  ....	OR	C	
 T7EA2h	91......  ....	SUB	C	
-T7EA3h	EEE9....  ....	XOR	0E9h	
+defb 0xEE	;; T7EA3h
+
+;; Melody ID 0x06, channel B.
+defb 0xE9	;; T7EA4h
 T7EA5h	E7......  ....	RST	20h	
 T7EA6h	D7......  ....	RST	10h	
 T7EA7h	FC25E4..  .%..	CALL	M,TE425H
@@ -6839,6 +7301,7 @@ T7F23h	FC2541..  .%A.	CALL	M,T4125H
 T7F26h	FA2541..  .%A.	JP	M,T4125H	
 T7F29h	EAA47E..  ..~.	JP	PE,T7EA4H	
 
+;; Melody ID 0x06, channel C.
 T7F2Ch	E9......  ....	JP	(HL)		
 
 T7F2Dh	E7......  ....	RST	20h	
@@ -6854,8 +7317,7 @@ T7F3Ah	ED72....  .r..	SBC	HL,SP
 T7F3Ch	7E......  ~...	LD	A,(HL)	
 T7F3Dh	EA387F..  .8..	JP	PE,T7F38H	
 
-# {{{ Data: Channel A for sound ID 0x07 (0x87 actually, not sure what the 0x80 means)
-# Loaded at 0x6191
+# {{{ Data: Channel A for Melody ID 0x07 (0x87 actually, not sure what the 0x80 means)
 defb 0xE6	;; T7F40h/0
 ;; Start at 0x6191
 ;; 0xE6        >= 0xD0: jump from 0x619C to 0x6348
@@ -6966,7 +7428,7 @@ defb 0xEB	;; T7F4Ah/A
 
 
 # }}}
-# {{{ Data: Channel A for sound ID 0x08 (0x88 actually, not sure what the 0x80 means)
+# {{{ Data: Channel A for Melody ID 0x08 (0x88 actually, not sure what the 0x80 means)
 # ?Main castle theme?
 # }}}
 # Debug suggestion:
@@ -6984,7 +7446,7 @@ defb 0xED	; T7F4Bh
 ;; IX[12] = L
 ;; IX[13] = H
 ;; DE <=> HL
-;; Jump to 0x6197 ("ParseAndExecuteSoundDefinitionWithoutChangingHL") unconditionally.
+;; Jump to 0x6197 ("ParseAndExecuteSampleDefinitionWithoutRestoringHLFirst") unconditionally.
 
 ## 0x7F5D, rom pointer (very local), loaded when T7F4Bh is parsed.
 defb 0x5D	; T7F4Ch
@@ -7033,8 +7495,7 @@ defb 0xEA	; T7F5Ah
 
 ;; ROM pointer to 0x7F4B, which is the beginning of the data structure. 
 ;; Does this mean we must repeat the tune?
-defb 0x4B	; T7F5Bh, 0x7F4B, rom pointer (very local)
-defb 0x7F	; T7F5Ch
+defw 0x7F4B	; T7F5Bh+T7F5Ch, 0x7F4B, rom pointer (very local)
 
 
 
@@ -7248,20 +7709,24 @@ T8030h	70......  p...	LD	(HL),B
 T8031h	FE02....  ....	CP	002h	
 T8033h	0C......  ....	INC	C			;
 T8034h	80......  ....	ADD	A,B	
-T8035h	EEE6....  ....	XOR	0E6h	
-T8037h	D6FC....  ....	SUB	0FCh	
-T8039h	51......  Q...	LD	D,C	
-T803Ah	E1......  ....	POP	HL	
-T803Bh	C0......  ....	RET	NZ		
+defb 0xEE	; T8035h
 
-T803Ch	E8......  ....	RET	PE		
+;; Referenced by T746Ah (Melody ID 0x07, after hitting space to begin game, second word of definition).
+defb 0xE6	; T8036h
+defb 0xD6	; T8037h
+defb 0xFC	; T8038h
+defb 0x51	; T8039h
+defb 0xE1	; T803Ah
+defb 0xC0	; T803Bh
+defb 0xE8	; T803Ch
+defb 0x05	; T803Dh
+defb 0x42	; T803Eh
+defb 0xE8	; T803Fh
+defb 0x06	; T8040h
+defb 0x7B	; T8041h
+defb 0xEB	; T8042h
 
-T803Dh	05......  ....	DEC	B	
-T803Eh	42......  B...	LD	B,D	
-T803Fh	E8......  ....	RET	PE		
-
-T8040h	067B....  .{..	LD	B,07Bh	
-T8042h	EB......  ....	EX	DE,HL	
+;; Referenced by T7470h (Melody ID 0x08, main castle theme, second word of definition).
 T8043h	ED55....  .U..
 T8045h	80......  ....	ADD	A,B	
 T8046h	EDCC....  ....
@@ -7531,15 +7996,26 @@ T81EDh	C8......  ....	RET	Z
 
 T81EEh	81......  ....	ADD	A,C	
 T81EFh	EEE6....  ....	XOR	0E6h	
-T81F1h	D6FC....  ....	SUB	0FCh	
-T81F3h	51......  Q...	LD	D,C	
-T81F4h	E1......  ....	POP	HL	
-T81F5h	C1......  ....	POP	BC	
-T81F6h	E8......  ....	RET	PE		
 
-T81F7h	05......  ....	DEC	B	
-T81F8h	7D......  }...	LD	A,L	
-T81F9h	EB......  ....	EX	DE,HL	
+;; Referenced by T746Ch (Melody ID 0x07, after hitting space to begin game, third word of definition).
+;; 
+;; Melody ID 0x07, channel C.
+defb 0xE6	;	T81F0h
+defb 0xD6	;	T81F1h
+defb 0xFC	;	T81F2h
+defb 0x51	;	T81F3h
+defb 0xE1	;	T81F4h
+defb 0xC1	;	T81F5h
+defb 0xE8	;	T81F6h
+defb 0x05	;	T81F7h
+defb 0x7D	;	T81F8h
+defb 0xEB	;	T81F9h
+
+
+
+;; Referenced by T7472h (Melody ID 0x08, main castle theme, third word of definition).
+;; 
+;; Melody ID 0x08, channel C.
 T81FAh	ED0C....  ....
 T81FCh	82......  ....	ADD	A,D	
 T81FDh	ED5E....  .^..	IM	2	
@@ -8262,7 +8738,9 @@ T8566h	47......  G...	LD	B,A
 T8567h	27......  '...	DAA		
 T8568h	EA3B85..  .;..	JP	PE,T853BH	
 
-T856Bh	E6D6....  ....	AND	0D6h	
+;; Melody ID 0x0E, channel A, defined at T7492h. From Castle to World, during black screen saying "World N !!"
+defb 0xE6	;; T856Bh
+defb 0xD6	;; T856Ch
 T856Dh	FC51E8..  .Q..	CALL	M,TE851H
 T8570h	04......  ....	INC	B			;
 T8571h	92......  ....	SUB	D	
@@ -8271,6 +8749,8 @@ T8572h	E8......  ....	RET	PE
 T8573h	066C....  .l..	LD	B,06Ch	
 T8575h	EB......  ....	EX	DE,HL	
 T8576h	FF......  ....	RST	38h	
+
+;; Melody ID 0x0E, channel B, defined at T7494h. From Castle to World, during black screen saying "World N !!"
 T8577h	E6D6....  ....	AND	0D6h	
 T8579h	FC51E1..  .Q..	CALL	M,TE151H
 T857Ch	C0......  ....	RET	NZ		
@@ -8284,6 +8764,8 @@ T8580h	E8......  ....	RET	PE
 T8581h	067B....  .{..	LD	B,07Bh	
 T8583h	EB......  ....	EX	DE,HL	
 T8584h	FF......  ....	RST	38h	
+
+;; Melody ID 0x0E, channel C, defined at T7496h. From Castle to World, during black screen saying "World N !!"
 T8585h	E6D6....  ....	AND	0D6h	
 T8587h	FC51E1..  .Q..	CALL	M,TE151H
 T858Ah	C1......  ....	POP	BC	
@@ -8293,45 +8775,87 @@ T858Ch	05......  ....	DEC	B
 T858Dh	7D......  }...	LD	A,L	
 T858Eh	EB......  ....	EX	DE,HL	
 T858Fh	FF......  ....	RST	38h	
-T8590h	ED99....  ....
-T8592h	85......  ....	ADD	A,L	
-T8593h	EDCA....  ....
-T8595h	85......  ....	ADD	A,L	
-T8596h	EA9085..  ....	JP	PE,T8590H	
 
-T8599h	E9......  ....	JP	(HL)		
 
-T859Ah	D6FC....  ....	SUB	0FCh	
-T859Ch	51......  Q...	LD	D,C	
-T859Dh	E1......  ....	POP	HL	
-T859Eh	01E201..  ....	LD	BC,001E2h
-T85A1h	FA35E4..  .5..	JP	M,TE435H	
-T85A4h	01FC51..  ..Q.	LD	BC,051FCh
-T85A7h	E231FA..  .1..	JP	PO,TFA31H	
 
-T85AAh	35......  5...	DEC	(HL)	
-T85ABh	E431FC..  .1..	CALL	PO,TFC31H
-T85AEh	51......  Q...	LD	D,C	
-T85AFh	E23153..  .1S.	JP	PO,T5331H	
+;; Melody ID 0x0A, channel A, defined at T747Ah. World theme.
+defb 0xED	;; T8590h
+defw 0x8599	;; T8591h+T8592h
 
-T85B2h	FA35E4..  .5..	JP	M,TE435H	
-T85B5h	51......  Q...	LD	D,C	
-T85B6h	50......  P...	LD	D,B	
-T85B7h	50......  P...	LD	D,B	
-T85B8h	51......  Q...	LD	D,C	
-T85B9h	50......  P...	LD	D,B	
-T85BAh	50......  P...	LD	D,B	
-T85BBh	FC34E2..  .4..	CALL	M,TE234H
-T85BEh	71......  q...	LD	(HL),C	
-T85BFh	70......  p...	LD	(HL),B	
-T85C0h	80......  ....	ADD	A,B	
-T85C1h	70......  p...	LD	(HL),B	
-T85C2h	50......  P...	LD	D,B	
-T85C3h	3020....  0...	JR	NC,020h			; Jump to 085E5H
-T85C5h	FE02....  ....	CP	002h	
-T85C7h	99......  ....	SBC	A,C	
-T85C8h	85......  ....	ADD	A,L	
-T85C9h	EEE9....  ....	XOR	0E9h	
+defb 0xED	;; T8593h
+defw 0x85CA	;; T8594h+T8595h
+
+defb 0xEA	;; T8596h
+defw 0x8590	;; T8597h+T8598h
+
+defb 0xE9	;; T8599h: Clear bits 0,2 in IX[2], set bit 1 in IX[2].
+
+defb 0xD6	;; T859Ah: Set duration factor to 0x6.
+
+defb 0xFC	;; T859Bh: IX[4]=0x0C + 1, IX[5]=0x5-1, IX[6]=0x1
+defb 0x51	;; T859Ch
+
+defb 0xE1	;; T859Dh: Set octave to 6 - 1 = 5.
+defb 0x01	;; T859Eh: Note 0, base duration 1. C in octave 5.
+
+defb 0xE2	;; T859Fh: Set octave to 6 - 1 = 4.
+defb 0x01	;; T85A0h: Note 0, base duration 1. C in octave 4.
+
+defb 0xFA	;; T85A1h: IX[4]=0x0A + 1, IX[5]=0x3-1, IX[6]=0x5
+defb 0x35	;; T85A2h
+
+defb 0xE4	;; T85A3h: Set octave to 6 - 4 = 2.
+defb 0x01	;; T85A4h: Note 0, base duration 1. C in octave 2.
+
+defb 0xFC	;; T85A5h: IX[4]=0x0C + 1, IX[5]=0x5-1, IX[6]=0x1
+defb 0x51	;; T85A6h
+
+defb 0xE2	;; T85A7h: Octave 4
+defb 0x31	;; T85A8h: D#
+
+defb 0xFA	;; T85A9h
+defb 0x35	;; T85AAh
+
+defb 0xE4	;; T85ABh: octave 2
+defb 0x31	;; T85ACh: D#
+
+defb 0xFC	;; T85ADh
+defb 0x51	;; T85AEh
+
+defb 0xE2	;; T85AFh: octave 4
+defb 0x31	;; T85B0h: D#
+defb 0x53	;; T85B1h: F
+
+defb 0xFA	;; T85B2
+defb 0x35	;; T85B3
+
+defb 0xE4	;; T85B4: octave 2
+defb 0x51	;; T85B5: F
+defb 0x50	;; T85B6: F
+defb 0x50	;; T85B7: F
+defb 0x51	;; T85B8: F
+defb 0x50	;; T85B9: F
+defb 0x50	;; T85BA: F
+
+defb 0xFC	;; T85BBh
+defb 0x34	;; T85BCh
+
+defb 0xE2	;; T85BDh: Octave 4.
+defb 0x71	;; T85BEh: G
+defb 0x70	;; T85BFh: G
+defb 0x80	;; T85C0h: G#
+defb 0x70	;; T85C1h: G
+defb 0x50	;; T85C2h: F
+defb 0x30	;; T85C3h: D#
+defb 0x20	;; T85C4h: D
+
+defb 0xFE	;; T85C5h: Loop sample.
+defb 0x02	;; T85C6h: Loop sample 2 times.
+defw 0x8599	;; T85C7h+T85C8h: Explicit pointer for the sample loop.
+
+defb 0xEE	;; T85C9h: return???
+
+defb 0xE9	;; T85CAh
 T85CBh	D6FC....  ....	SUB	0FCh	
 T85CDh	51......  Q...	LD	D,C	
 T85CEh	E20332..  ..2.	JP	PO,T3203H	
@@ -8448,7 +8972,13 @@ T867Fh	FC4321..  .C!.	CALL	M,T2143H
 T8682h	F9......  ....	LD	SP,HL	
 T8683h	23......  #...	INC	HL			;
 T8684h	2020....  ....	JR	NZ,020h			; Jump to 086A6H
-T8686h	EEED....  ....	XOR	0EDh	
+def 0xEE	;; T8686h
+
+
+
+;; Melody ID 0x0A, channel B, defined at T747Ch. World theme.
+def 0xED	;; T8687h
+
 T8688h	90......  ....	SUB	B	
 T8689h	86......  ....	ADD	A,(HL)	
 T868Ah	EDB3....  ....	OTIR		
@@ -8584,7 +9114,10 @@ T873Ch	50......  P...	LD	D,B
 T873Dh	50......  P...	LD	D,B	
 T873Eh	313030..  100.	LD	SP,03030h
 T8741h	212020..  !...	LD	HL,02020h
-T8744h	EEED....  ....	XOR	0EDh	
+defb 0xEE	;; T8744h
+
+;; Melody ID 0x0A, channel C, defined at T747Eh. World theme.
+def 0xED	;; T8745h
 T8746h	4E......  N...	LD	C,(HL)	
 T8747h	87......  ....	ADD	A,A	
 T8748h	ED7F....  ....
@@ -10195,6 +10728,10 @@ T9000h	00......  ....	NOP
 T9001h	50......  P...	LD	D,B	
 T9002h	28C7....  (...	JR	Z,0C7h			; Jump to 08FCBH
 T9004h	FF......  ....	RST	38h	
+;; Melody ID 0x16, channel A, defined at T74C2h.
+;; Melody ID 0x16, channel B, defined at T74C4h.
+;; Melody ID 0x16, channel C, defined at T74C6h.
+;; Melody ID 0x17, channel A, defined at T74C8h (???).
 T9005h	FF......  ....	RST	38h	
 T9006h	00......  ....	NOP		
 T9007h	00......  ....	NOP		
