@@ -855,129 +855,197 @@ T6474h	010000..  ....	LD	BC,00000h
 T6477h	3E3E....  >>..	LD	A,03Eh	
 T6479h	C3DA65..  ..e.	JP	show_enemy		
 
-T647Ch	00......  ....	NOP		
-T647Dh	00......  ....	NOP		
-T647Eh	00......  ....	NOP		
-T647Fh	02......  ....	LD	(BC),A	
-T6480h	00......  ....	NOP		
-T6481h	04......  ....	INC	B			;
-T6482h	00......  ....	NOP		
-T6483h	04......  ....	INC	B			;
-T6484h	04......  ....	INC	B			;
-T6485h	010100..  ....	LD	BC,00001h
-T6488h	010001..  ....	LD	BC,00100h
-T648Bh	010101..  ....	LD	BC,00101h
-T648Eh	00......  ....	NOP		
-T648Fh	010303..  ....	LD	BC,00303h
-T6492h	02......  ....	LD	(BC),A	
-T6493h	00......  ....	NOP		
-T6494h	03......  ....	INC	BC			;
-T6495h	04......  ....	INC	B			;
-T6496h	04......  ....	INC	B			;
-T6497h	02......  ....	LD	(BC),A	
-T6498h	04......  ....	INC	B			;
-T6499h	04......  ....	INC	B			;
-T649Ah	010101..  ....	LD	BC,00101h
-T649Dh	03......  ....	INC	BC			;
-T649Eh	04......  ....	INC	B			;
-T649Fh	02......  ....	LD	(BC),A	
-T64A0h	02......  ....	LD	(BC),A	
-T64A1h	03......  ....	INC	BC			;
-T64A2h	00......  ....	NOP		
-T64A3h	00......  ....	NOP		
-T64A4h	04......  ....	INC	B			;
-T64A5h	03......  ....	INC	BC			;
-T64A6h	03......  ....	INC	BC			;
-T64A7h	04......  ....	INC	B			;
-T64A8h	010002..  ....	LD	BC,00200h
-T64ABh	02......  ....	LD	(BC),A	
-T64ACh	04......  ....	INC	B			;
-T64ADh	04......  ....	INC	B			;
-T64AEh	04......  ....	INC	B			;
-T64AFh	010404..  ....	LD	BC,00404h
-T64B2h	04......  ....	INC	B			;
-T64B3h	02......  ....	LD	(BC),A	
-T64B4h	03......  ....	INC	BC			;
-T64B5h	04......  ....	INC	B			;
-T64B6h	04......  ....	INC	B			;
-T64B7h	03......  ....	INC	BC			;
-T64B8h	04......  ....	INC	B			;
-T64B9h	03......  ....	INC	BC			;
-T64BAh	04......  ....	INC	B			;
-T64BBh	03......  ....	INC	BC			;
-T64BCh	04......  ....	INC	B			;
-T64BDh	03......  ....	INC	BC			;
-T64BEh	03......  ....	INC	BC			;
-T64BFh	04......  ....	INC	B			;
-T64C0h	04......  ....	INC	B			;
-T64C1h	04......  ....	INC	B			;
-T64C2h	04......  ....	INC	B			;
-T64C3h	04......  ....	INC	B			;
-T64C4h	04......  ....	INC	B			;
-T64C5h	04......  ....	INC	B			;
-T64C6h	04......  ....	INC	B			;
-T64C7h	03......  ....	INC	BC			;
-T64C8h	04......  ....	INC	B			;
-T64C9h	04......  ....	INC	B			;
-T64CAh	04......  ....	INC	B			;
-T64CBh	04......  ....	INC	B			;
-T64CCh	04......  ....	INC	B			;
-T64CDh	04......  ....	INC	B			;
-T64CEh	03......  ....	INC	BC			;
-T64CFh	04......  ....	INC	B			;
-T64D0h	04......  ....	INC	B			;
-T64D1h	04......  ....	INC	B			;
-T64D2h	04......  ....	INC	B			;
-T64D3h	04......  ....	INC	B			;
-T64D4h	04......  ....	INC	B			;
-T64D5h	04......  ....	INC	B			;
-T64D6h	04......  ....	INC	B			;
-T64D7h	04......  ....	INC	B			;
-T64D8h	04......  ....	INC	B			;
-T64D9h	04......  ....	INC	B			;
-T64DAh	04......  ....	INC	B			;
-T64DBh	04......  ....	INC	B			;
-T64DCh	04......  ....	INC	B			;
-T64DDh	04......  ....	INC	B			;
-T64DEh	04......  ....	INC	B			;
-T64DFh	04......  ....	INC	B			;
-T64E0h	04......  ....	INC	B			;
-T64E1h	04......  ....	INC	B			;
-T64E2h	04......  ....	INC	B			;
-T64E3h	04......  ....	INC	B			;
-T64E4h	04......  ....	INC	B			;
-T64E5h	04......  ....	INC	B			;
-T64E6h	08......  ....	EX	AF,AF'	
-T64E7h	05......  ....	DEC	B	
-T64E8h	010207..  ....	LD	BC,00702h
-T64EBh	12......  ....	LD	(DE),A	
-T64ECh	03......  ....	INC	BC			;
-T64EDh	04......  ....	INC	B			;
-T64EEh	03......  ....	INC	BC			;
-T64EFh	03......  ....	INC	BC			;
-T64F0h	0A......  ....	LD	A,(BC)	
-T64F1h	07......  ....	RLCA		
-T64F2h	010105..  ....	LD	BC,00501h
-T64F5h	02......  ....	LD	(BC),A	
-T64F6h	02......  ....	LD	(BC),A	
-T64F7h	04......  ....	INC	B			;
-T64F8h	0606....  ....	LD	B,006h	
-T64FAh	0A......  ....	LD	A,(BC)	
-T64FBh	08......  ....	EX	AF,AF'	
-T64FCh	04......  ....	INC	B			;
-T64FDh	02......  ....	LD	(BC),A	
-T64FEh	010301..  ....	LD	BC,00103h
-T6501h	02......  ....	LD	(BC),A	
-T6502h	010104..  ....	LD	BC,00401h
-T6505h	03......  ....	INC	BC			;
-T6506h	02......  ....	LD	(BC),A	
-T6507h	08......  ....	EX	AF,AF'	
-T6508h	00......  ....	NOP		
-T6509h	03......  ....	INC	BC			;
-T650Ah	03......  ....	INC	BC			;
-T650Bh	03......  ....	INC	BC			;
-T650Ch	08......  ....	EX	AF,AF'	
-T650Dh	010501..  ....	LD	BC,00105h
+; Table for enemy properties, at least encodes for if they can drop arrow, probably more.
+; One byte per enemy, table starts at enemy 1 (pointer at b54b point to 0-based 647b).
+; 
+; 0xB54Bh@6 uses this table.
+defb 0x00	; T647Ch 01: Gorilla
+defb 0x00	; T647Dh 02: Twinkle
+defb 0x00	; T647Eh 03: HorBlob
+defb 0x02	; T647Fh 04: Gate
+defb 0x00	; T6480h 05: Fire Snake
+defb 0x04	; T6481h 06: Thunder Fire
+defb 0x00	; T6482h 07: Ring Worm
+defb 0x04	; T6483h 08: Lava Flare
+
+defb 0x04	; T6484h 09: Bouncing Rock
+defb 0x01	; T6485h 0a: Knight
+defb 0x01	; T6486h 0b: Water Strider
+defb 0x00	; T6487h 0c: Sparky
+defb 0x01	; T6488h 0d: Fish
+defb 0x00	; T6489h 0e: Bat
+defb 0x01	; T648Ah 0f: Pacman
+defb 0x01	; T648Bh 10: Insect
+
+defb 0x01	; T648Ch 11: Hedgehog
+defb 0x01	; T648Dh 12: Rockman
+defb 0x00	; T648Eh 13: Cloud Demon
+defb 0x01	; T648Fh 14: Mudman
+defb 0x03	; T6490h 15: Ill
+defb 0x03	; T6491h 16: Bird Dragon
+defb 0x02	; T6492h 17: Egg Bird
+defb 0x00	; T6493h 18: Worm
+
+defb 0x03	; T6494h 19: Butterfly
+defb 0x04	; T6495h 1a: Snake's Fire
+defb 0x04	; T6496h 1b: Fireball
+defb 0x02	; T6497h 1c: ?
+defb 0x04	; T6498h 1d: ?
+defb 0x04	; T6499h 1e: Rockman Bullet
+defb 0x01	; T649Ah 1f: Goblin
+defb 0x01	; T649Bh 20: Shadow Blob
+
+defb 0x01	; T649Ch 21: Crawler
+defb 0x03	; T649Dh 22: Pea Shooter
+defb 0x04	; T649Eh 23: Trapwall
+defb 0x02	; T649Fh 24: Swine
+defb 0x02	; T64A0h 25: Bones
+defb 0x03	; T64A1h 26: Living Helmet
+defb 0x00	; T64A2h 27: Owl
+defb 0x00	; T64A3h 28: Ectoplasm
+
+defb 0x04	; T64A4h 29: Drifting Cloud
+defb 0x03	; T64A5h 2a: Poltergeist
+defb 0x03	; T64A6h 2b: Wizard
+defb 0x04	; T64A7h 2c: Shoe 1
+defb 0x01	; T64A8h 2d: Frost Demon
+defb 0x00	; T64A9h 2e: Bamboo Shoot
+defb 0x02	; T64AAh 2f: Frog Plant
+defb 0x02	; T64ABh 30: Seahorse Demon
+
+defb 0x04	; T64ACh 31: Gas
+defb 0x04	; T64ADh 32: Armor>
+defb 0x04	; T64AEh 33: Armor's Dart
+defb 0x01	; T64AFh 34: Bally
+defb 0x04	; T64B0h 35: Rolling Rock
+defb 0x04	; T64B1h 36: DingDong
+defb 0x04	; T64B2h 37: Great Butterfly
+defb 0x02	; T64B3h 38: VerBlob
+
+defb 0x03	; T64B4h 39: ?
+defb 0x04	; T64B5h 3a: Moai>
+defb 0x04	; T64B6h 3b: Moai Head Projectile
+defb 0x03	; T64B7h 3c: Trickster ghost
+defb 0x04	; T64B8h 3d: Star
+defb 0x03	; T64B9h 3e: Flocking Bird
+defb 0x04	; T64BAh 3f: ?
+defb 0x03	; T64BBh 40: Cyclop's Ghost
+
+defb 0x04	; T64BCh 41: ?
+defb 0x03	; T64BDh 42: Maner
+defb 0x03	; T64BEh 43: Gero
+defb 0x04	; T64BFh 44: ?
+defb 0x04	; T64C0h 45: ?
+defb 0x04	; T64C1h 46: ?
+defb 0x04	; T64C2h 47: ?
+defb 0x04	; T64C3h 48: Butterfly Poop
+
+defb 0x04	; T64C4h 49: Huge Bat
+defb 0x04	; T64C5h 4a: Pea Shot
+defb 0x04	; T64C6h 4b: ?
+defb 0x03	; T64C7h 4c: Fuzzball
+defb 0x04	; T64C8h 4d: ?
+defb 0x04	; T64C9h 4e: Fairy Dust
+defb 0x04	; T64CAh 4f: Fairy
+defb 0x04	; T64CBh 50: <Moai
+
+defb 0x04	; T64CCh 51: <Armor
+defb 0x04	; T64CDh 52: Middle Bat
+defb 0x03	; T64CEh 53: Mini Bat
+defb 0x04	; T64CFh 54: Bone
+defb 0x04	; T64D0h 55: Small Bone
+defb 0x04	; T64D1h 56: Small Fireball
+defb 0x04	; T64D2h 57: ?
+defb 0x04	; T64D3h 58: Crab's Breath
+
+defb 0x04	; T64D4h 59: Seed
+defb 0x04	; T64D5h 5a: ?
+defb 0x04	; T64D6h 5b: Killed item
+defb 0x04	; T64D7h 5c: Spiral Ball
+defb 0x04	; T64D8h 5d: Arrow
+defb 0x04	; T64D9h 5e: Coin
+defb 0x04	; T64DAh 5f: Key
+defb 0x04	; T64DBh 60: Maner's Arm
+
+defb 0x04	; T64DCh 61: ?
+defb 0x04	; T64DDh 62: Gero's Tongue
+defb 0x04	; T64DEh 63: ?
+defb 0x04	; T64DFh 64: Shoe 2
+defb 0x04	; T64E0h 65: Breath
+defb 0x04	; T64E1h 66: ?
+defb 0x04	; T64E2h 67: Protectors
+defb 0x04	; T64E3h 68: ?
+defb 0x04	; T64E4h 69: Thunder Cloud
+defb 0x04	; T64E5h 6A: Splash
+
+
+
+:enemy_id2base_vitaly_decrease
+
+; Table for how many vitaly points the player loses when hit by an 
+; enemy. It is only the __base__ vitaly decrease, i.e item helm is not 
+; taken into account.
+;
+; Note: helm code is at 0xB3BF@3.
+;
+; Note: this table also dictates the item drop rate category, i.e. the 
+; change you'll get an item and (if so) how many.
+;   0 <= decrease <= 2: category 0
+;   3 <= decrease <= 5: category 1
+;   6 <= decrease <= 8: category 2
+;        decrease >= 9: category 3
+; See code at 0xB55A@6 for more details.
+;
+; 0xB3B7@3 uses this table (yes, page 3, it maps page 4 temporarily instead of page 1).
+; 0xB55D@6 uses this table.
+
+defb 0x08	; T64E6h 01: Gorilla
+defb 0x05	; T64E7h 02: Twinkle
+defb 0x01	; T64E8h 03: HorBlob
+defb 0x02	; T64E9h 04: Gate
+defb 0x07	; T64EAh 05: Fire Snake
+defb 0x12	; T64EBh 06: Thunder Fire
+defb 0x03	; T64ECh 07: Ring Worm
+defb 0x04	; T64EDh 08: Lava Flare
+
+defb 0x03	; T64EEh 09: Bouncing Rock
+defb 0x03	; T64EFh 0a: Knight
+defb 0x0A	; T64F0h 0b: Water Strider
+defb 0x07	; T64F1h 0c: Sparky
+defb 0x01	; T64F2h 0d: Fish
+defb 0x01	; T64F3h 0e: Bat
+defb 0x05	; T64F4h 0f: Pacman
+defb 0x02	; T64F5h 10: Insect
+
+defb 0x02	; T64F6h 11: Hedgehog
+defb 0x04	; T64F7h 12: Rockman
+defb 0x06	; T64F8h 13: Cloud Demon
+defb 0x06	; T64F9h 14: Mudman
+defb 0x0A	; T64FAh 15: Ill
+defb 0x08	; T64FBh 16: Bird Dragon
+defb 0x04	; T64FCh 17: Egg bird
+defb 0x02	; T64FDh 18: Worm
+
+defb 0x01	; T64FEh 19: Butterfly
+defb 0x03	; T64FFh 1a: Snake's Fire
+defb 0x01	; T6500h 1b: Fireball
+defb 0x02	; T6501h 1c: ?
+defb 0x01	; T6502h 1d: ?
+defb 0x01	; T6503h 1e: Rockman Bullet
+defb 0x04	; T6504h 1f: Goblin
+defb 0x03	; T6505h 20: Shadow Blob
+
+defb 0x02	; T6506h 21: Crawler
+defb 0x08	; T6507h 22: Pea Shoote
+defb 0x00	; T6508h 23: Trapwall
+defb 0x03	; T6509h 24: Swine
+defb 0x03	; T650Ah 25: Bones
+defb 0x03	; T650Bh 26: Living Helmet
+defb 0x08	; T650Ch 27: Owl
+defb 0x01	; T650Dh 28: Ectoplasm
+
+defb 0x05	; T650Eh 29: Drifting Cloud
+defb 0x01	; T650Fh 2a: Poltergeist
 T6510h	0A......  ....	LD	A,(BC)	
 T6511h	02......  ....	LD	(BC),A	
 T6512h	03......  ....	INC	BC			;
@@ -1027,6 +1095,9 @@ T654Dh	0A......  ....	LD	A,(BC)
 T654Eh	07......  ....	RLCA		
 T654Fh	00......  ....	NOP		
 T6550h	00......  ....	NOP		
+
+
+
 T6551h	DDE5....  ....	PUSH	IX	
 T6553h	2214F0..  "...	LD	(TF014H),HL
 T6556h	210000..  !...	LD	HL,00000h
@@ -1034,6 +1105,8 @@ T6559h	2212F0..  "...	LD	(TF012H),HL
 T655Ch	CDE365..  ..e.	CALL	T65E3H	
 T655Fh	DDE1....  ....	POP	IX	
 T6561h	C9......  ....	RET			
+
+
 
 setup_killall: ; e621 is set if all need to be killed; e622 is number of enemies that need to be killed.
 T6562h	AF......  ....	XOR	A			; Clear A and F
@@ -1082,6 +1155,8 @@ T65B6h	3E80....  >...	LD	A,080h
 T65B8h	3225E6..  2%..	LD	(TE625H),A
 T65BBh	C9......  ....	RET			
 
+
+
 pointer list for special things
 	defw 65D2, 65C9, 65C2
 T65BCh	D265
@@ -1120,10 +1195,16 @@ T65D6h	47......  G...	LD	B,A		; ?
 T65D7h	1E56....  .V..	LD	E,056h		; rockman bullet, small fireball
 T65D9h	00......  ....	NOP		
 
+
+
 show_enemy:	; A = type, DE = location, BC = random (2-bit) for normal enemies, sometimes forced to 0.
 T65DAh	210000..  !...	LD	HL,00000h
 T65DDh	2212F0..  "...	LD	(TF012H),HL
 T65E0h	2214F0..  "...	LD	(TF014H),HL
+
+; We can get here from:
+;   0x655C (call)
+;   0x65E0 (fall)
 T65E3h	3219F0..  2...	LD	(TF019H),A
 T65E6h	ED531AF0  .S..	LD	(TF01AH),DE
 T65EAh	78......  x...	LD	A,B	
@@ -1167,7 +1248,7 @@ T6627h	DDE1....  ....	POP	IX		; set IX to enemy data record (e800+k*20)
 T6629h	2220F0..  "...	LD	(TF020H),HL
 T662Ch	2120E6..  !...	LD	HL,0E620h
 T662Fh	34......  4...	INC	(HL)			;
-T6630h	CD6265..  .be.	CALL	setup_killall	; e621 = flag, e622 = number
+T6630h	CD6265..  .be.	CALL	setup_killall		; e621 = flag, e622 = number
 T6633h	CD9B65..  ..e.	CALL	T659BH	
 T6636h	2A20F0..  *...	LD	HL,(TF020H)
 T6639h	3A19F0..  :...	LD	A,(TF019H)
@@ -1783,78 +1864,138 @@ T6A38h	CD1CB4..  ....	CALL	TB41CH
 T6A3Bh	DD7E11..  .~..	LD	A,(IX+011h)
 T6A3Eh	32C7E6..  2...	LD	(TE6C7H),A
 T6A41h	CD48B5..  .H..	CALL	TB548H	
-T6A44h	D8......  ....	RET	C		
+T6A44h	D8......  ....	RET	C		; if (carry) don't drop item
 
-T6A45h	CD776A..  .wj.	CALL	T6A77H	
+; Call choose_item_to_drop():
+;   C == 0x00: Don't drop an item
+;   C == 0x5D: Drop arrow
+;   C == 0x5E: Drop coin
+;   C == 0x5F: Drop key
+T6A45h	CD776A..  .wj.	CALL	T6A77H
 T6A48h	79......  y...	LD	A,C	
-T6A49h	B7......  ....	OR	A	
-T6A4Ah	C8......  ....	RET	Z		
+T6A49h	B7......  ....	OR	A		; Clears carry flag
+T6A4Ah	C8......  ....	RET	Z		; if (don't drop item) return
 
-T6A4Bh	D65D....  .]..	SUB	05Dh	
-T6A4Dh	87......  ....	ADD	A,A	
-T6A4Eh	87......  ....	ADD	A,A	
+T6A4Bh	D65D....  .]..	SUB	05Dh
+; Post:
+;   A == 0: drop arrow
+;   A == 1: drop coin
+;   A == 2: drop key
+T6A4Dh	87......  ....	ADD	A,A		; A += A, so A in [0, 2, 4]
+T6A4Eh	87......  ....	ADD	A,A		; A += A, so A in [0, 4, 8]
 T6A4Fh	47......  G...	LD	B,A	
-T6A50h	3AC6E6..  :...	LD	A,(TE6C6H)
+T6A50h	3AC6E6..  :...	LD	A,(TE6C6H)	; drop rate category [0, 1, 2, 3]
 T6A53h	80......  ....	ADD	A,B	
 T6A54h	216B6A..  !kj.	LD	HL,06A6Bh
-T6A57h	CD8340..  ..@.	CALL	A=HL[A]_hook	
+T6A57h	CD8340..  ..@.	CALL	A=HL[A]_hook	; A = number_of_items_to_drop[A]
 T6A5Ah	47......  G...	LD	B,A	
-T6A5Bh	DD7E05..  .~..	LD	A,(IX+005h)
-T6A5Eh	E6F8....  ....	AND	0F8h	
+T6A5Bh	DD7E05..  .~..	LD	A,(IX+005h)	; A = Y position of (killed) enemy.
+T6A5Eh	E6F8....  ....	AND	0F8h		; Snap to character boundary.
 T6A60h	57......  W...	LD	D,A	
-T6A61h	DD7E07..  .~..	LD	A,(IX+007h)
-T6A64h	E6F8....  ....	AND	0F8h	
+T6A61h	DD7E07..  .~..	LD	A,(IX+007h)	; A = X position of (killed) enemy.
+T6A64h	E6F8....  ....	AND	0F8h		; Snap to character boundary.
 T6A66h	5F......  _...	LD	E,A	
 T6A67h	79......  y...	LD	A,C	
+; Post:
+;    C: item type to drop
+;    B: number of items to drop
+;   DE: location of where to drop the item
 T6A68h	C35165..  .Qe.	JP	T6551H		
 
-T6A6Bh	1020....  ....	DJNZ	020h			; Jump to 06A8DH
-T6A6Dh	3040....  0@..	JR	NC,040h			; Jump to 06AAFH
-T6A6Fh	010407..  ....	LD	BC,00704h
-T6A72h	1001....  ....	DJNZ	001h			; Jump to 06A75H
-T6A74h	010202..  ....	LD	BC,00202h
-T6A77h	3AC6E6..  :...	LD	A,(TE6C6H)
+
+
+number_of_items_to_drop:
+; Table for how many items to drop.
+;
+; 0x6A54 uses this table.
+defb 0x10	; T6A6Bh 00 Drop rate category 0: drop 0x10 arrows (16 arrows)
+defb 0x20	; T6A6Ch 01 Drop rate category 1: drop 0x20 arrows (32 arrows)
+defb 0x30	; T6A6Dh 02 Drop rate category 2: drop 0x30 arrows (48 arrows)
+defb 0x40	; T6A6Eh 03 Drop rage category 3: drop 0x40 arrows (64 arrows)
+
+defb 0x01	; T6A6Fh 04 Drop rate category 0: drop 0x01 coins
+defb 0x04	; T6A70h 05 Drop rate category 1: drop 0x04 coins
+defb 0x07	; T6A71h 06 Drop rate category 2: drop 0x07 coins
+defb 0x10	; T6A72h 07 Drop rate category 3: drop 0x10 coins
+
+defb 0x01	; T6A73h 08 Drop rate category 0: drop 0x01 keys
+defb 0x01	; T6A74h 09 Drop rate category 1: drop 0x01 keys
+defb 0x02	; T6A75h 0a Drop rate category 2: drop 0x02 keys
+defb 0x02	; T6A76h 0b Drop rate category 3: drop 0x02 keys
+
+
+
+choose_item_to_drop:
+; Return values:
+;   Register C:
+;     0x00: Don't drop an item
+;     0x5D: Drop arrow
+;     0x5E: Drop coin
+;     0x5F: Drop key
+; 
+; Trashes:
+;   A, B, C, H, L
+; 
+; We can get here from:
+;   0x6A45 (call)
+T6A77h	3AC6E6..  :...	LD	A,(TE6C6H)	; Set by 0xB575, possible values: 0, 1, 2, 3
 T6A7Ah	47......  G...	LD	B,A	
-T6A7Bh	87......  ....	ADD	A,A	
-T6A7Ch	80......  ....	ADD	A,B	
-T6A7Dh	4F......  O...	LD	C,A	
-T6A7Eh	0600....  ....	LD	B,000h	
+T6A7Bh	87......  ....	ADD	A,A		; A += A, so A == *(0xE6C6) * 2
+T6A7Ch	80......  ....	ADD	A,B		; A += B, so A == *(0xE6C6) * 3
+T6A7Dh	4F......  O...	LD	C,A		; C = *(0xE6C6) * 3, so C can be 0, 3, 6, 9
+T6A7Eh	0600....  ....	LD	B,000h		; B = 0
 T6A80h	219E6A..  !.j.	LD	HL,06A9Eh
 T6A83h	09......  ....	ADD	HL,BC	
-T6A84h	0E5E....  .^..	LD	C,05Eh	
-T6A86h	3A04E6..  :...	LD	A,(TE604H)
-T6A89h	47......  G...	LD	B,A	
-T6A8Ah	ED5F....  ._..	LD	A,R	
-T6A8Ch	80......  ....	ADD	A,B	
-T6A8Dh	E60F....  ....	AND	00Fh	
+T6A84h	0E5E....  .^..	LD	C,05Eh		; 0x5E == coin
+T6A86h	3A04E6..  :...	LD	A,(TE604H)	; 
+T6A89h	47......  G...	LD	B,A		; B = frame count since entering the room
+T6A8Ah	ED5F....  ._..	LD	A,R		; A = rand1()
+T6A8Ch	80......  ....	ADD	A,B		; A += rand2()
+T6A8Dh	E60F....  ....	AND	00Fh		; A &= 0x0F (ditch upper bits, which aren't that random from frame to frame)
 T6A8Fh	BE......  ....	CP	(HL)	
 T6A90h	D8......  ....	RET	C		
 
-T6A91h	0E5D....  .]..	LD	C,05Dh	
-T6A93h	23......  #...	INC	HL			;
+T6A91h	0E5D....  .]..	LD	C,05Dh		; 0x5D == arrow
+T6A93h	23......  #...	INC	HL		;
 T6A94h	BE......  ....	CP	(HL)	
 T6A95h	D8......  ....	RET	C		
 
-T6A96h	0E5F....  ._..	LD	C,05Fh	
-T6A98h	23......  #...	INC	HL			;
+T6A96h	0E5F....  ._..	LD	C,05Fh		; 0x5F == key
+T6A98h	23......  #...	INC	HL		;
 T6A99h	BE......  ....	CP	(HL)	
 T6A9Ah	D8......  ....	RET	C		
 
-T6A9Bh	0E00....  ....	LD	C,000h	
+T6A9Bh	0E00....  ....	LD	C,000h		; 0x00 == nothing, i.e. don't drop anything.
 T6A9Dh	C9......  ....	RET			
 
-T6A9Eh	08......  ....	EX	AF,AF'	
-T6A9Fh	0A......  ....	LD	A,(BC)	
-T6AA0h	0B......  ....	DEC	BC	
-T6AA1h	09......  ....	ADD	HL,BC	
-T6AA2h	0B......  ....	DEC	BC	
-T6AA3h	0C......  ....	INC	C			;
-T6AA4h	0A......  ....	LD	A,(BC)	
-T6AA5h	0D......  ....	DEC	C	
-T6AA6h	0F......  ....	RRCA		
-T6AA7h	0A......  ....	LD	A,(BC)	
-T6AA8h	0D......  ....	DEC	C	
-T6AA9h	0F......  ....	RRCA		
+
+
+; Table
+;
+; 0x6A80 uses this table.
+defb 0x08	; T6A9Eh Coin    if rand() in [0,1,2,3,4,5,6,7]
+defb 0x0A	; T6A9Fh Arrow   if rand() in [8,9]
+defb 0x0B	; T6AA0h Key     if rand() in [a]
+		;        Nothing if rand() in [b,c,d,e,f]
+
+defb 0x09	; T6AA1h Coin    if rand() in [0,1,2,3,4,5,6,7,8]
+defb 0x0B	; T6AA2h Arrow   if rand() in [9,a]
+defb 0x0C	; T6AA3h Key     if rand() in [b]
+		;        Nothing if rand() in [c,d,e,f]
+
+defb 0x0A	; T6AA4h Coin    if rand() in [0,1,2,3,4,5,6,7,8,9]
+defb 0x0D	; T6AA5h Arrow   if rand() in [a,b,c]
+defb 0x0F	; T6AA6h Key     if rand() in [d,e]
+		;        Nothing if rand() in [f]
+
+defb 0x0A	; T6AA7h Coin    if rand() in [0,1,2,3,4,5,6,7,8,9]
+defb 0x0D	; T6AA8h Arrow   if rand() in [a,b,c]
+defb 0x0F	; T6AA9h Key     if rand() in [d,e]
+		;        Nothing if rand() in [f]
+
+
+
+; Custom handling per enemy. See 0x66B1.
 T6AAAh	DD3602C0  .6..	LD	(IX+002h),0C0h
 T6AAEh	DD6E05..  .n..	LD	L,(IX+005h)
 T6AB1h	DD6607..  .f..	LD	H,(IX+007h)
@@ -11427,43 +11568,159 @@ TB46Ch	C0......  ....	RET	NZ
 TB46Dh	78......  x...	LD	A,B	
 TB46Eh	3D......  ....	DEC	A	
 TB46Fh	CD5040..  .P@.	CALL	switch_hook	
-defw 0x7978, 0x6cf4, 0xac28, 0x6f80, 0x6b06, 0x76cd, 0xa848, 0x6e32, 0x7020, 0x7b4f, 0x7ac1, 0x9dbe, 0x78cd, 0x7d3a, 0x7376, 0x71d3
-defw 0x73dc, 0x70a8, 0xa401, 0x7255, 0x8e3d, 0x8c36, 0x9540, 0x6c5d, 0x868f, 0x6c47, 0x6e7d, 0x6f80, 0x98a7, 0x98a7, 0x9455, 0x93e2
-defw 0x7eb5, 0x80c9, 0xa1b8, 0x9b54, 0x9908, 0xa458, 0x8942, 0x9345, 0x92e3, 0x9696, 0x87fb, 0xa9b3, 0x9754, 0xa081, 0x9219, 0x7f72
-defw 0x8b3f, 0x9084, 0x98a7, 0xaafa, 0xaba7, 0x8a7a, 0x868f, 0xa7c3, 0xa90d, 0x9160, 0x91df, 0xae59, 0xae58, 0xa2a4, 0x98a7, 0x8d0d
-defw 0x8d28, 0x83c2, 0x84e8, 0x9dbd, 0x8fb9, 0x8d03, 0x95c7, 0x87ba, 0xa109, 0x8131, 0xa526, 0x8fd3, 0x900b, 0x8247, 0x8314, 0x9160
-defw 0x9084, 0xa109, 0xa109, 0xace8, 0xad13, 0x9dbd, 0xad8c, 0xadf4, 0xae29, 0x74ba, 0x6a18, 0xaaf3, 0x6ac3, 0x6ac3, 0x6ac3, 0x8476
-defw 0x84c4, 0x8581, 0x6acb, 0xa99d, 0x74ba, 0xb45d, 0xa5f3, 0x9f6b, 0x7511, 0x6c47, 0xaabd
+defw 0x7978
+defw 0x6cf4
+defw 0xac28
+defw 0x6f80
+defw 0x6b06
+defw 0x76cd
+defw 0xa848
+defw 0x6e32
+defw 0x7020
+defw 0x7b4f
+defw 0x7ac1
+defw 0x9dbe
+defw 0x78cd
+defw 0x7d3a
+defw 0x7376
+defw 0x71d3
+defw 0x73dc
+defw 0x70a8
+defw 0xa401
+defw 0x7255
+defw 0x8e3d
+defw 0x8c36
+defw 0x9540
+defw 0x6c5d
+defw 0x868f
+defw 0x6c47
+defw 0x6e7d
+defw 0x6f80
+defw 0x98a7
+defw 0x98a7
+defw 0x9455
+defw 0x93e2
+defw 0x7eb5
+defw 0x80c9
+defw 0xa1b8
+defw 0x9b54
+defw 0x9908
+defw 0xa458
+defw 0x8942
+defw 0x9345
+defw 0x92e3
+defw 0x9696
+defw 0x87fb
+defw 0xa9b3
+defw 0x9754
+defw 0xa081
+defw 0x9219
+defw 0x7f72
+defw 0x8b3f
+defw 0x9084
+defw 0x98a7
+defw 0xaafa
+defw 0xaba7
+defw 0x8a7a
+defw 0x868f
+defw 0xa7c3
+defw 0xa90d
+defw 0x9160
+defw 0x91df
+defw 0xae59
+defw 0xae58
+defw 0xa2a4
+defw 0x98a7
+defw 0x8d0d
+defw 0x8d28
+defw 0x83c2
+defw 0x84e8
+defw 0x9dbd
+defw 0x8fb9
+defw 0x8d03
+defw 0x95c7
+defw 0x87ba
+defw 0xa109
+defw 0x8131
+defw 0xa526
+defw 0x8fd3
+defw 0x900b
+defw 0x8247
+defw 0x8314
+defw 0x9160
+defw 0x9084
+defw 0xa109
+defw 0xa109
+defw 0xace8
+defw 0xad13
+defw 0x9dbd
+defw 0xad8c
+defw 0xadf4
+defw 0xae29
+defw 0x74ba
+defw 0x6a18
+defw 0xaaf3
+defw 0x6ac3
+defw 0x6ac3
+defw 0x6ac3
+defw 0x8476
+defw 0x84c4
+defw 0x8581
+defw 0x6acb
+defw 0xa99d
+defw 0x74ba
+defw 0xb45d
+defw 0xa5f3
+defw 0x9f6b
+defw 0x7511
+defw 0x6c47
+defw 0xaabd
 
+
+
+; Set new value from 0xe6c6.
+;
+; We can get here from:
+;   0x6A41 (call)
 TB548h	3AC7E6..  :...	LD	A,(TE6C7H)
 TB54Bh	217B64..  !{d.	LD	HL,0647Bh
 TB54Eh	CD8340..  ..@.	CALL	A=HL[A]_hook	
 TB551h	FE04....  ....	CP	004h	
 TB553h	37......  7...	SCF		
-TB554h	C8......  ....	RET	Z		
+TB554h	C8......  ....	RET	Z	; if table value is 4, no item can be dropped.
 
 TB555h	4F......  O...	LD	C,A	
 TB556h	CD7AB5..  .z..	CALL	TB57AH	
 TB559h	D8......  ....	RET	C		
 
-TB55Ah	3AC7E6..  :...	LD	A,(TE6C7H)
-TB55Dh	21E564..  !.d.	LD	HL,064E5h
-TB560h	CD8340..  ..@.	CALL	A=HL[A]_hook	
-TB563h	0600....  ....	LD	B,000h	
-TB565h	FE03....  ....	CP	003h	
-TB567h	380B....  8...	JR	C,00Bh			; Jump to 0B574H
-TB569h	04......  ....	INC	B			;
-TB56Ah	FE06....  ....	CP	006h	
-TB56Ch	3806....  8...	JR	C,006h			; Jump to 0B574H
-TB56Eh	04......  ....	INC	B			;
-TB56Fh	FE09....  ....	CP	009h	
-TB571h	3801....  8...	JR	C,001h			; Jump to 0B574H
-TB573h	04......  ....	INC	B			;
-TB574h	78......  x...	LD	A,B	
-TB575h	32C6E6..  2...	LD	(TE6C6H),A
-TB578h	B7......  ....	OR	A	
+TB55Ah	3AC7E6..  :...	LD	A,(TE6C7H)	; Enemy type that is being killed.
+TB55Dh	21E564..  !.d.	LD	HL,064E5h	;
+TB560h	CD8340..  ..@.	CALL	A=HL[A]_hook	;
+TB563h	0600....  ....	LD	B,000h		; B = 0
+TB565h	FE03....  ....	CP	003h		;
+TB567h	380B....  8...	JR	C,00Bh		; if (A - 3 < 0) jump to 0B574H
+TB569h	04......  ....	INC	B		; B = 1
+TB56Ah	FE06....  ....	CP	006h		; 
+TB56Ch	3806....  8...	JR	C,006h		; if (A - 6 < 0) jump to 0B574H
+TB56Eh	04......  ....	INC	B		; B = 2
+TB56Fh	FE09....  ....	CP	009h		;
+TB571h	3801....  8...	JR	C,001h		; if (A - 9 < 0) jump to 0B574H
+TB573h	04......  ....	INC	B		; B = 3
+
+; We can get here from:
+;   0xB567 (jump) A <  3, B == 0 HorBlob, Gate, Fish, Bat, Insect, Hedgehog, Worm, ...
+;   0xB56C (jump) A <  6, B == 1 Twinkle, Ring Worm, Lava Flare, Bouncing Rock, Knight, Pacman, Rockman, Egg bird, ...
+;   0xB571 (jump) A <  9, B == 2 Gorilla, Fire Snake, Sparky, Cloud Demon, Mudman, Bird Dragon, ...
+;   0xB573 (jump) A >= 9, B == 3 Thunder Fire, Water Strider, Ill, ...
+TB574h	78......  x...	LD	A,B		;
+TB575h	32C6E6..  2...	LD	(TE6C6H),A	;
+TB578h	B7......  ....	OR	A		; Clears carry flag.
 TB579h	C9......  ....	RET			
 
+
+
+; Check if currently killed enemy type is already being counted, use 
+; current if it is.
 TB57Ah	21C2E6..  !...	LD	HL,0E6C2h
 TB57Dh	3AC7E6..  :...	LD	A,(TE6C7H)
 TB580h	0602....  ....	LD	B,002h	
@@ -11471,6 +11728,8 @@ TB582h	BE......  ....	CP	(HL)
 TB583h	2815....  (...	JR	Z,015h			; Jump to 0B59AH
 TB585h	23......  #...	INC	HL			;
 TB586h	10FA....  ....	DJNZ	0FAh			; Jump to 0B582H
+
+; Find new counting location for this type of enemy
 TB588h	21C2E6..  !...	LD	HL,0E6C2h
 TB58Bh	0602....  ....	LD	B,002h	
 TB58Dh	7E......  ~...	LD	A,(HL)	
@@ -11478,35 +11737,47 @@ TB58Eh	B7......  ....	OR	A
 TB58Fh	2805....  (...	JR	Z,005h			; Jump to 0B596H
 TB591h	23......  #...	INC	HL			;
 TB592h	10F9....  ....	DJNZ	0F9h			; Jump to 0B58DH
+
+; No location found: return "special" enemy (no drop)
 TB594h	37......  7...	SCF		
 TB595h	C9......  ....	RET			
 
+; record enemy type
 TB596h	3AC7E6..  :...	LD	A,(TE6C7H)
 TB599h	77......  w...	LD	(HL),A	
+
+; increment enemy count
 TB59Ah	23......  #...	INC	HL			;
 TB59Bh	23......  #...	INC	HL			;
 TB59Ch	34......  4...	INC	(HL)			;
+
 TB59Dh	79......  y...	LD	A,C	
 TB59Eh	B7......  ....	OR	A	
-TB59Fh	110301..  ....	LD	DE,00103h
+TB59Fh	110301..  ....	LD	DE,00103h	; used if code == 0
 TB5A2h	2821....  (!..	JR	Z,021h			; Jump to 0B5C5H
 TB5A4h	FE02....  ....	CP	002h	
-TB5A6h	110502..  ....	LD	DE,00205h
+TB5A6h	110502..  ....	LD	DE,00205h	; used if code == 1
 TB5A9h	381A....  8...	JR	C,01Ah			; Jump to 0B5C5H
-TB5ABh	110604..  ....	LD	DE,00406h
+TB5ABh	110604..  ....	LD	DE,00406h	; used if code == 2
 TB5AEh	2815....  (...	JR	Z,015h			; Jump to 0B5C5H
+; Code == 3 (fall through): only drop for last enemy of this type.
 TB5B0h	2100E8..  !...	LD	HL,0E800h
 TB5B3h	112000..  ....	LD	DE,00020h
-TB5B6h	3A35E6..  :5..	LD	A,(TE635H)
+TB5B6h	3A35E6..  :5..	LD	A,(TE635H)	; maximum allowed number of enemies in this room
 TB5B9h	47......  G...	LD	B,A	
-TB5BAh	3AC7E6..  :...	LD	A,(TE6C7H)
+TB5BAh	3AC7E6..  :...	LD	A,(TE6C7H)	; type of enemy being killed
 TB5BDh	BE......  ....	CP	(HL)	
-TB5BEh	280B....  (...	JR	Z,00Bh			; Jump to 0B5CBH
+TB5BEh	280B....  (...	JR	Z,00Bh			; Jump to 0B5CBH: no drop allowed
 TB5C0h	19......  ....	ADD	HL,DE	
 TB5C1h	10FA....  ....	DJNZ	0FAh			; Jump to 0B5BDH
-TB5C3h	B7......  ....	OR	A	
+TB5C3h	B7......  ....	OR	A	; this is the last enemy of its type; allow a drop.
 TB5C4h	C9......  ....	RET			
 
+; Enemy code from table is 0, 1 or 2. D and E are counts at which an item can be dropped.
+; If 0, DE = 0x0103
+; If 1, DE = 0x0205
+; If 2, DE = 0x0406
+; HL is number of enemies of this type that have been killed so far.
 TB5C5h	7A......  z...	LD	A,D	
 TB5C6h	BE......  ....	CP	(HL)	
 TB5C7h	C8......  ....	RET	Z		

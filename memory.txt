@@ -105,10 +105,10 @@ e000
 		
 		0x67F4 == handle_itemscreen_controls(), this routine 
 		uses/sets/computes 0xE04E.
-	e052:	Maximum vitality possible for Aphrodite. Multiple of 8.
-	e053:	Current vitality of Aphrodite?
-	e056:	Maximum vitality possible for Popolon. Multiple of 8.
-	e057:	Current vitality of Popolon?
+	e052:	Current vitality of Aphrodite?
+	e053:	Maximum vitality possible for Aphrodite. Multiple of 8.
+	e056:	Current vitality of Popolon?
+	e057:	Maximum vitality possible for Popolon. Multiple of 8.
 	e058:
 		When F1 is pressed:
 			0: Aphrodite is dead and not choosable
@@ -702,6 +702,8 @@ e000
 		0xB00C (page 1/2/3): Set to 0. Player is not in water.
 		0xB05A (page 1/2/3): Set to 1 or 2. Player is in water.
 		0xB078 (page 1/2/3): Decremented?!
+	e514:
+		0xB396@3: Set
 	e516: Has something to do with disappearing ladder on which side the player is facing.
 	e518: Invulnerable
 		Found in /usr/share/openmsx/scripts/_trainerdefs.tcl
@@ -829,6 +831,14 @@ e000
 	e692: position of selector in shop
 	e693: T90BCh (page 1/2/3)
 	e694: T90B2h (page 1/2/3)
+	e6a1:
+		0x9EF6@798 Stored, where a ladder appears.
+	e6c2, e6c3: enemy types of first two enemies killed on this screen (initially 0)
+	e6c4, e6c5: number of those types killed respectively
+	e6c6: item drop rate category
+		0xB575 (page 4/5/6) set. Possible values: 0, 1, 2, 3
+		0x6A77 (page 4/5/6) loaded.
+	e6c7: enemy type that is being killed
 	e700:
 		Index for table at 0x7F97 (page 1/2/3), 1 based. (So 0x7F98 is we make it 0 based.)
 		0xB9D2:
@@ -862,7 +872,7 @@ e000
 		
 		Appear location of vase (and probably for all items), in 
 		screenbuffer. Top left. For example vase: 0xEF30
-	e800-?e99f?: enemy info; 20 byte each
+	e800-?e99f?: on screen enemy info; 20 byte each
 		00	enemy type
 		01	initial 0
 			Fairy Dust:
@@ -910,6 +920,10 @@ e000
 		Address of where to start drawing walls which can disappear.
 		
 		World 1, room 0x0c: 0xED80
+	eb00-?
+		Backing store?
+		
+		0x7978 Seen DE == 0xEB00
 	ec00-ec07: Disappearing ladder.
 								room 0d	room 13	room 15	room 3c	room 46	room 49	room 56	room 66	room 6a room 74	room 7c	room 85	room 88
 		ec00: non zero if disappearing ladder		01	02	03	04	05	06	07	08	09	0A	0B	0C	0D
@@ -919,11 +933,14 @@ e000
 		ec04: ?						40	40	20	40	40	80	40	40	40	40	60	40	60
 		ec05+ec06: screen buffer address		EE16	EF14	EE90	EE0A	EF06	EE06	EF0C	EE9C	EE8E	EE84	EE14	EF16	EE86
 		ec07: 00: hasn't disappeared, 01: disappeared	00	00	00	00	00	00	00	00	00	00	00	00	00
-	ec08-ecab: Appearing ladder stuff?
-							W1R0xA
-		ec08		1=Appear		0x01
-		ec09		Height			0x03
-		ec0a+ec0b	Screen buffer address	0xEE15
+	ec08-ec0b: Appearing ladder stuff
+							W1R0A  W2R07  W2R0E  W3R0C  W3R0F  W4R0F  W5R10  W6R0B  W6R08  W7R12  W8R05  W9R02
+		ec08		1=Appear		0x01   0x01   0x01   0x01   0x01   0x01   0x01   0x01   0x01   0x01   0x01   0x01
+		ec09		Height			0x03   0x03   0x03   0x03   0x03   0x03   0x03   0x03   !0x04! 0x03   0x03   0x03
+		ec0a+ec0b	Screen buffer address	0xEE15 0xED8F 0xEE19 0xED8F 0xED82 0xED8F 0xED8F 0xED8F 0xEF9C 0xEF10 0xED8F 0xED82
+		
+		0x796D@1:   Loaded, checked for non-zero.
+		0x9EE9@789: Stored, set to 1.
 	ec10:
 		Seen at 0xA310
 	ec12:
@@ -988,6 +1005,21 @@ e000
 		efc0-efdf Line 0xE Line 12 of world/castle
 		efe0-efff Line 0xF Line 13 of world/castle
 		
+		60: arrow - upper left
+		61: arrow - upper right
+		62: arrow - lower left
+		63: arrow - lower right
+		
+		64: coin - upper left
+		65: coin - upper right
+		66: coin - lower left
+		67: coin - lower right
+		
+		68: key - upper left (all black though)
+		69: key - upper right
+		6A: key - lower left
+		6B: key - lower right
+		
 		8d: shrine - left arc
 		8e: shrine - left pillar
 		93: shrine - right arc
@@ -1039,6 +1071,12 @@ e000
 		cf: door
 		f0: wall
 f000
+	f012-f013:
+		Seen at 0x6559@4
+	f014-f015:
+		Seen at 0x6553@4
+	f019:
+		Seen at 0x6639@4 where it denotes which item will appear after slaying an enemy.
 	f0f1: wanted page number from 0x6000
 	f0f2: wanted page number from 0x8000
 	f0f8:

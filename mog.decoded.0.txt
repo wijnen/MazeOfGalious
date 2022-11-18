@@ -454,7 +454,7 @@ T424Bh	C9......  ....	RET
 T424Ch	F5......  ....	PUSH	AF	
 T424Dh	CD8541..  ..A.	CALL	SetMapper456	
 T4250h	F1......  ....	POP	AF	
-T4251h	CD5165..  .Qe.	CALL	T6551H	
+T4251h	CD5165..  .Qe.	CALL	T6551H	; Create new enemy record for enemy type A (at d800+k*20)
 T4254h	C36C41..  .lA.	JP	SetMapper123		
 
 T4257h	CD8541..  ..A.	CALL	SetMapper456	

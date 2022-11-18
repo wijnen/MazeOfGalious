@@ -14730,6 +14730,7 @@ T9D8Bh	187A....  .z..	JR	07Ah			; Jump to 09E07H
 T9D8Dh	2A0EE6..  *...	LD	HL,(TE60EH)
 T9D90h	CBDE....  ....	SET	3,(HL)	
 T9D92h	CD619E..  .a..	CALL	T9E61H	
+
 ; We can get here from:
 ;   0x9EF1 (call)
 ;   0x9F91 (call)
@@ -14913,109 +14914,135 @@ T9E67h	ED5B41E0  .[A.	LD	DE,(WorldNumber)
 T9E6Bh	210307..  !...	LD	HL,00703h
 T9E6Eh	B7......  ....	OR	A			; Reset carry.
 T9E6Fh	ED52....  .R..	SBC	HL,DE	
-T9E71h	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x07 in world 2) jump
+T9E71h	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x07 in world 2) jump to 09EFAH.
 T9E74h	21030E..  !...	LD	HL,00E03h
 T9E77h	B7......  ....	OR	A	
 T9E78h	ED52....  .R..	SBC	HL,DE	
-T9E7Ah	CAFF9E..  ....	JP	Z,T9EFFH		; if (room 0x0E in world 2) jump
+T9E7Ah	CAFF9E..  ....	JP	Z,T9EFFH		; if (room 0x0E in world 2) jump to 09EFFH.
 T9E7Dh	21040C..  !...	LD	HL,00C04h
 T9E80h	B7......  ....	OR	A	
 T9E81h	ED52....  .R..	SBC	HL,DE	
-T9E83h	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x0C in world 3) jump
+T9E83h	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x0C in world 3) jump to 09EFAH.
 T9E86h	21040F..  !...	LD	HL,00F04h
 T9E89h	B7......  ....	OR	A	
 T9E8Ah	ED52....  .R..	SBC	HL,DE	
-T9E8Ch	CA109F..  ....	JP	Z,T9F10H		; if (room 0x0F in world 3) jump
+T9E8Ch	CA109F..  ....	JP	Z,T9F10H		; if (room 0x0F in world 3) jump to 09F10H.
 T9E8Fh	21050F..  !...	LD	HL,00F05h
 T9E92h	B7......  ....	OR	A	
 T9E93h	ED52....  .R..	SBC	HL,DE	
-T9E95h	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x0F in world 4) jump
+T9E95h	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x0F in world 4) jump to 09EFAH
 T9E98h	210610..  !...	LD	HL,01006h
 T9E9Bh	B7......  ....	OR	A	
 T9E9Ch	ED52....  .R..	SBC	HL,DE	
-T9E9Eh	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x10 in world 5) jump
+T9E9Eh	CAFA9E..  ....	JP	Z,T9EFAH		; if (room 0x10 in world 5) jump to 09EFAH.
 T9EA1h	21070B..  !...	LD	HL,00B07h
 T9EA4h	B7......  ....	OR	A	
 T9EA5h	ED52....  .R..	SBC	HL,DE	
-T9EA7h	2851....  (Q..	JR	Z,051h			; if (room 0x0B in world 6) Jump to 09EFAH
+T9EA7h	2851....  (Q..	JR	Z,051h			; if (room 0x0B in world 6) jump to 09EFAH.
 T9EA9h	210708..  !...	LD	HL,00807h
 T9EACh	B7......  ....	OR	A	
 T9EADh	ED52....  .R..	SBC	HL,DE	
-T9EAFh	2853....  (S..	JR	Z,053h			; if (room 0x08 in world 6) Jump to 09F04H
+T9EAFh	2853....  (S..	JR	Z,053h			; if (room 0x08 in world 6) jump to 09F04H.
 T9EB1h	210812..  !...	LD	HL,01208h
 T9EB4h	B7......  ....	OR	A	
 T9EB5h	ED52....  .R..	SBC	HL,DE	
-T9EB7h	2852....  (R..	JR	Z,052h			; if (room 0x12 in world 7) Jump to 09F0BH
+T9EB7h	2852....  (R..	JR	Z,052h			; if (room 0x12 in world 7) jump to 09F0BH.
 T9EB9h	210905..  !...	LD	HL,00509h
 T9EBCh	B7......  ....	OR	A	
 T9EBDh	ED52....  .R..	SBC	HL,DE	
-T9EBFh	2839....  (9..	JR	Z,039h			; if (room 0x05 in world 8) Jump to 09EFAH. Ladder to Demeter (carpet)
+T9EBFh	2839....  (9..	JR	Z,039h			; if (room 0x05 in world 8) jump to 09EFAH. Ladder to Demeter (carpet)
 T9EC1h	210A02..  !...	LD	HL,0020Ah
 T9EC4h	B7......  ....	OR	A	
 T9EC5h	ED52....  .R..	SBC	HL,DE	
-T9EC7h	2847....  (G..	JR	Z,047h			; if (room 0x02 in world 9) Jump to 09F10H
+T9EC7h	2847....  (G..	JR	Z,047h			; if (room 0x02 in world 9) jump to 09F10H.
 T9EC9h	210A0A..  !...	LD	HL,00A0Ah
 T9ECCh	B7......  ....	OR	A	
 T9ECDh	ED52....  .R..	SBC	HL,DE	
-T9ECFh	2844....  (D..	JR	Z,044h			; if (room 0x0A in world 9) Jump to 09F15H
+T9ECFh	2844....  (D..	JR	Z,044h			; if (room 0x0A in world 9) jump to 09F15H.
 T9ED1h	210A12..  !...	LD	HL,0120Ah
 T9ED4h	B7......  ....	OR	A	
 T9ED5h	ED52....  .R..	SBC	HL,DE	
-T9ED7h	2821....  (!..	JR	Z,021h			; if (room 0x12 in world 9) Jump to 09EFAH. Ladder to Demeter ("A GATE WHICH LEARDS TO GALIOUS WILL APPEAR SOMEWHERE IN THE CASTLE." Spelling mistake "LEARDS" is in the game.)
+T9ED7h	2821....  (!..	JR	Z,021h			; if (room 0x12 in world 9) jump to 09EFAH. Ladder to Demeter ("A GATE WHICH LEARDS TO GALIOUS WILL APPEAR SOMEWHERE IN THE CASTLE." Spelling mistake "LEARDS" is in the game.)
 T9ED9h	21020A..  !...	LD	HL,00A02h
 T9EDCh	B7......  ....	OR	A	
 T9EDDh	ED52....  .R..	SBC	HL,DE	
-T9EDFh	C0......  ....	RET	NZ			; if (room 0x0A in world 1) jump
+T9EDFh	C0......  ....	RET	NZ			; if (room 0x0A in world 1) fall through.
 
-T9EE0h	2115EE..  !...	LD	HL,0EE15h
 ; We can get here from:
-;   0x9EE0 (fall) HL == 0xEE15
+;   0x9EDF Room 0x0A in world 1
+T9EE0h	2115EE..  !...	LD	HL,0EE15h		; Top of ladder.
+
+; We can get here from:
+;   0x9EE0 (fall) HL == 0xEE15 W1x0A
 ;   0x9EFD (jump) HL == 0xED8F
 ;   0x9F02 (jump) HL == 0xEE19
 ;   0x9F0E (jump) HL == 0xEF10
 ;   0x9F13 (jump) HL == 0xED82
 ;   0x9F18 (jump) HL == 0xED84
-T9EE3h	3E03....  >...	LD	A,003h	
+T9EE3h	3E03....  >...	LD	A,003h			; A = 3 Default height of appearing ladder.
 ; We can get here from
-;   0x9EE3 (fall) A == 3
-;   0x9F09 (jump) A == 4
+;   0x9F09 (jump) A == 4, HL == EF9C, World 6, room 0x08, slightly longer ladder needed.
+;   0x9EE3 (fall) A == 3 All rooms, just not world 6 room 0x08.
 T9EE5h	EB......  ....	EX	DE,HL	
 T9EE6h	2108EC..  !...	LD	HL,0EC08h
-T9EE9h	3601....  6...	LD	(HL),001h
+T9EE9h	3601....  6...	LD	(HL),001h		; *(0xEC08) = 1 ?mark?
 T9EEBh	2C......  ,...	INC	L			;
-T9EECh	77......  w...	LD	(HL),A	
+T9EECh	77......  w...	LD	(HL),A			; *(0xEC09) = ladder height
 T9EEDh	2C......  ,...	INC	L			;
-T9EEEh	73......  s...	LD	(HL),E	
+T9EEEh	73......  s...	LD	(HL),E			; *(0xEC0A) = top of ladder (low byte)
 T9EEFh	2C......  ,...	INC	L			;
-T9EF0h	72......  r...	LD	(HL),D	
-T9EF1h	CD959D..  ....	CALL	T9D95H	
+T9EF0h	72......  r...	LD	(HL),D			; *(0xEC0B) = top of ladder (high byte)
+T9EF1h	CD959D..  ....	CALL	T9D95H			; Play appearing item/ladder sound.
 T9EF4h	3E01....  >...	LD	A,001h			; A = 1
 T9EF6h	32A1E6..  2...	LD	(TE6A1H),A		; *(0xe6a1) = 1 (?BuildBridge in World2?)
 T9EF9h	C9......  ....	RET				;
 
 
 
-T9EFAh	218FED..  !...	LD	HL,0ED8Fh
+; We can get here from:
+;   0x9E71 Room 0x07 in world 2
+;   0x9E83 Room 0x0C in world 3
+;   0x9E95 Room 0x0F in world 4
+;   0x9E9E Room 0x10 in world 5
+;   0x9EA7 Room 0x0B in world 6
+;   0x9EBF Room 0x05 in world 8
+;   0x9ED7 Room 0x12 in world 9
+T9EFAh	218FED..  !...	LD	HL,0ED8Fh		; Top of ladder, in screenbuffer.
 T9EFDh	18E4....  ....	JR	0E4h			; Jump to 09EE3H
 
-T9EFFh	2119EE..  !...	LD	HL,0EE19h
+; We can get here from:
+;   0x9E7A Room 0x0E in world 2
+T9EFFh	2119EE..  !...	LD	HL,0EE19h		; Top of ladder, in screenbuffer.
 T9F02h	18DF....  ....	JR	0DFh			; Jump to 09EE3H
 
-T9F04h	219CEF..  !...	LD	HL,0EF9Ch
-T9F07h	3E04....  >...	LD	A,004h	
+; We can get here from:
+;   0x9EAF Room 0x08 in world 6 - extra height is needed to overwrite grey brick wall.
+T9F04h	219CEF..  !...	LD	HL,0EF9Ch		; Top of ladder, in screenbuffer.
+T9F07h	3E04....  >...	LD	A,004h			; A = 4, height of ladder.
 T9F09h	18DA....  ....	JR	0DAh			; Jump to 09EE5H
 
-T9F0Bh	2110EF..  !...	LD	HL,0EF10h
+; We can get here from:
+;   0x9EB7 Room 0x12 in world 7
+T9F0Bh	2110EF..  !...	LD	HL,0EF10h		; Top of ladder, in screenbuffer.
 T9F0Eh	18D3....  ....	JR	0D3h			; Jump to 09EE3H
 
-T9F10h	2182ED..  !...	LD	HL,0ED82h
+; We can get here from:
+;   0x9E8C Room 0x0F in world 3
+;   0x9EC7 Room 0x02 in world 9
+T9F10h	2182ED..  !...	LD	HL,0ED82h		; Top of ladder, in screenbuffer.
 T9F13h	18CE....  ....	JR	0CEh			; Jump to 09EE3H
 
-T9F15h	2184ED..  !...	LD	HL,0ED84h
+; We can get here from:
+;   0x9ECF Room 0x0A in world 9
+T9F15h	2184ED..  !...	LD	HL,0ED84h		; Top of ladder, in screenbuffer.
 T9F18h	18C9....  ....	JR	0C9h			; Jump to 09EE3H
 
+
+
+; We can get here from:
+;   0x5188@0
 T9F1Ah	ED5B41E0  .[A.	LD	DE,(WorldNumber)
-T9F1Eh	210404..  !...	LD	HL,00404h
+T9F1Eh	210404..  !...	LD	HL,00404h		; World 3, room 4
 T9F21h	B7......  ....	OR	A	
 T9F22h	ED52....  .R..	SBC	HL,DE	
 T9F24h	2871....  (q..	JR	Z,071h			; Jump to 09F97H

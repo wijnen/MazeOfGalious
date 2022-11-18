@@ -2485,6 +2485,9 @@ T6F6Fh	3E99....  >...	LD	A,099h
 T6F71h	77......  w...	LD	(HL),A	
 T6F72h	C9......  ....	RET			
 
+; ?Code involved when an enemy is killed and an item must appear?
+; We can get here from:
+;   0x6F2F (jump) From a switch
 T6F73h	DD6E12..  .n..	LD	L,(IX+012h)
 T6F76h	DD6613..  .f..	LD	H,(IX+013h)
 T6F79h	DD7E0A..  .~..	LD	A,(IX+00Ah)
@@ -3175,6 +3178,8 @@ T7350h	09......  ....	ADD	HL,BC
 T7351h	3D......  ....	DEC	A	
 T7352h	20F9....  ....	JR	NZ,0F9h			; Jump to 0734DH
 T7354h	C9......  ....	RET			
+
+
 
 T7355h	3AC9EA..  :...	LD	A,(TEAC9H)
 T7358h	B7......  ....	OR	A	
@@ -4299,13 +4304,19 @@ T7969h	3D......  ....	DEC	A
 T796Ah	20F1....  ....	JR	NZ,0F1h			; Jump to 0795DH
 T796Ch	C9......  ....	RET			
 
+
+
+; We can get here from:
+;   0x77EE@123
 T796Dh	3A08EC..  :...	LD	A,(TEC08H)
 T7970h	B7......  ....	OR	A	
 T7971h	C8......  ....	RET	Z		
 
-T7972h	2A0AEC..  *...	LD	HL,(TEC0AH)
-T7975h	3A09EC..  :...	LD	A,(TEC09H)
+T7972h	2A0AEC..  *...	LD	HL,(TEC0AH)		; Load top of ladder.
+T7975h	3A09EC..  :...	LD	A,(TEC09H)		; Load ladder height
 T7978h	180B....  ....	JR	00Bh			; Jump to 07985H
+
+
 
 T797Ah	3A00EC..  :...	LD	A,(TEC00H)
 T797Dh	B7......  ....	OR	A	
@@ -4313,13 +4324,20 @@ T797Eh	C8......  ....	RET	Z
 
 T797Fh	2A05EC..  *...	LD	HL,(TEC05H)
 T7982h	3A03EC..  :...	LD	A,(TEC03H)
-T7985h	EDA0....  ....	LDI		
-T7987h	EDA0....  ....	LDI		
-T7989h	011E00..  ....	LD	BC,0001Eh
+
+; We can get here from:
+;   0x7978 (jump) DE == 0xEB00
+;   0x7982 (fall)
+;   0x798E (jump)
+T7985h	EDA0....  ....	LDI				; *DE = *HL, ++DE, ++HL, --BC
+T7987h	EDA0....  ....	LDI				; *DE = *HL, ++DE, ++HL, --BC
+T7989h	011E00..  ....	LD	BC,0001Eh		; 
 T798Ch	09......  ....	ADD	HL,BC	
 T798Dh	3D......  ....	DEC	A	
 T798Eh	20F5....  ....	JR	NZ,0F5h			; Jump to 07985H
 T7990h	C9......  ....	RET			
+
+
 
 T7991h	3AC9EA..  :...	LD	A,(TEAC9H)
 T7994h	B7......  ....	OR	A	
@@ -12867,53 +12885,60 @@ TB38Bh	18D9....  ....	JR	0D9h			; Jump to 0B366H
 ; We can get here from:
 ;   0xB386 (call)
 TB38Dh	DD7E07..  .~..	LD	A,(IX+007h)
-TB390h	92......  ....	SUB	D			; A -= D
-TB391h	3E00....  >...	LD	A,000h			; A = 0
-TB393h	3001....  0...	JR	NC,001h			; Jump to 0B396H
-TB395h	3C......  <...	INC	A			;
+TB390h	92......  ....	SUB	D		; A -= D
+TB391h	3E00....  >...	LD	A,000h		; A = 0
+TB393h	3001....  0...	JR	NC,001h		; Jump to 0B396H
+TB395h	3C......  <...	INC	A		;
 TB396h	3214E5..  2...	LD	(TE514H),A
 TB399h	C9......  ....	RET			
 
 TB39Ah	DD7E00..  .~..	LD	A,(IX+000h)
 TB39Dh	4F......  O...	LD	C,A	
 TB39Eh	FE19....  ....	CP	019h	
-TB3A0h	2010....  ....	JR	NZ,010h			; Jump to 0B3B2H
+TB3A0h	2010....  ....	JR	NZ,010h		; Jump to 0B3B2H
 TB3A2h	DD7E1B..  .~..	LD	A,(IX+01Bh)
 TB3A5h	21AEB3..  !...	LD	HL,0B3AEh
 TB3A8h	CD5541..  .UA.	CALL	A=HL[A]	
 TB3ABh	47......  G...	LD	B,A	
-TB3ACh	1811....  ....	JR	011h			; Jump to 0B3BFH
+TB3ACh	1811....  ....	JR	011h		; Jump to 0B3BFH
 
 TB3AEh	010204..  ....	LD	BC,00402h
 TB3B1h	08......  ....	EX	AF,AF'	
 TB3B2h	CDF441..  ..A.	CALL	SetMapper4	
 TB3B5h	0600....  ....	LD	B,000h	
-TB3B7h	21E564..  !.d.	LD	HL,064E5h
+TB3B7h	21E564..  !.d.	LD	HL,064E5h	; HL = enemy_id2base_vitaly_decrease
 TB3BAh	09......  ....	ADD	HL,BC	
-TB3BBh	46......  F...	LD	B,(HL)	
+TB3BBh	46......  F...	LD	B,(HL)		; B = vitality decrease when player is hit
 TB3BCh	CDE941..  ..A.	CALL	SetMapper1	
+
+; Helm decreases the damage takes from enemies:
+;   if (damage >= 2) damage /= 2
+; So, the minimal damage when using the helm, is 1.
 TB3BFh	3A88E0..  :...	LD	A,(TE088H)	; Helm
 TB3C2h	B7......  ....	OR	A	
-TB3C3h	2809....  (...	JR	Z,009h			; Jump to 0B3CEH
+TB3C3h	2809....  (...	JR	Z,009h		; if (no helm) Jump to 0B3CEH
 TB3C5h	48......  H...	LD	C,B	
 TB3C6h	0D......  ....	DEC	C	
-TB3C7h	2805....  (...	JR	Z,005h			; Jump to 0B3CEH
+TB3C7h	2805....  (...	JR	Z,005h		; if (B == 1) Jump to 0B3CEH
 TB3C9h	78......  x...	LD	A,B	
-TB3CAh	1F......  ....	RRA		
-TB3CBh	E67F....  ....	AND	07Fh	
+TB3CAh	1F......  ....	RRA			; Rotate right via carry (register A)
+TB3CBh	E67F....  ....	AND	07Fh		; Clear the bit that was shifted in.
 TB3CDh	47......  G...	LD	B,A	
+
 TB3CEh	3A01E5..  :...	LD	A,(am_I_Popolon)
 TB3D1h	B7......  ....	OR	A	
-TB3D2h	2152E0..  !R..	LD	HL,0E052h
-TB3D5h	2802....  (...	JR	Z,002h			; Jump to 0B3D9H
-TB3D7h	2E56....  .V..	LD	L,056h	
-TB3D9h	7E......  ~...	LD	A,(HL)	
-TB3DAh	FE06....  ....	CP	006h	
-TB3DCh	3E2A....  >*..	LD	A,02Ah			; A = 0x2A
-TB3DEh	DC1F4E..  ..N.	CALL	C,T4E1FH		; if (carry is set) play sound id 0x2A (sound for???)
-TB3E1h	78......  x...	LD	A,B	
-TB3E2h	ED44....  .D..	NEG		
+TB3D2h	2152E0..  !R..	LD	HL,0E052h	; HL = Current vitality of Aphrodite
+TB3D5h	2802....  (...	JR	Z,002h		; Jump to 0B3D9H
+TB3D7h	2E56....  .V..	LD	L,056h		; HL = Current vitality of Popolon
+TB3D9h	7E......  ~...	LD	A,(HL)		; A = vitaly of current character
+TB3DAh	FE06....  ....	CP	006h		;
+TB3DCh	3E2A....  >*..	LD	A,02Ah		; A = 0x2A
+TB3DEh	DC1F4E..  ..N.	CALL	C,T4E1FH	; if (vitaly of current character < 6) play sound id 0x2A (sound for low vitality)
+TB3E1h	78......  x...	LD	A,B		; A = vitality lost
+TB3E2h	ED44....  .D..	NEG			; A = -A
 TB3E4h	C32C61..  .,a.	JP	T612CH		
+
+
 
 TB3E7h	B7......  ....	OR	A	
 TB3E8h	DDCB037E  ...~	BIT	7,(IX+003h)
