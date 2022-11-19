@@ -16,7 +16,7 @@ when-type 0: Enemies 1 and 3. (So the first enemy killed drops an item, the seco
 when-type 1: Enemies 2 and 5
 when-type 2: Enemies 4 and 6
 when-type 3: Only the last enemy of this type on screen
-when-type 4: Those enemies never drop an item, but some drop a "fountain" of items.
+when-type 4: Those enemies never drop an item
 
 what-type 0: 1 coin (8/16), 10 arrows (2/16), 1 key (1/16), nothing (5/16)
 what-type 1: 4 coins (9/16), 20 arrows (2/16), 1 key (1/16), nothing (4/16)
