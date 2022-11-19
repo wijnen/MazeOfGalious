@@ -1,0 +1,194 @@
+MoG drops:
+
+Drop type is defined by enemy type. Each type is linked to two properties:
+Table starting at 547c@4: when-type; defines when to drop something. Range 0-4.
+Table starting at 64e6@4: damage: defines vitality points lost when hit by enemy
+
+The what-type (what is dropped when it is killed) is computed from the damage:
+damage 0-2: what-type = 0
+damage 3-5: what-type = 1
+damage 6-8: what-type = 2
+damage >=9: what-type = 3
+
+Drops happen for (at most) 2 enemies of each type per screen, so a total of 4 dropped items. If there are more than two enemy types on screen (not sure if that ever happens), only the first two types that are killed will drop items. Of those types, specific enemies will drop:
+
+when-type 0: Enemies 1 and 3. (So the first enemy killed drops an item, the second doesn't, the third does, and none after that do.)
+when-type 1: Enemies 2 and 5
+when-type 2: Enemies 4 and 6
+when-type 3: Only the last enemy of this type on screen
+when-type 4: Those enemies never drop an item, but some drop a "fountain" of items.
+
+what-type 0: 1 coin (8/16), 10 arrows (2/16), 1 key (1/16), nothing (5/16)
+what-type 1: 4 coins (9/16), 20 arrows (2/16), 1 key (1/16), nothing (4/16)
+what-type 2: 7 coins (10/16), 30 arrows (3/16), 2 keys (2/16), nothing (1/16)
+what-type 3: 10 coins (10/16), 40 arrows (3/16), 2 keys (2/16), nothing (1/16)
+
+When killing enemies up to the first drop, the payout per enemy is:
+When	What	coins	arrows	keys
+0	0	0.5	1.25	0.0625
+0	1	2.25	2.5	0.0625
+0	2	4.375	5.625	0.25
+0	3	6.25	7.5	0.25
+
+1	0	0.25	0.625	0.03125
+1	1	1.125	1.25	0.03125
+1	2	2.1875	2.8125	0.125
+1	3	3.125	3.75	0.125
+
+2	0	0.125	0.3125	0.015625
+2	1	0.5625	0.625	0.015625
+2	2	1.09375	1.40625	0.0625
+2	3	1.5625	1.875	0.0625
+
+Enemy list, sorted by what-type and when-type, excluding when-type 4:
+What-type 0:
+	When-type 0:
+		defb 0x01       ; T64E8h 03: HorBlob (when-type 0)
+		defb 0x01       ; T64F3h 0e: Bat (when-type 0)
+		defb 0x01       ; T650Dh 28: Ectoplasm (when-type 0)
+		defb 0x02       ; T64FDh 18: Worm (when-type 0)
+		defb 0x02       ; T6513h 2e: Bamboo Shoot (when-type 0)
+
+	When-type 1:
+		defb 0x01       ; T64F2h 0d: Fish (when-type 1)
+		defb 0x02       ; T64F5h 10: Insect (when-type 1)
+		defb 0x02       ; T64F6h 11: Hedgehog (when-type 1)
+		defb 0x02       ; T6506h 21: Crawler (when-type 1)
+
+	When-type 2:
+		defb 0x01       ; T6514h 2f: Frog Plant (when-type 2)
+		defb 0x01       ; T651Dh 38: VerBlob (when-type 2)
+		defb 0x02       ; T64E9h 04: Gate (when-type 2)
+		defb 0x02       ; T6501h 1c: ? (when-type 2)
+
+	When-type 3:
+		defb 0x01       ; T64FEh 19: Butterfly (when-type 3)
+		defb 0x01       ; T650Fh 2a: Poltergeist (when-type 3)
+		defb 0x01       ; T6538h 53: Mini Bat (when-type 3)
+
+What-type 1:
+	When-type 0:
+		defb 0x03       ; T64ECh 07: Ring Worm (when-type 0)
+		defb 0x05       ; T64E7h 02: Twinkle (when-type 0)
+
+	When-type 1:
+		defb 0x03       ; T64EFh 0a: Knight (when-type 1)
+		defb 0x03       ; T6505h 20: Shadow Blob (when-type 1)
+		defb 0x03       ; T6512h 2d: Frost Demon (when-type 1)
+		defb 0x04       ; T64F7h 12: Rockman (when-type 1)
+		defb 0x04       ; T6504h 1f: Goblin (when-type 1)
+		defb 0x05       ; T64F4h 0f: Pacman (when-type 1)
+
+	When-type 2:
+		defb 0x03       ; T6509h 24: Swine (when-type 2)
+		defb 0x03       ; T650Ah 25: Bones (when-type 2)
+		defb 0x04       ; T64FCh 17: Egg bird (when-type 2)
+		defb 0x05       ; T6515h 30: Seahorse Demon (when-type 2)
+
+	When-type 3:
+		defb 0x03       ; T650Bh 26: Living Helmet (when-type 3)
+		defb 0x03       ; T6523h 3e: Flocking Bird (when-type 3)
+		defb 0x05       ; T6521h 3c: Trickster ghost (when-type 3)
+
+What-type 2:
+	When-type 0:
+		defb 0x06       ; T64F8h 13: Cloud Demon (when-type 0)
+		defb 0x07       ; T64EAh 05: Fire Snake (when-type 0)
+		defb 0x07       ; T64F1h 0c: Sparky (when-type 0)
+		defb 0x08       ; T64E6h 01: Gorilla (when-type 0)
+		defb 0x08       ; T650Ch 27: Owl (when-type 0)
+
+	When-type 1:
+		defb 0x06       ; T64F9h 14: Mudman (when-type 1)
+		defb 0x06       ; T6519h 34: Bally (when-type 1)
+
+	When-type 2:
+		None
+
+	When-type 3:
+		defb 0x08       ; T6507h 22: Pea Shooter (when-type 3)
+
+	When-type 3, but also multi-drop:
+		defb 0x07       ; T6531h 4c: Fuzzball (when-type 3)
+		defb 0x08       ; T64FBh 16: Bird Dragon (when-type 3)
+
+What-type 3:
+	When-type 0:
+		None
+
+	When-type 1:
+		defb 0x0A       ; T64F0h 0b: Water Strider (when-type 1)
+
+	When-type 2:
+		None
+
+	When-type 3:
+		defb 0x0A       ; T6510h 2b: Wizard (when-type 3)
+		defb 0x0E       ; T651Eh 39: ? (when-type 3)
+		defb 0x0A       ; T6528h 43: Gero (when-type 3)
+
+	When-type 3, but also multi-drop:
+		defb 0x0A       ; T64FAh 15: Ill (when-type 3)
+		defb 0x0C       ; T6525h 40: Cyclop's Ghost (when-type 3)
+		defb 0x14       ; T6527h 42: Maner (when-type 3)
+
+
+When-type 4 enemies:
+defb 0x00       ; T6508h 23: Trapwall (when-type 4)
+defb 0x00       ; T6517h 32: Armor> (when-type 4)
+defb 0x00       ; T651Ch 37: Great Butterfly (when-type 4)
+defb 0x00       ; T651Fh 3a: Moai> (when-type 4)
+defb 0x00       ; T6524h 3f: ? (when-type 4)
+defb 0x00       ; T6533h 4e: Fairy Dust (when-type 4)
+defb 0x00       ; T6534h 4f: Fairy (when-type 4)
+defb 0x00       ; T6535h 50: <Moai (when-type 4)
+defb 0x00       ; T6536h 51: <Armor (when-type 4)
+defb 0x00       ; T653Fh 5a: ? (when-type 4)
+defb 0x00       ; T6540h 5b: Killed item (when-type 4)
+defb 0x00       ; T6541h 5c: Spiral Ball (when-type 4)
+defb 0x00       ; T6542h 5d: Arrow (when-type 4)
+defb 0x00       ; T6543h 5e: Coin (when-type 4)
+defb 0x00       ; T6544h 5f: Key (when-type 4)
+defb 0x00       ; T6548h 63: ? (when-type 4)
+defb 0x00       ; T654Fh 6A: Splash (when-type 4)
+defb 0x01       ; T6500h 1b: Fireball (when-type 4)
+defb 0x01       ; T6502h 1d: ? (when-type 4)
+defb 0x01       ; T6503h 1e: Rockman Bullet (when-type 4)
+defb 0x01       ; T6518h 33: Armor's Dart (when-type 4)
+defb 0x01       ; T652Dh 48: Butterfly Poop (when-type 4)
+defb 0x01       ; T6530h 4b: ? (when-type 4)
+defb 0x01       ; T6532h 4d: ? (when-type 4)
+defb 0x01       ; T6539h 54: Bone (when-type 4)
+defb 0x01       ; T653Ah 55: Small Bone (when-type 4)
+defb 0x01       ; T653Eh 59: Seed (when-type 4)
+defb 0x02       ; T6511h 2c: Shoe 1 (when-type 4)
+defb 0x02       ; T6516h 31: Gas (when-type 4)
+defb 0x02       ; T6520h 3b: Moai Head Projectile (when-type 4)
+defb 0x02       ; T6522h 3d: Star (when-type 4)
+defb 0x02       ; T6529h 44: ? (when-type 4)
+defb 0x02       ; T652Bh 46: ? (when-type 4)
+defb 0x02       ; T652Ch 47: ? (when-type 4)
+defb 0x02       ; T652Fh 4a: Pea Shot (when-type 4)
+defb 0x02       ; T6537h 52: Middle Bat (when-type 4)
+defb 0x02       ; T653Bh 56: Small Fireball (when-type 4)
+defb 0x02       ; T6545h 60: Maner's Arm (when-type 4)
+defb 0x02       ; T6546h 61: ? (when-type 4)
+defb 0x02       ; T6549h 64: Shoe 2 (when-type 4)
+defb 0x03       ; T64EEh 09: Bouncing Rock (when-type 4)
+defb 0x03       ; T64FFh 1a: Snake's Fire (when-type 4)
+defb 0x03       ; T651Ah 35: Rolling Rock (when-type 4)
+defb 0x04       ; T64EDh 08: Lava Flare (when-type 4)
+defb 0x04       ; T6526h 41: ? (when-type 4)
+defb 0x04       ; T652Ah 45: ? (when-type 4)
+defb 0x04       ; T653Dh 58: Crab's Breath (when-type 4)
+defb 0x04       ; T654Ah 65: Breath (when-type 4)
+defb 0x05       ; T650Eh 29: Drifting Cloud (when-type 4)
+defb 0x06       ; T651Bh 36: DingDong (when-type 4)
+defb 0x06       ; T653Ch 57: ? (when-type 4)
+defb 0x07       ; T654Eh 69: Thunder Cloud (when-type 4)
+defb 0x08       ; T652Eh 49: Huge Bat (when-type 4)
+defb 0x08       ; T6547h 62: Gero's Tongue (when-type 4)
+defb 0x08       ; T654Bh 66: ? (when-type 4)
+defb 0x0A       ; T654Dh 68: ? (when-type 4)
+defb 0x0C       ; T654Ch 67: Protectors (when-type 4)
+defb 0x12       ; T64EBh 06: Thunder Fire (when-type 4)

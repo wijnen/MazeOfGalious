@@ -358,9 +358,9 @@ if __name__ == '__main__':
 			"Cyclop's Ghost", "41", "Maner", "Gero", "44", "45", "46", "47",	# 44 and 47 are blocked by bronze shield; 41, 45, 46 by silver shield
 			"Butterfly Poop", "Huge Bat", "Pea Shot", "4B", "Fuzzball", "4D", "Fairy Dust", "Fairy",	# 4A, 4B and 4D are blocked by silver shield
 			"<Moai", "<Armor", "Middle Bat", "Mini Bat", "Bone", "Small Bone", "Small Fireball", "57",
-			"Crab's Breath", "Seed", "5A", "Killed Item", "Spiral Ball ", "5D", "5E", "5F",
+			"Crab's Breath", "Seed", "5A", "Killed Item", "Spiral Ball ", "Arrow", "Coin", "Key",
 			"Maner's Arm", "61", "Gero's Tongue", "63", "Shoe 2", "Breath", "66", "Protectors",	# 61 is blocked by silver shield
-			"68", "Thunder Cloud", "Splash", "6B")	# 68 is blocked by gold shield
+			"68", "Thunder Cloud", "Splash")	# 68 is blocked by gold shield
 	# }}}
 
 	# Read enemy data for all enemy types. {{{

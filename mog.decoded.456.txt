@@ -866,8 +866,8 @@ defb 0x02	; T647Fh 04: Gate
 defb 0x00	; T6480h 05: Fire Snake
 defb 0x04	; T6481h 06: Thunder Fire
 defb 0x00	; T6482h 07: Ring Worm
-defb 0x04	; T6483h 08: Lava Flare
 
+defb 0x04	; T6483h 08: Lava Flare
 defb 0x04	; T6484h 09: Bouncing Rock
 defb 0x01	; T6485h 0a: Knight
 defb 0x01	; T6486h 0b: Water Strider
@@ -875,8 +875,8 @@ defb 0x00	; T6487h 0c: Sparky
 defb 0x01	; T6488h 0d: Fish
 defb 0x00	; T6489h 0e: Bat
 defb 0x01	; T648Ah 0f: Pacman
-defb 0x01	; T648Bh 10: Insect
 
+defb 0x01	; T648Bh 10: Insect
 defb 0x01	; T648Ch 11: Hedgehog
 defb 0x01	; T648Dh 12: Rockman
 defb 0x00	; T648Eh 13: Cloud Demon
@@ -884,8 +884,8 @@ defb 0x01	; T648Fh 14: Mudman
 defb 0x03	; T6490h 15: Ill
 defb 0x03	; T6491h 16: Bird Dragon
 defb 0x02	; T6492h 17: Egg Bird
-defb 0x00	; T6493h 18: Worm
 
+defb 0x00	; T6493h 18: Worm
 defb 0x03	; T6494h 19: Butterfly
 defb 0x04	; T6495h 1a: Snake's Fire
 defb 0x04	; T6496h 1b: Fireball
@@ -893,8 +893,8 @@ defb 0x02	; T6497h 1c: ?
 defb 0x04	; T6498h 1d: ?
 defb 0x04	; T6499h 1e: Rockman Bullet
 defb 0x01	; T649Ah 1f: Goblin
-defb 0x01	; T649Bh 20: Shadow Blob
 
+defb 0x01	; T649Bh 20: Shadow Blob
 defb 0x01	; T649Ch 21: Crawler
 defb 0x03	; T649Dh 22: Pea Shooter
 defb 0x04	; T649Eh 23: Trapwall
@@ -902,8 +902,8 @@ defb 0x02	; T649Fh 24: Swine
 defb 0x02	; T64A0h 25: Bones
 defb 0x03	; T64A1h 26: Living Helmet
 defb 0x00	; T64A2h 27: Owl
-defb 0x00	; T64A3h 28: Ectoplasm
 
+defb 0x00	; T64A3h 28: Ectoplasm
 defb 0x04	; T64A4h 29: Drifting Cloud
 defb 0x03	; T64A5h 2a: Poltergeist
 defb 0x03	; T64A6h 2b: Wizard
@@ -911,8 +911,8 @@ defb 0x04	; T64A7h 2c: Shoe 1
 defb 0x01	; T64A8h 2d: Frost Demon
 defb 0x00	; T64A9h 2e: Bamboo Shoot
 defb 0x02	; T64AAh 2f: Frog Plant
-defb 0x02	; T64ABh 30: Seahorse Demon
 
+defb 0x02	; T64ABh 30: Seahorse Demon
 defb 0x04	; T64ACh 31: Gas
 defb 0x04	; T64ADh 32: Armor>
 defb 0x04	; T64AEh 33: Armor's Dart
@@ -920,8 +920,8 @@ defb 0x01	; T64AFh 34: Bally
 defb 0x04	; T64B0h 35: Rolling Rock
 defb 0x04	; T64B1h 36: DingDong
 defb 0x04	; T64B2h 37: Great Butterfly
-defb 0x02	; T64B3h 38: VerBlob
 
+defb 0x02	; T64B3h 38: VerBlob
 defb 0x03	; T64B4h 39: ?
 defb 0x04	; T64B5h 3a: Moai>
 defb 0x04	; T64B6h 3b: Moai Head Projectile
@@ -929,8 +929,8 @@ defb 0x03	; T64B7h 3c: Trickster ghost
 defb 0x04	; T64B8h 3d: Star
 defb 0x03	; T64B9h 3e: Flocking Bird
 defb 0x04	; T64BAh 3f: ?
-defb 0x03	; T64BBh 40: Cyclop's Ghost
 
+defb 0x03	; T64BBh 40: Cyclop's Ghost
 defb 0x04	; T64BCh 41: ?
 defb 0x03	; T64BDh 42: Maner
 defb 0x03	; T64BEh 43: Gero
@@ -938,8 +938,8 @@ defb 0x04	; T64BFh 44: ?
 defb 0x04	; T64C0h 45: ?
 defb 0x04	; T64C1h 46: ?
 defb 0x04	; T64C2h 47: ?
-defb 0x04	; T64C3h 48: Butterfly Poop
 
+defb 0x04	; T64C3h 48: Butterfly Poop
 defb 0x04	; T64C4h 49: Huge Bat
 defb 0x04	; T64C5h 4a: Pea Shot
 defb 0x04	; T64C6h 4b: ?
@@ -947,8 +947,8 @@ defb 0x03	; T64C7h 4c: Fuzzball
 defb 0x04	; T64C8h 4d: ?
 defb 0x04	; T64C9h 4e: Fairy Dust
 defb 0x04	; T64CAh 4f: Fairy
-defb 0x04	; T64CBh 50: <Moai
 
+defb 0x04	; T64CBh 50: <Moai
 defb 0x04	; T64CCh 51: <Armor
 defb 0x04	; T64CDh 52: Middle Bat
 defb 0x03	; T64CEh 53: Mini Bat
@@ -956,8 +956,8 @@ defb 0x04	; T64CFh 54: Bone
 defb 0x04	; T64D0h 55: Small Bone
 defb 0x04	; T64D1h 56: Small Fireball
 defb 0x04	; T64D2h 57: ?
-defb 0x04	; T64D3h 58: Crab's Breath
 
+defb 0x04	; T64D3h 58: Crab's Breath
 defb 0x04	; T64D4h 59: Seed
 defb 0x04	; T64D5h 5a: ?
 defb 0x04	; T64D6h 5b: Killed item
@@ -965,8 +965,8 @@ defb 0x04	; T64D7h 5c: Spiral Ball
 defb 0x04	; T64D8h 5d: Arrow
 defb 0x04	; T64D9h 5e: Coin
 defb 0x04	; T64DAh 5f: Key
-defb 0x04	; T64DBh 60: Maner's Arm
 
+defb 0x04	; T64DBh 60: Maner's Arm
 defb 0x04	; T64DCh 61: ?
 defb 0x04	; T64DDh 62: Gero's Tongue
 defb 0x04	; T64DEh 63: ?
@@ -974,6 +974,7 @@ defb 0x04	; T64DFh 64: Shoe 2
 defb 0x04	; T64E0h 65: Breath
 defb 0x04	; T64E1h 66: ?
 defb 0x04	; T64E2h 67: Protectors
+
 defb 0x04	; T64E3h 68: ?
 defb 0x04	; T64E4h 69: Thunder Cloud
 defb 0x04	; T64E5h 6A: Splash
@@ -999,101 +1000,125 @@ defb 0x04	; T64E5h 6A: Splash
 ; 0xB3B7@3 uses this table (yes, page 3, it maps page 4 temporarily instead of page 1).
 ; 0xB55D@6 uses this table.
 
-defb 0x08	; T64E6h 01: Gorilla
-defb 0x05	; T64E7h 02: Twinkle
-defb 0x01	; T64E8h 03: HorBlob
-defb 0x02	; T64E9h 04: Gate
-defb 0x07	; T64EAh 05: Fire Snake
-defb 0x12	; T64EBh 06: Thunder Fire
-defb 0x03	; T64ECh 07: Ring Worm
-defb 0x04	; T64EDh 08: Lava Flare
+defb 0x08	; T64E6h 01: Gorilla (when-type 0)
+defb 0x05	; T64E7h 02: Twinkle (when-type 0)
+defb 0x01	; T64E8h 03: HorBlob (when-type 0)
+defb 0x02	; T64E9h 04: Gate (when-type 2)
+defb 0x07	; T64EAh 05: Fire Snake (when-type 0)
+defb 0x12	; T64EBh 06: Thunder Fire (when-type 4)
+defb 0x03	; T64ECh 07: Ring Worm (when-type 0)
 
-defb 0x03	; T64EEh 09: Bouncing Rock
-defb 0x03	; T64EFh 0a: Knight
-defb 0x0A	; T64F0h 0b: Water Strider
-defb 0x07	; T64F1h 0c: Sparky
-defb 0x01	; T64F2h 0d: Fish
-defb 0x01	; T64F3h 0e: Bat
-defb 0x05	; T64F4h 0f: Pacman
-defb 0x02	; T64F5h 10: Insect
+defb 0x04	; T64EDh 08: Lava Flare (when-type 4)
+defb 0x03	; T64EEh 09: Bouncing Rock (when-type 4)
+defb 0x03	; T64EFh 0a: Knight (when-type 1)
+defb 0x0A	; T64F0h 0b: Water Strider (when-type 1)
+defb 0x07	; T64F1h 0c: Sparky (when-type 0)
+defb 0x01	; T64F2h 0d: Fish (when-type 1)
+defb 0x01	; T64F3h 0e: Bat (when-type 0)
+defb 0x05	; T64F4h 0f: Pacman (when-type 1)
 
-defb 0x02	; T64F6h 11: Hedgehog
-defb 0x04	; T64F7h 12: Rockman
-defb 0x06	; T64F8h 13: Cloud Demon
-defb 0x06	; T64F9h 14: Mudman
-defb 0x0A	; T64FAh 15: Ill
-defb 0x08	; T64FBh 16: Bird Dragon
-defb 0x04	; T64FCh 17: Egg bird
-defb 0x02	; T64FDh 18: Worm
+defb 0x02	; T64F5h 10: Insect (when-type 1)
+defb 0x02	; T64F6h 11: Hedgehog (when-type 1)
+defb 0x04	; T64F7h 12: Rockman (when-type 1)
+defb 0x06	; T64F8h 13: Cloud Demon (when-type 0)
+defb 0x06	; T64F9h 14: Mudman (when-type 1)
+defb 0x0A	; T64FAh 15: Ill (when-type 3)
+defb 0x08	; T64FBh 16: Bird Dragon (when-type 3)
+defb 0x04	; T64FCh 17: Egg bird (when-type 2)
 
-defb 0x01	; T64FEh 19: Butterfly
-defb 0x03	; T64FFh 1a: Snake's Fire
-defb 0x01	; T6500h 1b: Fireball
-defb 0x02	; T6501h 1c: ?
-defb 0x01	; T6502h 1d: ?
-defb 0x01	; T6503h 1e: Rockman Bullet
-defb 0x04	; T6504h 1f: Goblin
-defb 0x03	; T6505h 20: Shadow Blob
+defb 0x02	; T64FDh 18: Worm (when-type 0)
+defb 0x01	; T64FEh 19: Butterfly (when-type 3)
+defb 0x03	; T64FFh 1a: Snake's Fire (when-type 4)
+defb 0x01	; T6500h 1b: Fireball (when-type 4)
+defb 0x02	; T6501h 1c: ? (when-type 2)
+defb 0x01	; T6502h 1d: ? (when-type 4)
+defb 0x01	; T6503h 1e: Rockman Bullet (when-type 4)
+defb 0x04	; T6504h 1f: Goblin (when-type 1)
 
-defb 0x02	; T6506h 21: Crawler
-defb 0x08	; T6507h 22: Pea Shoote
-defb 0x00	; T6508h 23: Trapwall
-defb 0x03	; T6509h 24: Swine
-defb 0x03	; T650Ah 25: Bones
-defb 0x03	; T650Bh 26: Living Helmet
-defb 0x08	; T650Ch 27: Owl
-defb 0x01	; T650Dh 28: Ectoplasm
+defb 0x03	; T6505h 20: Shadow Blob (when-type 1)
+defb 0x02	; T6506h 21: Crawler (when-type 1)
+defb 0x08	; T6507h 22: Pea Shoote (when-type 3)
+defb 0x00	; T6508h 23: Trapwall (when-type 4)
+defb 0x03	; T6509h 24: Swine (when-type 2)
+defb 0x03	; T650Ah 25: Bones (when-type 2)
+defb 0x03	; T650Bh 26: Living Helmet (when-type 3)
+defb 0x08	; T650Ch 27: Owl (when-type 0)
 
-defb 0x05	; T650Eh 29: Drifting Cloud
-defb 0x01	; T650Fh 2a: Poltergeist
-T6510h	0A......  ....	LD	A,(BC)	
-T6511h	02......  ....	LD	(BC),A	
-T6512h	03......  ....	INC	BC			;
-T6513h	02......  ....	LD	(BC),A	
-T6514h	010502..  ....	LD	BC,00205h
-T6517h	00......  ....	NOP		
-T6518h	010603..  ....	LD	BC,00306h
-T651Bh	0600....  ....	LD	B,000h	
-T651Dh	010E00..  ....	LD	BC,0000Eh
-T6520h	02......  ....	LD	(BC),A	
-T6521h	05......  ....	DEC	B	
-T6522h	02......  ....	LD	(BC),A	
-T6523h	03......  ....	INC	BC			;
-T6524h	00......  ....	NOP		
-T6525h	0C......  ....	INC	C			;
-T6526h	04......  ....	INC	B			;
-T6527h	14......  ....	INC	D			;
-T6528h	0A......  ....	LD	A,(BC)	
-T6529h	02......  ....	LD	(BC),A	
-T652Ah	04......  ....	INC	B			;
-T652Bh	02......  ....	LD	(BC),A	
-T652Ch	02......  ....	LD	(BC),A	
-T652Dh	010802..  ....	LD	BC,00208h
-T6530h	010701..  ....	LD	BC,00107h
-T6533h	00......  ....	NOP		
-T6534h	00......  ....	NOP		
-T6535h	00......  ....	NOP		
-T6536h	00......  ....	NOP		
-T6537h	02......  ....	LD	(BC),A	
-T6538h	010101..  ....	LD	BC,00101h
-T653Bh	02......  ....	LD	(BC),A	
-T653Ch	0604....  ....	LD	B,004h	
-T653Eh	010000..  ....	LD	BC,00000h
-T6541h	00......  ....	NOP		
-T6542h	00......  ....	NOP		
-T6543h	00......  ....	NOP		
-T6544h	00......  ....	NOP		
-T6545h	02......  ....	LD	(BC),A	
-T6546h	02......  ....	LD	(BC),A	
-T6547h	08......  ....	EX	AF,AF'	
-T6548h	00......  ....	NOP		
-T6549h	02......  ....	LD	(BC),A	
-T654Ah	04......  ....	INC	B			;
-T654Bh	08......  ....	EX	AF,AF'	
-T654Ch	0C......  ....	INC	C			;
-T654Dh	0A......  ....	LD	A,(BC)	
-T654Eh	07......  ....	RLCA		
-T654Fh	00......  ....	NOP		
+defb 0x01	; T650Dh 28: Ectoplasm (when-type 0)
+defb 0x05	; T650Eh 29: Drifting Cloud (when-type 4)
+defb 0x01	; T650Fh 2a: Poltergeist (when-type 3)
+defb 0x0A	; T6510h 2b: Wizard (when-type 3)
+defb 0x02	; T6511h 2c: Shoe 1 (when-type 4)
+defb 0x03	; T6512h 2d: Frost Demon (when-type 1)
+defb 0x02	; T6513h 2e: Bamboo Shoot (when-type 0)
+defb 0x01	; T6514h 2f: Frog Plant (when-type 2)
+
+defb 0x05	; T6515h 30: Seahorse Demon (when-type 2)
+defb 0x02	; T6516h 31: Gas (when-type 4)
+defb 0x00	; T6517h 32: Armor> (when-type 4)
+defb 0x01	; T6518h 33: Armor's Dart (when-type 4)
+defb 0x06	; T6519h 34: Bally (when-type 1)
+defb 0x03	; T651Ah 35: Rolling Rock (when-type 4)
+defb 0x06	; T651Bh 36: DingDong (when-type 4)
+defb 0x00	; T651Ch 37: Great Butterfly (when-type 4)
+
+defb 0x01	; T651Dh 38: VerBlob (when-type 2)
+defb 0x0E	; T651Eh 39: ? (when-type 3)
+defb 0x00	; T651Fh 3a: Moai> (when-type 4)
+defb 0x02	; T6520h 3b: Moai Head Projectile (when-type 4)
+defb 0x05	; T6521h 3c: Trickster ghost (when-type 3)
+defb 0x02	; T6522h 3d: Star (when-type 4)
+defb 0x03	; T6523h 3e: Flocking Bird (when-type 3)
+defb 0x00	; T6524h 3f: ? (when-type 4)
+
+defb 0x0C	; T6525h 40: Cyclop's Ghost (when-type 3)
+defb 0x04	; T6526h 41: ? (when-type 4)
+defb 0x14	; T6527h 42: Maner (when-type 3)
+defb 0x0A	; T6528h 43: Gero (when-type 3)
+defb 0x02	; T6529h 44: ? (when-type 4)
+defb 0x04	; T652Ah 45: ? (when-type 4)
+defb 0x02	; T652Bh 46: ? (when-type 4)
+defb 0x02	; T652Ch 47: ? (when-type 4)
+
+defb 0x01	; T652Dh 48: Butterfly Poop (when-type 4)
+defb 0x08	; T652Eh 49: Huge Bat (when-type 4)
+defb 0x02	; T652Fh 4a: Pea Shot (when-type 4)
+defb 0x01	; T6530h 4b: ? (when-type 4)
+defb 0x07	; T6531h 4c: Fuzzball (when-type 3)
+defb 0x01	; T6532h 4d: ? (when-type 4)
+defb 0x00	; T6533h 4e: Fairy Dust (when-type 4)
+defb 0x00	; T6534h 4f: Fairy (when-type 4)
+
+defb 0x00	; T6535h 50: <Moai (when-type 4)
+defb 0x00	; T6536h 51: <Armor (when-type 4)
+defb 0x02	; T6537h 52: Middle Bat (when-type 4)
+defb 0x01	; T6538h 53: Mini Bat (when-type 3)
+defb 0x01	; T6539h 54: Bone (when-type 4)
+defb 0x01	; T653Ah 55: Small Bone (when-type 4)
+defb 0x02	; T653Bh 56: Small Fireball (when-type 4)
+defb 0x06	; T653Ch 57: ? (when-type 4)
+
+defb 0x04	; T653Dh 58: Crab's Breath (when-type 4)
+defb 0x01	; T653Eh 59: Seed (when-type 4)
+defb 0x00	; T653Fh 5a: ? (when-type 4)
+defb 0x00	; T6540h 5b: Killed item (when-type 4)
+defb 0x00	; T6541h 5c: Spiral Ball (when-type 4)
+defb 0x00	; T6542h 5d: Arrow (when-type 4)
+defb 0x00	; T6543h 5e: Coin (when-type 4)
+defb 0x00	; T6544h 5f: Key (when-type 4)
+
+defb 0x02	; T6545h 60: Maner's Arm (when-type 4)
+defb 0x02	; T6546h 61: ? (when-type 4)
+defb 0x08	; T6547h 62: Gero's Tongue (when-type 4)
+defb 0x00	; T6548h 63: ? (when-type 4)
+defb 0x02	; T6549h 64: Shoe 2 (when-type 4)
+defb 0x04	; T654Ah 65: Breath (when-type 4)
+defb 0x08	; T654Bh 66: ? (when-type 4)
+defb 0x0C	; T654Ch 67: Protectors (when-type 4)
+
+defb 0x0A	; T654Dh 68: ? (when-type 4)
+defb 0x07	; T654Eh 69: Thunder Cloud (when-type 4)
+defb 0x00	; T654Fh 6A: Splash (when-type 4)
 T6550h	00......  ....	NOP		
 
 
@@ -1908,20 +1933,20 @@ number_of_items_to_drop:
 ; Table for how many items to drop.
 ;
 ; 0x6A54 uses this table.
-defb 0x10	; T6A6Bh 00 Drop rate category 0: drop 0x10 arrows (16 arrows)
-defb 0x20	; T6A6Ch 01 Drop rate category 1: drop 0x20 arrows (32 arrows)
-defb 0x30	; T6A6Dh 02 Drop rate category 2: drop 0x30 arrows (48 arrows)
-defb 0x40	; T6A6Eh 03 Drop rage category 3: drop 0x40 arrows (64 arrows)
+defb 0x10	; T6A6Bh 00 Drop rate category 0: drop 10 arrows (bcd encoded)
+defb 0x20	; T6A6Ch 01 Drop rate category 1: drop 20 arrows (bcd encoded)
+defb 0x30	; T6A6Dh 02 Drop rate category 2: drop 30 arrows (bcd encoded)
+defb 0x40	; T6A6Eh 03 Drop rage category 3: drop 40 arrows (bcd encoded)
 
-defb 0x01	; T6A6Fh 04 Drop rate category 0: drop 0x01 coins
-defb 0x04	; T6A70h 05 Drop rate category 1: drop 0x04 coins
-defb 0x07	; T6A71h 06 Drop rate category 2: drop 0x07 coins
-defb 0x10	; T6A72h 07 Drop rate category 3: drop 0x10 coins
+defb 0x01	; T6A6Fh 04 Drop rate category 0: drop 0x01 coins (bcd encoded)
+defb 0x04	; T6A70h 05 Drop rate category 1: drop 0x04 coins (bcd encoded)
+defb 0x07	; T6A71h 06 Drop rate category 2: drop 0x07 coins (bcd encoded)
+defb 0x10	; T6A72h 07 Drop rate category 3: drop 0x10 coins (bcd encoded)
 
-defb 0x01	; T6A73h 08 Drop rate category 0: drop 0x01 keys
-defb 0x01	; T6A74h 09 Drop rate category 1: drop 0x01 keys
-defb 0x02	; T6A75h 0a Drop rate category 2: drop 0x02 keys
-defb 0x02	; T6A76h 0b Drop rate category 3: drop 0x02 keys
+defb 0x01	; T6A73h 08 Drop rate category 0: drop 0x01 keys (bcd encoded)
+defb 0x01	; T6A74h 09 Drop rate category 1: drop 0x01 keys (bcd encoded)
+defb 0x02	; T6A75h 0a Drop rate category 2: drop 0x02 keys (bcd encoded)
+defb 0x02	; T6A76h 0b Drop rate category 3: drop 0x02 keys (bcd encoded)
 
 
 
@@ -11711,7 +11736,7 @@ TB573h	04......  ....	INC	B		; B = 3
 ;   0xB567 (jump) A <  3, B == 0 HorBlob, Gate, Fish, Bat, Insect, Hedgehog, Worm, ...
 ;   0xB56C (jump) A <  6, B == 1 Twinkle, Ring Worm, Lava Flare, Bouncing Rock, Knight, Pacman, Rockman, Egg bird, ...
 ;   0xB571 (jump) A <  9, B == 2 Gorilla, Fire Snake, Sparky, Cloud Demon, Mudman, Bird Dragon, ...
-;   0xB573 (jump) A >= 9, B == 3 Thunder Fire, Water Strider, Ill, ...
+;   0xB573 (fall through) A >= 9, B == 3 Thunder Fire, Water Strider, Ill, ...
 TB574h	78......  x...	LD	A,B		;
 TB575h	32C6E6..  2...	LD	(TE6C6H),A	;
 TB578h	B7......  ....	OR	A		; Clears carry flag.

@@ -552,4 +552,23 @@ else:
 		*(ix[12:13] + 21) = character + 3
 		ret
 # }}}
+
+Item drops {{{
+Write to backing store at 6f7c@1
+From switch at 6f2f@1 (a=ix+b, ix=e800)
+Copy to e80[9ab] from *f01c at 6675@4
+f01c is written on kill at 65fe@4
+67af: HL = 67b6+5*L -> this is to pointer stored at f01c
+Source for L is *f019
+f019 is written to A (which is 5b) at 65e3@4, called from 655c@4
+A is set at b661@1
+code at b648@1 checks for special enemies (multi-drop, like bird dragon)
+	15: Ill
+	16: Bird Dragon
+	40: Cyclop's Ghost
+	4c: Fuzzball
+	42: Maner
+Also:
+	43: Gero, not multi-drop, but kill tongue if present.
+}}}
 vim: set foldmethod=marker :
