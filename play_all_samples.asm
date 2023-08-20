@@ -71,9 +71,11 @@ H.TIMI:	equ	0xfd9f	;; The H.TIMI hook is invoked at regular intervals. 50 or 60 
 H.NMI:	equ	0xfdd6	;;
 
 var_start:				equ 0xe000
-play_sample__sample_table_addr:		equ 0xe000
-play_sample__sample_start_addr:		equ 0xe002
-play_sample__sample_opcode_ptr:		equ 0xe004
+play_sample__sample_table_addr:		equ 0xe000	;; Word
+play_sample__sample_start_addr:		equ 0xe002	;; Word
+play_sample__sample_opcode_ptr:		equ 0xe004	;; Word
+play_sample__vdp_ticks_duration:	equ 0xe006	;; Byte
+play_sample__vdp_ticks_remaining:	equ 0xe007	;; Byte
 
 
 
@@ -240,8 +242,27 @@ play_sample:
         JP play_sample
   
   play_sample__start_parsing:
-  LD HL, (play_sample__sample_opcode_ptr)
+  LD A, (play_sample__vdp_ticks_remaining)
+  OR A
+  JP Z, play_sample__start_parsing2
+  ;; Keep playing whatever we are playing!
+  LD HL, play_sample__vdp_ticks_remaining
+  DEC (HL)
+  RET
   
+  play_sample__start_parsing2:
+  ;; "Duration" is defined once per sample, and should be reinitialized 
+  ;; for every tone we produce.
+  LD A, (play_sample__vdp_ticks_duration)
+  
+  ;; Decrement immediately, since we are sure we are going to play a 
+  ;; sound.
+  DEC A
+  
+  ;; Store.
+  LD (play_sample__vdp_ticks_remaining), A
+  
+  LD HL, (play_sample__sample_opcode_ptr)
   LD A, (HL)		;; Read opcode.
   LD B, A		;; Save opcode.
   
@@ -251,19 +272,19 @@ play_sample:
   
   ;; Return if end of sound.
   CP 0xFF
-  JP Z, play_sample_0xFF
+  JP Z, play_sample__0xFF
   
   ;; Return if loop.
   CP 0xFE
-  JP Z, play_sample_0xFE
+  JP Z, play_sample__0xFE
   
   ;; Compare high nybble.
   AND 0xF0
   CP 0x20
-  JP Z, play_sample_0x2y
+  JP Z, play_sample__0x2y
   
   CP 0x10
-  JP Z, play_sample_0x1y
+  JP Z, play_sample__0x1y
   
   ;; Nothing special, just volume and frequency divider.
   ;;
@@ -297,42 +318,49 @@ play_sample:
   
   
   
-  play_sample_0x1y:
+  play_sample__0x1y:
     LD A, B	;; Restore opcode.
     AND 0x0F	;; Select low nybble.
     RLCA	;; Multiply by 2.
     LD E, A	;; WRTPSG: value (noise period/frequency)
     LD A, 0x06	;; WRTPSG: regsiter (noise period/frequency)
     JP WRTPSG
-    ;JP play_sample_0x1y
   
-  play_sample_0x2y:
+  play_sample__0x2y:
     ;; Read duration (in VDP ticks).
     LD A, (HL)
     INC HL
     LD (play_sample__sample_opcode_ptr), HL
     
+    ;; Save duration.
+    LD (play_sample__vdp_ticks_duration), A
+    
+    ;; Set number of ticks remaining to 0.
+    XOR A
+    LD (play_sample__vdp_ticks_remaining), A
+    
     ;; PSG register 7: bit 7 MUST be 1, bit 6 MUST be 0, mute all channels.
     LD A, 0xBF
     
-    play_sample_0x2y_bit0:
+    play_sample__0x2y_bit0:
       ;; bit 0: noise
       BIT 0, B
-      JP Z, play_sample_0x2y_bit1
+      JP Z, play_sample__0x2y_bit1
       AND 0xF7		;; Clear bit 3 (enable noise for channel A).
     
-    play_sample_0x2y_bit1:
+    play_sample__0x2y_bit1:
       ;; bit 1: tone
       BIT 1, B
-      JP Z, play_sample_0x2y_change_mixer_settings
+      JP Z, play_sample__0x2y_change_mixer_settings
       AND 0xFE		;; Clear bit 0 (enable tone for channel A).
     
-    play_sample_0x2y_change_mixer_settings:
+    play_sample__0x2y_change_mixer_settings:
       LD E, A		;; WRTPSG: value
       LD A, 0x07	;; WRTPSG: register (change mixer settings).
       JP WRTPSG
   
-  play_sample_0xFE:
+  ;; T64CAh
+  play_sample__0xFE:
     ;; FIXME
     INC HL
     INC HL
@@ -340,7 +368,8 @@ play_sample:
     LD (play_sample__sample_opcode_ptr), HL
     RET
   
-  play_sample_0xFF:
+  ;; T64C3h
+  play_sample__0xFF:
     LD HL, (play_sample__sample_start_addr)
     LD (play_sample__sample_opcode_ptr), HL
     RET
