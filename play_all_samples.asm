@@ -31,6 +31,7 @@ defw 0x0000
 defw 0x0000
 
 
+
 ;; Function : Compares HL with DE
 ;; Input    : HL, DE
 ;; Output   : Zero flag set if HL and DE are equal. Carry flag set if HL is less than DE.
@@ -76,6 +77,15 @@ play_sample__sample_start_addr:		equ 0xe002	;; Word
 play_sample__sample_opcode_ptr:		equ 0xe004	;; Word
 play_sample__vdp_ticks_duration:	equ 0xe006	;; Byte
 play_sample__vdp_ticks_remaining:	equ 0xe007	;; Byte
+play_sample__loop__num_remaining:	equ 0xe008	;; Byte
+play_sample__loop__jump_addr:		equ 0xe009	;; Word
+
+; ram_watch add 0xe000 -type u16 -format hex -desc table_addr
+; ram_watch add 0xe002 -type u16 -format hex -desc start_addr
+; ram_watch add 0xe004 -type u16 -format hex -desc opcode_addr
+; ram_watch add 0xe007 -type u8  -format hex -desc ticks
+; ram_watch add 0xe008 -type u8  -format hex -desc ticks_rem
+; ram_watch add 0xe009 -type u16 -format hex -desc loop_addr
 
 
 
@@ -124,7 +134,7 @@ init:
   LD (0xA000), A	;; Map page F (0x1e000-0x1ffff).
   
   ;; Clear memory.
-  LD A, 0x00
+  XOR A
   LD (var_start), A
   LD BC, 0x0FFF
   LD HL, 0xE000
@@ -266,23 +276,26 @@ play_sample:
   LD A, (HL)		;; Read opcode.
   LD B, A		;; Save opcode.
   
-  ;; Update pointer to next opcode.
+  ;; Update pointer to first argument, or next opcode.
   INC HL
   LD (play_sample__sample_opcode_ptr), HL
   
-  ;; Return if end of sound.
+  ;; Opcode 0xFF means: end of sample.
   CP 0xFF
   JP Z, play_sample__0xFF
   
-  ;; Return if loop.
+  ;; Opcode 0xFE means: loop part of this sample.
   CP 0xFE
   JP Z, play_sample__0xFE
   
   ;; Compare high nybble.
   AND 0xF0
+  
+  ;; Opcode 0x2x means: stop or start producing tone/noise.
   CP 0x20
   JP Z, play_sample__0x2y
   
+  ;; Opcode 0x1x means: Set noise period/frequency.
   CP 0x10
   JP Z, play_sample__0x1y
   
@@ -321,7 +334,7 @@ play_sample:
   play_sample__0x1y:
     LD A, B	;; Restore opcode.
     AND 0x0F	;; Select low nybble.
-    RLCA	;; Multiply by 2.
+    RLCA	;; Multiply by 2, since PSG register 6 accepts [0..31].
     LD E, A	;; WRTPSG: value (noise period/frequency)
     LD A, 0x06	;; WRTPSG: regsiter (noise period/frequency)
     JP WRTPSG
@@ -361,12 +374,59 @@ play_sample:
   
   ;; T64CAh
   play_sample__0xFE:
-    ;; FIXME
+    LD DE, (play_sample__loop__jump_addr)
+    LD A, D
+    OR A
+    JP NZ, play_sample__loop__jump_addr_already_set
+    LD A, E
+    JP NZ, play_sample__loop__jump_addr_already_set
+    
+    ;; Post: DE == 0x0000, *play_sample__loop__jump_addr == 0x0000. The 
+    ;; jump address is not set, this is the first time we see this 0xFE 
+    ;; opcode.
+    ;;
+    ;; Load and store the number of loops requested.
+    LD A, (HL)
+    LD (play_sample__loop__num_remaining), A
     INC HL
+    
+    ;; Load and store jump address (the loop to address).
+    LD E, (HL)
     INC HL
+    LD D, (HL)
     INC HL
-    LD (play_sample__sample_opcode_ptr), HL
-    RET
+    LD (play_sample__loop__jump_addr), DE
+    JP play_sample__loop__jump_addr__initialized
+    
+    play_sample__loop__jump_addr_already_set:
+      ;; We don't need the value of num loops and jump address.
+      INC HL
+      INC HL
+      INC HL
+      
+    play_sample__loop__jump_addr__initialized:
+      LD A, (play_sample__loop__num_remaining)
+      OR A
+      JP Z, play_sample__loop__done_looping
+      
+      play_sample__loop__need_more_looping:
+        ;; Decrement loop count and loop.
+        DEC A
+        LD (play_sample__loop__num_remaining), A
+        LD HL, (play_sample__loop__jump_addr)
+        LD (play_sample__sample_opcode_ptr), HL
+        JP play_sample
+
+      play_sample__loop__done_looping:
+        ;; Point to next opcode.
+        LD (play_sample__sample_opcode_ptr), HL
+        
+        ;; Un-initialize, so next 0xFE reinits properly.
+        LD HL, 0x0000
+        LD (play_sample__loop__jump_addr), HL
+        
+        ;; We haven't produced sound this VDP tick, so jump, not return.
+        JP play_sample
   
   ;; T64C3h
   play_sample__0xFF:
